@@ -1,5 +1,7 @@
 pub mod error;
 mod util;
+
+use std::collections::HashMap;
 use std::ops::{Add, Mul, Not, Sub};
 use std::fmt::{Display, Formatter};
 use std::sync::{mpsc, Arc};
@@ -7,7 +9,7 @@ use std::thread;
 
 pub struct Matrix<T>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     height: u64,
@@ -18,7 +20,7 @@ where
 
 pub fn new<T>(height: u64, width: u64, vec: Vec<T>) -> Result<Matrix<T>, error::OperationError>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     if height * width != vec.len().try_into().unwrap() {
@@ -42,7 +44,7 @@ where
 
 impl<T> Clone for Matrix<T>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     fn clone(&self) -> Self {
@@ -55,12 +57,47 @@ where
 
 impl<T> Matrix<T>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     pub fn get(&self, x: u64, y: u64) -> Option<T> {
         let index: usize = (y * self.width + x) as usize;
         self.data.get(index).cloned()
+    }
+
+    pub fn det(&self) -> Result<T, error::OperationError> {
+        if self.height != self.width {
+            return Result::Err(error::OperationError { message: "height and width should be equal".to_string() });
+        }
+        let mut sum = T::default();
+        let mut err: Option<error::OperationError> = None;
+        let permutation = util::permutation(self.height)?;
+        thread::scope(|scope| {
+            let data_arc = Arc::new(self.data.clone());
+            let (sender, receiver) = mpsc::channel
+                ::<Result<T, error::OperationError>>();
+            for perm in permutation {
+                let data = data_arc.clone();
+                let s = sender.clone();
+                scope.spawn(move || {
+                    let res = util::determinant_in_one_permutation(&data, &perm);
+                    s.send(res).unwrap();
+                });
+            }
+            drop(sender);
+            for res in receiver {
+                match res {
+                    Ok(x) => {
+                        sum = sum + x;
+                    }
+                    Err(e) => err = Some(e),
+                }
+            }
+        });
+        if let Some(e) = err {
+            return Result::Err(e);
+        }
+        Result::Ok(sum)
     }
 
     pub fn height(&self) -> u64 {
@@ -138,7 +175,7 @@ where
 
 impl<T> Display for Matrix<T>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -170,7 +207,7 @@ where
 
 impl<T> Not for Matrix<T>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     type Output = Matrix<T>;
@@ -192,7 +229,7 @@ where
 
 impl<T> Add for Matrix<T>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     type Output = Matrix<T>;
@@ -210,7 +247,7 @@ where
 
 impl<T> Sub for Matrix<T>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     type Output = Matrix<T>;
@@ -227,7 +264,7 @@ where
 
 impl<T> Mul for Matrix<T>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     type Output = Matrix<T>;
@@ -454,16 +491,48 @@ mod test {
         println!("{}", m1);
 
 
-        let m = new(1,3,vec![1,2,3]).unwrap();
+        let m = new(1, 3, vec![1, 2, 3]).unwrap();
         let m1 = !m;
-        println!("{}",m1);
+        println!("{}", m1);
         assert_eq!(3, m1.height);
         assert_eq!(1, m1.width);
 
-        let m = new(3,1,vec![1,2,3]).unwrap();
+        let m = new(3, 1, vec![1, 2, 3]).unwrap();
         let m1 = !m;
-        println!("{}",m1);
+        println!("{}", m1);
         assert_eq!(1, m1.height);
         assert_eq!(3, m1.width);
+    }
+
+    #[test]
+    fn test_determinant_ok() {
+        let m1 = new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
+        let result = m1.det();
+        assert!(result.is_ok());
+        if let Ok(x) = result {
+            println!("{}", x);
+        }
+
+        let m1 = new(2, 2, vec![2, 3, 4, 5]).unwrap();
+        let result = m1.det().unwrap();
+        assert_eq!(-2, result);
+
+        let m1 = new(4, 4, vec![1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4]).unwrap();
+        let result = m1.det().unwrap();
+        assert_eq!(24, result);
+
+        let m1: Matrix<i32> = new(4, 4, vec![1, 2, 3, 4, 2, 4, 6, 8, 3, 6, 9, 12, 4, 8, 12, 16]).unwrap();
+        let result = m1.det().unwrap();
+        assert_eq!(0, result);
+
+        let m1 = new(5, 5, vec![
+            1, 1, 1, 1, 1,
+            1, 2, 3, 4, 5,
+            1, 3, 6, 10, 15,
+            1, 3, 10, 20, 35,
+            1, 5, 15, 35, 70,
+        ]).unwrap();
+        let result = m1.det().unwrap();
+        assert_eq!(-18, result);
     }
 }

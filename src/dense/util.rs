@@ -7,7 +7,7 @@ use crate::dense::error;
 
 pub struct CalculateResult<T>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     pub x: u64,
@@ -56,7 +56,7 @@ pub fn get_boundary_char(row: u64, height: u64) -> (String, String) {
 
 pub fn calculate_in_threads<'a, T, F>(a_data: &'a Vec<T>, b_data: &'a Vec<T>, height: u64, width: u64, func: F) -> Result<Vec<T>, error::OperationError>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     F: Fn(T, T) -> T + Send + Sync + Copy,
     f64: From<T>,
 {
@@ -100,7 +100,7 @@ where
 
 pub fn calculate_multi<T>(a: &Vec<T>, b: &Vec<T>, _a_height: u64, b_width: u64, cur_row: u64, cur_col: u64, count: u64) -> Result<CalculateResult<T>, error::OperationError>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64>,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     let mut sum: T = T::default();
@@ -115,6 +115,90 @@ where
         sum = sum + value;
     }
     Result::Ok(CalculateResult { x: cur_col, y: cur_row, value: sum })
+}
+
+
+pub fn determinant_in_one_permutation<T>(data: &Vec<T>, permutation: &Vec<u64>) -> Result<T, error::OperationError>
+where
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
+    f64: From<T>,
+{
+    let inverse = inversion_number(permutation);
+    let mut ceof: i8 = 0;
+    if inverse % 2 == 0 {
+        ceof = 1
+    } else {
+        ceof = -1;
+    }
+    let key = print_permutation(permutation);
+    let mut sum = T::default() + (1i8).into();
+    for (i, item) in permutation.iter().enumerate() {
+        let y = i;
+        let x = *item;
+        let index: usize = y * permutation.len() + x as usize;
+        if index >= data.len() {
+            return Result::Err(error::OperationError { message: "index error".to_string() });
+        }
+        sum = sum * data[index];
+    }
+    Result::Ok(sum * ceof.into())
+}
+
+pub fn print_permutation(permutation: &Vec<u64>) -> String
+{
+    let mut result = String::from("");
+    for i in permutation {
+        let str = format!("{}", *i);
+        result.push_str(&str);
+    }
+    result
+}
+
+pub fn permutation(n: u64) -> Result<Vec<Vec<u64>>, error::OperationError> {
+    let mut available: Vec<u64> = vec![0; n as usize];
+    let mut flags: Vec<bool> = vec![false; n as usize];
+    let mut list: Vec<u64> = Vec::new();
+    let mut result: Vec<Vec<u64>> = Vec::new();
+    for i in 0..n {
+        available[i as usize] = i;
+    }
+    let _ = fill_in_permutation(&available, &mut flags, &mut list, &mut result, 0)?;
+    Ok(result)
+}
+
+fn fill_in_permutation(available: &Vec<u64>, flags: &mut Vec<bool>, list: &mut Vec<u64>, result: &mut Vec<Vec<u64>>, level: u32) -> Result<(), error::OperationError> {
+    if available.len() != flags.len() {
+        return Result::Err(error::OperationError { message: "flags length does not match available`s length".to_string() });
+    }
+    if level as usize >= available.len() {
+        let r = list.clone();
+        result.push(r);
+        return Result::Ok(());
+    }
+    for (i, x) in available.iter().enumerate() {
+        let flag = flags[i];
+        if flag {
+            continue;
+        }
+        list.push(*x);
+        flags[i] = true;
+        fill_in_permutation(available, flags, list, result, level + 1)?;
+        flags[i] = false;
+        list.pop();
+    }
+    Result::Ok(())
+}
+
+pub fn inversion_number(vec: &Vec<u64>) -> u32 {
+    let mut sum: u32 = 0;
+    for i in 0..vec.len() - 1 {
+        for j in i + 1..vec.len() {
+            if vec[i] > vec[j] {
+                sum += 1;
+            }
+        }
+    }
+    sum
 }
 
 #[cfg(test)]
@@ -205,5 +289,123 @@ mod test {
         }
         let result = calculate_multi(&a, &b, 2, 4, 0, 11, 3);
         assert_eq!("index error", result.err().unwrap().message);
+    }
+
+    #[test]
+    fn test_fill_in_permutation() {
+        let a: Vec<u64> = vec![1, 2, 3, 4];
+        let mut flags: Vec<bool> = vec![false; a.len()];
+        let mut list: Vec<u64> = Vec::new();
+        let mut result: Vec<Vec<u64>> = Vec::new();
+        let res = fill_in_permutation(&a, &mut flags, &mut list, &mut result, 0);
+        assert!(res.is_ok());
+        if let Ok(vec) = res {
+            println!("{:?}", result);
+            assert_eq!(24, result.len());
+        }
+    }
+
+    #[test]
+    fn test_permutation() {
+        let res = permutation(2);
+        assert!(res.is_ok());
+        if let Ok(vec) = res {
+            assert_eq!(2, vec.len());
+        }
+
+        let res = permutation(4);
+        assert!(res.is_ok());
+        if let Ok(vec) = res {
+            assert_eq!(24, vec.len());
+        }
+
+        let res = permutation(6);
+        assert!(res.is_ok());
+        if let Ok(vec) = res {
+            assert_eq!(720, vec.len());
+        }
+    }
+
+    #[test]
+    fn test_inversion_number() {
+        // 测试用例1
+        {
+            let vec = vec![1, 2, 3, 4];
+            let res = inversion_number(&vec);
+            assert_eq!(res, 0);
+        }
+        // 测试用例2
+        {
+            let vec = vec![4, 3, 2, 1];
+            let res = inversion_number(&vec);
+            assert_eq!(res, 6);
+        }
+        // 测试用例3
+        {
+            let vec = vec![2, 4, 1, 3];
+            let res = inversion_number(&vec);
+            assert_eq!(res, 3);
+        }
+        // 测试用例4
+        {
+            let vec = vec![3, 1, 4, 2];
+            let res = inversion_number(&vec);
+            assert_eq!(res, 3);
+        }
+        // 测试用例5
+        {
+            let vec = vec![5, 3, 1, 4, 2];
+            let res = inversion_number(&vec);
+            assert_eq!(res, 7);
+        }
+        // 测试用例6
+        {
+            let vec = vec![1, 3, 2, 4, 5];
+            let res = inversion_number(&vec);
+            assert_eq!(res, 1);
+        }
+        // 测试用例7
+        {
+            let vec = vec![4, 2, 3, 1];
+            let res = inversion_number(&vec);
+            assert_eq!(res, 5);
+        }
+        // 测试用例8
+        {
+            let vec = vec![3, 4, 1, 2];
+            let res = inversion_number(&vec);
+            assert_eq!(res, 4);
+        }
+        {
+            let vec = vec![0, 1, 2, 4, 3];
+            let res = inversion_number(&vec);
+            println!("{}", res);
+            assert_eq!(res, 1);
+        }
+    }
+
+    #[test]
+    fn test_determinant_in_one_permutation() {
+        let data: Vec<i32> = vec![1, 2, 3, 4];
+        let permutation: Vec<u64> = vec![0, 1];
+        let result = determinant_in_one_permutation(&data, &permutation);
+        assert!(result.is_ok());
+        if let Ok(value) = result {
+            assert_eq!(4, value);
+        }
+
+        let permutation: Vec<u64> = vec![1, 0];
+        let result = determinant_in_one_permutation(&data, &permutation);
+        assert!(result.is_ok());
+        if let Ok(value) = result {
+            assert_eq!(-6, value);
+        }
+    }
+
+    #[test]
+    fn test_print_permutation() {
+        let vec: Vec<u64> = vec![1, 2, 3, 4];
+        let result = print_permutation(&vec);
+        assert_eq!("1234", result);
     }
 }

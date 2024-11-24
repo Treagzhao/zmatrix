@@ -1,7 +1,6 @@
 pub mod error;
 mod util;
 
-use std::collections::HashMap;
 use std::ops::{Add, Mul, Not, Sub};
 use std::fmt::{Display, Formatter};
 use std::sync::{mpsc, Arc};

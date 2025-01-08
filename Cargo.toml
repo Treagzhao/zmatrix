@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Treagzhao"]
 license = "MIT"
+description="This is a matrix calculation lib"
 
 [dependencies]

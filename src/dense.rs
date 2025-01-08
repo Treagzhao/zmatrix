@@ -2,7 +2,7 @@ pub mod error;
 mod util;
 
 use std::ops::{Add, Mul, Not, Sub};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::sync::{mpsc, Arc};
 use std::thread;
 
@@ -32,10 +32,11 @@ where
         }
         let mut digits: u8 = 0;
         for value in vec.iter() {
-            let f = util::convert_to_f64(*value)?;
-            let d = f.log10().floor() as u8;
+            let f = *value;
+            let d = f.to_string().len() as u8;
             if d > digits {
                 digits = d
+
             }
         }
         Result::Ok(Matrix {
@@ -53,6 +54,32 @@ where
     {
         let vec: Vec<T> = vec![v; (height * width) as usize];
         Matrix::new(height, width, vec)
+    }
+
+    fn display(&self) -> String {
+        if self.data.len() == 0 {
+            return "┌┐\n└┘\n".to_string();
+        } else if self.height == 1 {
+            let line = util::print_single_line(&self.data, self.digits);
+            return line;
+        }
+        let mut result = String::new();
+        for row in 0..self.height {
+            let mut line = String::new();
+            let (start_char, end_char) = util::get_boundary_char(row, self.height);
+            line.push_str(&start_char);
+            let start = row * self.width;
+            let end = (row + 1) * self.width;
+            for i in start..end {
+                let value = self.data[i as usize];
+                let str = format!("{:<digit$}", value, digit = (self.digits + 2) as usize);
+                line.push_str(&str);
+            }
+            line.push_str(&end_char);
+            line.push('\n');
+            result.push_str(&line);
+        }
+        result
     }
 }
 
@@ -188,34 +215,25 @@ where
     }
 }
 
+impl<T> Debug for Matrix<T>
+where
+    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
+    f64: From<T>,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let result = self.display();
+        write!(f, "{}", result)
+    }
+}
+
+
 impl<T> Display for Matrix<T>
 where
     T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if self.data.len() == 0 {
-            return write!(f, "┌┐\n└┘\n");
-        } else if self.height == 1 {
-            let line = util::print_single_line(&self.data, self.digits);
-            return write!(f, "{}", line);
-        }
-        let mut result = String::new();
-        for row in 0..self.height {
-            let mut line = String::new();
-            let (start_char, end_char) = util::get_boundary_char(row, self.height);
-            line.push_str(&start_char);
-            let start = row * self.width;
-            let end = (row + 1) * self.width;
-            for i in start..end {
-                let value = self.data[i as usize];
-                let str = format!("{:<digit$}", value, digit = (self.digits + 2) as usize);
-                line.push_str(&str);
-            }
-            line.push_str(&end_char);
-            line.push('\n');
-            result.push_str(&line);
-        }
+        let result = self.display();
         write!(f, "{}", result)
     }
 }
@@ -336,6 +354,9 @@ mod test {
         let result = format!("{}", m);
         println!("{}", result.clone());
         assert_eq!("┌┐\n└┘\n", result);
+        let result = format!("{:?}", m);
+        println!("{}", result.clone());
+        assert_eq!("┌┐\n└┘\n", result);
     }
 
     #[test]
@@ -344,7 +365,23 @@ mod test {
         let m = Matrix::new(1, 6, vec).unwrap();
         let result = format!("{}", m);
         println!("{}", result.clone());
-        assert_eq!("[1 2 3 4 5 6 ]\n", result);
+        assert_eq!("[1  2  3  4  5  6  ]\n", result);
+
+        let result = format!("{:?}", m);
+        println!("{}", result.clone());
+        assert_eq!("[1  2  3  4  5  6  ]\n", result);
+
+        let vec: Vec<i32> = vec![1, 2, 343, 4123123, 5, 6];
+        let m = Matrix::new(1, 6, vec).unwrap();
+        let result = format!("{}", m);
+        println!("{}", result.clone());
+        assert_eq!("[1        2        343      4123123  5        6        ]\n", result);
+
+        let vec: Vec<f32> = vec![1.2, 2.123, 343.1, 4.45123123, 5.5654, 6.0];
+        let m = Matrix::new(1, 6, vec).unwrap();
+        let result = format!("{}", m);
+        println!("{}", result.clone());
+        assert_eq!("[1.2       2.123     343.1     4.451231  5.5654    6         ]\n", result);
     }
 
     #[test]
@@ -353,7 +390,19 @@ mod test {
         let m = Matrix::new(3, 3, vec).unwrap();
         let result = format!("{}", m);
         println!("{}", result.clone());
-        assert_eq!("┌1  2  3  ┐\n|4  5  6  |\n└7  8  90 ┘\n", result);
+        assert_eq!("┌1   2   3   ┐\n|4   5   6   |\n└7   8   90  ┘\n", result);
+        let result = format!("{:?}", m);
+        println!("{}", result.clone());
+        assert_eq!("┌1   2   3   ┐\n|4   5   6   |\n└7   8   90  ┘\n", result);
+
+        let vec: Vec<f64> = vec![1.12, 2.231, 3.1, 4.123123, 5.123123, 6.43422342323, 7.121, 8.1, 90.0];
+        let m = Matrix::new(3, 3, vec).unwrap();
+        let result = format!("{}", m);
+        println!("{}", result.clone());
+        assert_eq!(r#"┌1.12           2.231          3.1            ┐
+|4.123123       5.123123       6.43422342323  |
+└7.121          8.1            90             ┘
+"#, result);
     }
 
     #[test]

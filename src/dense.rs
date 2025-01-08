@@ -17,29 +17,45 @@ where
     digits: u8,
 }
 
-pub fn new<T>(height: u64, width: u64, vec: Vec<T>) -> Result<Matrix<T>, error::OperationError>
+impl<T> Matrix<T>
 where
     T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
-    if height * width != vec.len().try_into().unwrap() {
-        return Result::Err(error::OperationError { message: "vec length doest not match height  & width".to_string() });
-    }
-    let mut digits: u8 = 0;
-    for value in vec.iter() {
-        let f = util::convert_to_f64(*value)?;
-        let d = f.log10().floor() as u8;
-        if d > digits {
-            digits = d
+    pub fn new(height: u64, width: u64, vec: Vec<T>) -> Result<Matrix<T>, error::OperationError>
+    where
+        T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
+        f64: From<T>,
+    {
+        if height * width != vec.len().try_into().unwrap() {
+            return Result::Err(error::OperationError { message: "vec length doest not match height  & width".to_string() });
         }
+        let mut digits: u8 = 0;
+        for value in vec.iter() {
+            let f = util::convert_to_f64(*value)?;
+            let d = f.log10().floor() as u8;
+            if d > digits {
+                digits = d
+            }
+        }
+        Result::Ok(Matrix {
+            height,
+            width,
+            data: vec,
+            digits,
+        })
     }
-    Result::Ok(Matrix {
-        height,
-        width,
-        data: vec,
-        digits,
-    })
+
+    pub fn new_with_default(height: u64, width: u64, v: T) -> Result<Matrix<T>, error::OperationError>
+    where
+        T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
+        f64: From<T>,
+    {
+        let vec: Vec<T> = vec![v; (height * width) as usize];
+        Matrix::new(height, width, vec)
+    }
 }
+
 
 impl<T> Clone for Matrix<T>
 where
@@ -50,7 +66,7 @@ where
         let vec = self.data.clone();
         let height = self.height;
         let width = self.width;
-        new(height, width, vec).unwrap()
+        Matrix::new(height, width, vec).unwrap()
     }
 }
 
@@ -155,7 +171,7 @@ where
         if let Some(e) = err {
             return Result::Err(e);
         }
-        let m = new(self.height, target.width, result)?;
+        let m = Matrix::new(self.height, target.width, result)?;
         Result::Ok(m)
     }
 
@@ -168,7 +184,7 @@ where
                 vec.push(value);
             }
         }
-        new(self.height, self.width, vec).unwrap()
+        Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
 
@@ -221,7 +237,7 @@ where
             }
         }
         //这里宽和高参数换位置了
-        let m = new(self.width, self.height, vec).unwrap();
+        let m = Matrix::new(self.width, self.height, vec).unwrap();
         m
     }
 }
@@ -240,7 +256,7 @@ where
         let vec = util::calculate_in_threads(&self.data, &other.data, self.height, self.width, |a, b| -> T {
             a + b
         }).unwrap();
-        new(self.height, self.width, vec).unwrap()
+        Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
 
@@ -257,7 +273,7 @@ where
         let vec = util::calculate_in_threads(&self.data, &other.data, self.height, self.width, |a, b| -> T {
             a - b
         }).unwrap();
-        new(self.height, self.width, vec).unwrap()
+        Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
 
@@ -275,7 +291,7 @@ where
         let vec = util::calculate_in_threads(&self.data, &other.data, self.height, self.width, |a, b| -> T {
             a * b
         }).unwrap();
-        new(self.height, self.width, vec).unwrap()
+        Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
 
@@ -284,7 +300,7 @@ mod test {
     use super::*;
     #[test]
     fn new_ok() {
-        let result = new(3, 2, vec![1, 2, 3, 4, 5, 6]);
+        let result = Matrix::new(3, 2, vec![1, 2, 3, 4, 5, 6]);
         assert!(match result {
             Result::Ok(_) => true,
             Err(_) => false,
@@ -295,18 +311,18 @@ mod test {
             assert_eq!(m.data, vec![1, 2, 3, 4, 5, 6]);
             assert_eq!(m.digits, 0);
         }
-        let result = new(3, 2, vec![11, 21, 33, 4, 5, 6]);
+        let result = Matrix::new(3, 2, vec![11, 21, 33, 4, 5, 6]);
         if let Result::Ok(m) = result {
             assert_eq!(m.digits, 1);
         }
-        let result = new(3, 2, vec![111, 21, 33, 4, 5, 6]);
+        let result = Matrix::new(3, 2, vec![111, 21, 33, 4, 5, 6]);
         if let Result::Ok(m) = result {
             assert_eq!(m.digits, 2);
         }
     }
     #[test]
     fn new_not_ok() {
-        let result = new(3, 2, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        let result = Matrix::new(3, 2, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
         assert!(match result {
             Result::Ok(_) => false,
             Err(_) => true,
@@ -316,7 +332,7 @@ mod test {
     #[test]
     fn test_print_blank_matrix() {
         let vec: Vec<i32> = Vec::new();
-        let m = new(0, 0, vec).unwrap();
+        let m = Matrix::new(0, 0, vec).unwrap();
         let result = format!("{}", m);
         println!("{}", result.clone());
         assert_eq!("┌┐\n└┘\n", result);
@@ -325,7 +341,7 @@ mod test {
     #[test]
     fn test_print_single_line_matrix() {
         let vec: Vec<i32> = vec![1, 2, 3, 4, 5, 6];
-        let m = new(1, 6, vec).unwrap();
+        let m = Matrix::new(1, 6, vec).unwrap();
         let result = format!("{}", m);
         println!("{}", result.clone());
         assert_eq!("[1 2 3 4 5 6 ]\n", result);
@@ -334,7 +350,7 @@ mod test {
     #[test]
     fn test_print_multi_line_matrix() {
         let vec: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 90];
-        let m = new(3, 3, vec).unwrap();
+        let m = Matrix::new(3, 3, vec).unwrap();
         let result = format!("{}", m);
         println!("{}", result.clone());
         assert_eq!("┌1  2  3  ┐\n|4  5  6  |\n└7  8  90 ┘\n", result);
@@ -342,7 +358,7 @@ mod test {
 
     #[test]
     fn test_get() {
-        let m = new(2, 2, vec![1, 2, 3, 4]).unwrap();
+        let m = Matrix::new(2, 2, vec![1, 2, 3, 4]).unwrap();
         let v = m.get(0, 1);
         assert!(match v {
             Some(_) => true,
@@ -360,7 +376,7 @@ mod test {
 
     #[test]
     fn test_clone() {
-        let m = new(2, 2, vec![1, 2, 3, 4]).unwrap();
+        let m = Matrix::new(2, 2, vec![1, 2, 3, 4]).unwrap();
         let m1 = m.clone();
         assert_eq!(m1.height, m.height);
         assert_eq!(m1.width, m.width);
@@ -370,8 +386,8 @@ mod test {
 
     #[test]
     fn test_add_ok() {
-        let m1 = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = new(2, 3, vec![12, 22, 33, 44, 51, 56]).unwrap();
+        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m2 = Matrix::new(2, 3, vec![12, 22, 33, 44, 51, 56]).unwrap();
         let m3 = m1 + m2;
         assert_eq!(2, m3.height);
         assert_eq!(3, m3.width);
@@ -382,16 +398,16 @@ mod test {
     #[test]
     #[should_panic]
     fn test_add_not_ok() {
-        let m1 = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = new(2, 2, vec![12, 22, 33, 44]).unwrap();
+        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m2 = Matrix::new(2, 2, vec![12, 22, 33, 44]).unwrap();
         let m3 = m1 + m2;
         println!("{}", m3);
     }
 
     #[test]
     fn test_sub() {
-        let m1 = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = new(2, 3, vec![12, 22, 33, 44, 51, 56]).unwrap();
+        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m2 = Matrix::new(2, 3, vec![12, 22, 33, 44, 51, 56]).unwrap();
         let m3 = m2 - m1;
         println!("{}", m3);
         assert_eq!(2, m3.height);
@@ -402,16 +418,16 @@ mod test {
     #[test]
     #[should_panic]
     fn test_sub_not_ok() {
-        let m1 = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = new(2, 2, vec![12, 22, 33, 44]).unwrap();
+        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m2 = Matrix::new(2, 2, vec![12, 22, 33, 44]).unwrap();
         let m3 = m2 - m1;
         println!("{}", m3);
     }
 
     #[test]
     fn test_mul() {
-        let m1 = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = new(2, 3, vec![2, 3, 4, 5, 6, 7]).unwrap();
+        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m2 = Matrix::new(2, 3, vec![2, 3, 4, 5, 6, 7]).unwrap();
         let m3 = m1 * m2;
         assert_eq!(2, m3.height);
         assert_eq!(3, m3.width);
@@ -422,16 +438,16 @@ mod test {
     #[test]
     #[should_panic]
     fn test_mul_not_ok() {
-        let m1 = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = new(2, 2, vec![2, 3, 4, 5]).unwrap();
+        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m2 = Matrix::new(2, 2, vec![2, 3, 4, 5]).unwrap();
         let m3 = m1 * m2;
         println!("{}", m3);
     }
 
     #[test]
     fn test_matrix_product() {
-        let m1 = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = new(3, 4, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).unwrap();
+        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m2 = Matrix::new(3, 4, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).unwrap();
         let result = m1.product(m2);
         assert!(result.is_ok());
 
@@ -445,7 +461,7 @@ mod test {
 
     #[test]
     fn test_size() {
-        let m = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
         assert_eq!(m.height(), 2);
         assert_eq!(m.width(), 3);
         let (h, w) = m.size();
@@ -455,7 +471,7 @@ mod test {
 
     #[test]
     fn test_scale() {
-        let m = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
         let m1 = m.scale(2);
         assert_eq!(2, m1.height);
         assert_eq!(3, m1.width);
@@ -464,7 +480,7 @@ mod test {
 
     #[test]
     fn test_set() {
-        let mut m = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let mut m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
         let result = m.set(1, 1, 12);
         assert!(result.is_ok());
         let v = m.get(1, 1);
@@ -476,27 +492,27 @@ mod test {
 
     #[test]
     fn test_transform() {
-        let m = new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
         let m1 = !m;
         assert_eq!(3, m1.height);
         assert_eq!(2, m1.width);
         println!("{}", m1);
         assert_eq!(vec![1, 4, 2, 5, 3, 6], m1.data);
         let vec: Vec<i32> = vec![];
-        let m = new(0, 0, vec).unwrap();
+        let m = Matrix::new(0, 0, vec).unwrap();
         let m1 = !m;
         assert_eq!(0, m1.height);
         assert_eq!(0, m1.width);
         println!("{}", m1);
 
 
-        let m = new(1, 3, vec![1, 2, 3]).unwrap();
+        let m = Matrix::new(1, 3, vec![1, 2, 3]).unwrap();
         let m1 = !m;
         println!("{}", m1);
         assert_eq!(3, m1.height);
         assert_eq!(1, m1.width);
 
-        let m = new(3, 1, vec![1, 2, 3]).unwrap();
+        let m = Matrix::new(3, 1, vec![1, 2, 3]).unwrap();
         let m1 = !m;
         println!("{}", m1);
         assert_eq!(1, m1.height);
@@ -505,26 +521,26 @@ mod test {
 
     #[test]
     fn test_determinant_ok() {
-        let m1 = new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
+        let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
         let result = m1.det();
         assert!(result.is_ok());
         if let Ok(x) = result {
             println!("{}", x);
         }
 
-        let m1 = new(2, 2, vec![2, 3, 4, 5]).unwrap();
+        let m1 = Matrix::new(2, 2, vec![2, 3, 4, 5]).unwrap();
         let result = m1.det().unwrap();
         assert_eq!(-2, result);
 
-        let m1 = new(4, 4, vec![1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4]).unwrap();
+        let m1 = Matrix::new(4, 4, vec![1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4]).unwrap();
         let result = m1.det().unwrap();
         assert_eq!(24, result);
 
-        let m1: Matrix<i32> = new(4, 4, vec![1, 2, 3, 4, 2, 4, 6, 8, 3, 6, 9, 12, 4, 8, 12, 16]).unwrap();
+        let m1: Matrix<i32> = Matrix::new(4, 4, vec![1, 2, 3, 4, 2, 4, 6, 8, 3, 6, 9, 12, 4, 8, 12, 16]).unwrap();
         let result = m1.det().unwrap();
         assert_eq!(0, result);
 
-        let m1 = new(5, 5, vec![
+        let m1 = Matrix::new(5, 5, vec![
             1, 1, 1, 1, 1,
             1, 2, 3, 4, 5,
             1, 3, 6, 10, 15,
@@ -533,5 +549,17 @@ mod test {
         ]).unwrap();
         let result = m1.det().unwrap();
         assert_eq!(-18, result);
+    }
+
+    #[test]
+    fn test_new_with_default() {
+        let m: Matrix<f64> = Matrix::new_with_default(3, 3, 1.2).unwrap();
+        assert_eq!(m.size(), (3, 3));
+        for row in 0..3 {
+            for col in 0..3 {
+                let v = m.get(row, col).unwrap();
+                assert_eq!(1.2, v)
+            }
+        }
     }
 }

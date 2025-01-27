@@ -82,16 +82,13 @@ where
     }
     // 生成单位方阵
     //
-    pub fn unit(height: u64, width: u64) -> Result<Matrix<T>, error::OperationError> {
-        if height != width {
-            return Result::Err(error::OperationError { message: "height and width should be equal".to_string() });
-        }
-        let mut vec = vec![T::default(); (height * width) as usize];
+    pub fn unit(height: u64) -> Result<Matrix<T>, error::OperationError> {
+        let mut vec = vec![T::default(); (height * height) as usize];
         for i in 0..height {
-            let index = i * width + i;
+            let index = i * height + i;
             vec[index as usize] = T::from(1);
         }
-        Matrix::new(height, width, vec)
+        Matrix::new(height, height, vec)
     }
 }
 
@@ -624,16 +621,11 @@ mod test {
         }
     }
 
-    #[test]
-    #[should_panic(expected = "height and width should be equal")]
-    fn test_unit_matrix_fail() {
-        let m: Matrix<f64> = Matrix::unit(3, 4).unwrap();
-    }
 
 
     #[test]
     fn test_unit_matrix(){
-        let m: Matrix<f64> = Matrix::unit(3, 3).unwrap();
+        let m: Matrix<f64> = Matrix::unit(3).unwrap();
         println!("{}", m);
         assert_eq!(vec![1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0], m.data);
     }

@@ -112,6 +112,9 @@ where
     f64: From<T>,
 {
     pub fn get(&self, x: u64, y: u64) -> Option<T> {
+        if (x >= self.width) || (y >= self.height) {
+            return None;
+        }
         let index: usize = (y * self.width + x) as usize;
         self.data.get(index).cloned()
     }
@@ -430,6 +433,14 @@ mod test {
             Some(_) => false,
             None => true,
         });
+
+        let m = Matrix::new(3, 1, vec![1, 2, 3]).unwrap();
+        let v = m.get(1, 0);
+        assert!(v.is_none());
+
+        let m = Matrix::new(1, 3, vec![1, 2, 3]).unwrap();
+        let v = m.get(0, 1);
+        assert!(v.is_none());
     }
 
     #[test]
@@ -622,9 +633,8 @@ mod test {
     }
 
 
-
     #[test]
-    fn test_unit_matrix(){
+    fn test_unit_matrix() {
         let m: Matrix<f64> = Matrix::unit(3).unwrap();
         println!("{}", m);
         assert_eq!(vec![1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0], m.data);

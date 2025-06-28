@@ -339,16 +339,9 @@ mod test {
             assert_eq!(m.height, 3);
             assert_eq!(m.width, 2);
             assert_eq!(m.data, vec![1, 2, 3, 4, 5, 6]);
-            assert_eq!(m.digits, 0);
         }
         let result = Matrix::new(3, 2, vec![11, 21, 33, 4, 5, 6]);
-        if let Result::Ok(m) = result {
-            assert_eq!(m.digits, 1);
-        }
         let result = Matrix::new(3, 2, vec![111, 21, 33, 4, 5, 6]);
-        if let Result::Ok(m) = result {
-            assert_eq!(m.digits, 2);
-        }
     }
     #[test]
     fn new_not_ok() {

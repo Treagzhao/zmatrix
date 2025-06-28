@@ -49,6 +49,12 @@ impl Acceleration {
     }
 }
 
+impl Default for Acceleration {
+    fn default() -> Self {
+        Acceleration::from_m_per_s2(0.0)
+    }
+}
+
 impl Mul<Duration> for Acceleration {
     type Output = Velocity;
     fn mul(self, rhs: Duration) -> Self::Output {
@@ -62,7 +68,6 @@ impl Mul<Duration> for Acceleration {
 impl Sub for Acceleration {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
-        println!("{} {}", self.as_m_per_s2(), rhs.as_m_per_s2());
         let v = self.as_m_per_s2() - rhs.as_m_per_s2();
         Self::from_m_per_s2(v)
     }
@@ -124,6 +129,21 @@ impl Mul<f64> for Acceleration {
         Self::from_m_per_s2(v)
     }
 }
+impl PhysicalQuantity for Acceleration {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn is_zero(&self) -> bool {
+        self.v == 0.0
+    }
+    fn default_unit_value(&self) -> f64 {
+        self.as_m_per_s2()
+    }
+
+    fn set_value(&mut self, value: f64) {
+        self.v = value;
+    }
+}
 
 impl Div<f64> for Acceleration {
     type Output = Self;
@@ -166,6 +186,18 @@ mod tests {
         let a3 = Acceleration::from_g(1.5);
         assert_eq!(a3.v, 1.5);
         assert_eq!(a3.default_type, AccelerationType::G);
+
+        let a3 = Acceleration::default();
+        assert_eq!(a3.v, 0.0);
+        assert_eq!(a3.default_type, AccelerationType::MPerSecond2);
+
+        let a2 = Acceleration::from_km_per_h2(3600.0);
+        assert_eq!(a2.default_unit_value(), 0.277777777777777777778);
+
+        let mut a3 = Acceleration::from_g(1.5);
+        a3.set_value(1.0);
+        assert_eq!(a3.v, 1.0);
+
     }
 
     #[test]
@@ -281,5 +313,18 @@ mod tests {
         let d1 = Acceleration::from_m_per_s2(1000.0);
         let d2 = d1 / Coef::new(2.0);
         assert_eq!(d2.as_m_per_s2(), 500.0);
+    }
+
+    #[test]
+    fn test_is_zero() {
+        let d1 = Acceleration::from_m_per_s2(1000.0);
+        assert!(!d1.is_zero());
+        let d1 = Acceleration::from_m_per_s2(0.0);
+        assert!(d1.is_zero());
+    }
+    #[test]
+    fn test_as_any() {
+        let d1 = Acceleration::from_m_per_s2(1000.0);
+        let d2 = d1.as_any().downcast_ref::<Acceleration>().unwrap();
     }
 }

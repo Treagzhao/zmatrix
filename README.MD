@@ -1,5 +1,5 @@
 # 这是一个矩阵运算的库，能够实现一些简单的矩阵预算的功能
-![Codecov](https://codecov.io/gh/Treagzhao/zmatrix/branch/main/graph/badge.svg)
+![Codecov](https://codecov.io/gh/Treagzhao/zmatrix/branch/master/graph/badge.svg)
 
 #### 创建一个矩阵
  create a new matrix
@@ -119,6 +119,11 @@ supported physical quantities:
 | 系数 | `coef`                |
 | 角加速度 | `angular_acceleration`|
 | 面积 | `area`                |
+| 磁感应强度 | `magnetic_induction` |
+| 质量 | `mass`                |
+| 角动量 | `angular_momentum`    |
+| 动量 | `momentum`            |
+| 体积 | `volume`              |
 以后会慢慢维护，也欢迎大家提issue和pr。
 
 ## 物理量的计算
@@ -157,3 +162,267 @@ Examples:
 Compile-Time Safety:
 
 Operations with dimensionally incompatible quantities will trigger compile errors, preventing invalid physics logic at the code level.
+
+# 向量计算
+## 各种物理量向量之间的转换
+
+``` rust
+    //位移向量除以时间变成速度向量
+    //Displacement vector divided by time yields velocity vector. 
+    let a:Vector3<Distance> = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    );
+    let v = a / Duration::from_secs(10);
+    println!("{:?}", a);
+
+    //速度向量乘以质量，变成动量向量
+    // Velocity vector multiplied by mass yields momentum vector. 
+    let m = v * Mass::from_kg(1.0);
+    println!("{:?}", m);
+    // 动量向量，乘以半径向量，变成角动量向量。
+    // Momentum vector crossed with radius vector yields angular momentum vector. 
+    let am =   a * m ;
+    println!("{:?}", am); 
+```
+各种物理量的向量彼此之间的加减乘除运算，都可以直接通过数学符号实现。
+
+目前支持有限，以后会慢慢补充，欢迎 issue 和 PR。
+
+Vector operations (add/subtract/multiply/divide) for all physical quantities can be directly performed using mathematical symbols.
+
+Current support is limited - more features will be added gradually. Issues and PRs are welcome!
+
+## 向量的常见方法
+向量是否是 0 值
+
+``` rust
+    let v = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    );
+    println!("{}",v.is_zero());
+```
+
+将向量转换成数组
+
+``` rust
+    let v = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    );
+    println!("{:?}",v.to_array()); 
+```
+
+通过数组生成向量 & 通过列矩阵生成向量
+``` rust
+    let v = Vector3::from_array([1.0,2.0,3.0]);
+    println!("{:?}",v);
+    let v = Vector3::from_matrix(Matrix::new(3,1,vec![1.0,2.0,3.0]).unwrap());
+    println!("{:?}",v); 
+```
+
+生成反对称矩阵
+``` rust
+    let v = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    );
+    // 3 * 3 反对称矩阵 
+    println!("{:?}",v.skew_symmetric_matrix());
+
+    let v = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    );
+    //  4 * 4 反对称矩阵
+    println!("{:?}",v.skew_symmetric_matrix_4());
+```
+
+向量叉乘
+``` rust
+    let v1 = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    ); 
+    let v2 = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    ); 
+    // 叉乘的垂直向量 
+    let v = v1.cross(v2);
+    println!("{:?}",v);
+    let v1 = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    );   
+    let v2 = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    );
+    //叉乘的垂直单位向量
+    let v_unit = v1.cross_unit(v2);  
+    println!("{:?}",v);  
+```
+
+点积
+
+``` rust
+    let v1 = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    );
+    let v2 = Vector3::new(
+        Distance::from_m(10.0),
+        Distance::from_m(20.0),
+        Distance::from_m(30.0),
+    ); 
+    let r = v1.dot(v2);
+    println!("{:?}",r);  
+```
+# 空间几何的一些运算库
+## 欧拉角
+转换成四元数
+``` rust
+   let euler:Vector3<Angular> = Vector3::new(
+        Angular::from_deg(10.0),
+        Angular::from_deg(20.0),
+        Angular::from_deg(30.0),
+    );
+    let quat = euler.to_quaternion();
+    println!("{:?}",quat); 
+``` 
+
+基本的三角函数（待补充完善)
+``` rust
+   let euler:Vector3<Angular> = Vector3::new(
+        Angular::from_deg(10.0),
+        Angular::from_deg(20.0),
+        Angular::from_deg(30.0),
+    );
+    let sin = euler.sin();
+    let cos = euler.cos();
+    println!("sin:{:?} cos:{:?}",sin,cos);
+ ```
+
+
+## 余弦转换矩阵
+获取向量
+``` rust 
+// 获取单位余弦矩阵 
+let cos = CosMatrix::unit();
+let x = cos.get_x_vector();
+let y = cos.get_y_vector();
+let z = cos.get_z_vector();
+// 获取 x y z 行向量 
+println!("x:{:?} y:{:?} z:{:?}",x,y,z);
+
+let x_col = cos.get_col_x_vector();
+let y_col = cos.get_col_y_vector();
+let z_col = cos.get_col_z_vector();
+//获取三个列向量
+println!("x:{:?} y:{:?} z:{:?}",x_col,y_col,z_col);          
+ ```
+转置
+``` rust
+let cos = CosMatrix::unit(); 
+let cos_t = cos.transfer();
+println!("{:?}",cos_t);  
+ ```
+转换到四元数
+``` rust
+let cos = CosMatrix::unit();
+let q = cos.to_quaternion();
+println!("{:?}",q);   
+  ```
+矩阵乘法
+``` rust
+    let cos_a = CosMatrix::unit();
+    let cos_b = CosMatrix::new([[1.0, 2.0, 3.0], [2.0, 3.0, 4.0], [5.0, 2.0, 1.0]]);
+    // 两个余弦转换矩阵相乘 
+    let cos_c = cos_a.product(cos_b);
+    // 余弦转换矩阵乘以列向量
+    cos_c.product_vector(Vector3::new(1.0, 2.0, 3.0));    
+  ```
+转换到欧拉角
+``` rust
+    let cos = CosMatrix::unit();
+    let euler = cos.to_pry();
+    // xzy 转序 
+    println!("{:?}",euler);
+    // xyz 转序
+    let euler = cos.to_rpy();
+    println!("{:?}",euler);
+ ```
+## 四元数
+初始化四元数
+``` rust
+    let q = Quaternion::new(1.0, 2.0, 3.0, 4.0); 
+    println!("{:?}",q);
+    // 单位四元数
+    let q = Quaternion::default();
+    println!("{:?}",q);    
+ ```
+归一化
+``` rust
+let q = Quaternion::new(1.0, 2.0, 3.0, 4.0); 
+let q1 = q.normalize();
+println!("{:?}",q1);  
+ ```
+模长
+``` rust
+ let q = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+ println!("{:?}",q.norm()); 
+ ```
+共轭四元数
+``` rust
+let q = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+let q1 = q.conjugate();
+println!("{:?}",q1);   
+ ```
+四元数的逆
+``` rust
+let q = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+let q1 = q.inverse();
+println!("{:?}",q1);   
+ ```
+转换到余弦转换矩阵
+``` rust
+let q = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+let cos = q.to_cos_matrix();
+println!("{:?}",cos);   
+ ```
+执行线性变换
+``` rust
+    let q = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+    let m = Matrix::new(3, 3, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]).unwrap();
+    let q1 = q.linear_transform(m);  
+ ```
+四元数计算
+``` rust
+ let q1 = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+ let q2 = Quaternion::new(2.0, 3.0, 4.0, 5.0);
+ let q_sum = q1 + q2;
+ println!("{:?}",q_sum);
+ 
+ let q1 = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+ let q2 = Quaternion::new(2.0, 3.0, 4.0, 5.0);
+ let q_mul = q1 * q2 ;
+ println!("{:?}",q_mul);
+ 
+ let q1 = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+ let q2 = Quaternion::new(2.0, 3.0, 4.0, 5.0);
+ let q_div = q1 / q2 ;
+ println!("{:?}",q_div);             
+  ```
+

@@ -35,6 +35,24 @@ impl AngularAcceleration {
     }
 }
 
+
+impl PhysicalQuantity for AngularAcceleration {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn is_zero(&self) -> bool {
+        self.v == 0.0
+    }
+
+    fn default_unit_value(&self) -> f64 {
+        self.as_rad_per_second2()
+    }
+
+    fn set_value(&mut self, value: f64) {
+        self.v = value;
+    }
+}
+
 impl Div<Duration> for AngularAcceleration {
     type Output = AngularVelocity;
 
@@ -272,5 +290,33 @@ mod tests {
         let d1 = AngularAcceleration::from_rad_per_second2(1000.0);
         let d2 = d1 / Coef::new(2.0);
         assert_eq!(d2.as_rad_per_second2(), 500.0);
+    }
+
+    #[test]
+    fn test_as_any(){
+        let d1 = AngularAcceleration::from_rad_per_second2(1000.0);
+        let dw = d1.as_any();
+        let d2 = dw.downcast_ref::<AngularAcceleration>().unwrap();
+    }
+
+    #[test]
+    fn test_is_zero(){
+        let d1 = AngularAcceleration::from_rad_per_second2(1000.0);
+        let d2 = AngularAcceleration::from_rad_per_second2(0.0);
+        assert_eq!(d1.is_zero(),false);
+        assert_eq!(d2.is_zero(),true);
+    }
+
+    #[test]
+    fn test_default_unit_value(){
+        let d1 = AngularAcceleration::from_rad_per_second2(1000.0);
+        assert_eq!(d1.default_unit_value(),1000.0);
+
+        let d1 = AngularAcceleration::from_deg_per_second2(180.0);
+        assert_eq!(d1.default_unit_value(),PI);
+
+        let mut d1 = AngularAcceleration::from_rad_per_second2(PI);
+        d1.set_value(1000.0);
+        assert_eq!(d1.default_unit_value(),1000.0);
     }
 }

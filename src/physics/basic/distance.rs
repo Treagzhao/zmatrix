@@ -1,4 +1,3 @@
-use approx::assert_relative_eq;
 use std::ops::{Add, Div, Mul, Sub};
 use std::time::Duration;
 use super::*;
@@ -125,6 +124,14 @@ impl Mul<f64> for Distance {
     }
 }
 
+impl Mul<Area> for Distance {
+    type Output = Volume;
+    fn mul(self, rhs: Area) -> Self::Output {
+        let v = self.as_m() * rhs.as_m2();
+        Volume::from_m3(v)
+    }
+}
+
 impl Mul for Distance {
     type Output = Area;
     fn mul(self, rhs: Self) -> Self::Output {
@@ -155,9 +162,28 @@ impl Div<Coef> for Distance {
         Self::from_m(v)
     }
 }
+
+impl Mul<Momentum> for Distance {
+    type Output = AngularMomentum;
+
+    fn mul(self, rhs: Momentum) -> Self::Output {
+        let v = self.default_unit_value() * rhs.default_unit_value();
+        AngularMomentum::from_kg_m2_per_second(v)
+    }
+}
+
+impl Div for Distance {
+    type Output = Coef;
+    fn div(self, rhs: Self) -> Self::Output {
+        let v = self.as_m() / rhs.as_m();
+        Coef::new(v)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_relative_eq;
     #[test]
     fn test_distance() {
         let d1 = Distance::from_m(1000.0);
@@ -199,12 +225,23 @@ mod tests {
     }
 
     #[test]
-    fn test_change_to_area() {
+    fn test_change() {
         let d1 = Distance::from_m(2.0);
         let d2 = Distance::from_m(4.0);
         let a = d1 * d2;
         assert_eq!(a.default_type, AreaType::M2);
         assert_eq!(a.as_m2(), 8.0);
+
+        let d1 = Distance::from_m(20.0);
+        let m1 = Momentum::from_kg_m_s(10.0);
+        let a1 = d1 * m1;
+        assert_eq!(a1.default_type, AngularMomentumType::KgM2perSecond);
+        assert_eq!(a1.as_kg_m2_per_second(), 200.0);
+
+        let d1 = Distance::from_m(20.0);
+        let a1 = Area::from_m2(10.0);
+        let d3 = d1 * a1;
+        assert_eq!(d3.as_m3(), 200.0);
     }
 
     #[test]
@@ -300,5 +337,10 @@ mod tests {
         let d1 = Distance::from_m(1000.0);
         let d2 = d1 / Coef::new(2.0);
         assert_eq!(d2.as_m(), 500.0);
+
+        let d1 = Distance::from_m(1000.0);
+        let d2 = Distance::from_m(200.0);
+        let c = d1 / d2;
+        assert_eq!(c.get_value(), 5.0);
     }
 }

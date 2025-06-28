@@ -1,5 +1,5 @@
 use std::f64::consts::PI;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::time::Duration;
 
 use crate::physics::basic::AngularVelocity;
@@ -69,6 +69,24 @@ impl AngularVelocity {
     }
 }
 
+
+impl PhysicalQuantity for AngularVelocity {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn is_zero(&self) -> bool {
+        self.v == 0.0
+    }
+
+    fn default_unit_value(&self) -> f64 {
+        self.as_rad_per_second()
+    }
+
+    fn set_value(&mut self, value: f64) {
+        self.v = value;
+    }
+}
+
 impl Mul<Duration> for AngularVelocity {
     type Output = Angular;
     fn mul(self, rhs: Duration) -> Self::Output {
@@ -76,6 +94,7 @@ impl Mul<Duration> for AngularVelocity {
         Angular::from_rad(v)
     }
 }
+
 
 impl Div<Duration> for AngularVelocity {
     type Output = AngularAcceleration;
@@ -89,7 +108,7 @@ impl Div<Duration> for AngularVelocity {
 impl Add for AngularVelocity {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
-        let mut v = self.as_rad_per_second() + rhs.as_rad_per_second();
+        let v = self.as_rad_per_second() + rhs.as_rad_per_second();
         AngularVelocity::from_rad_per_second(v)
     }
 }
@@ -121,7 +140,7 @@ impl Add<f64> for AngularVelocity {
 impl Sub for AngularVelocity {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
-        let mut v = self.as_rad_per_second() - rhs.as_rad_per_second();
+        let v = self.as_rad_per_second() - rhs.as_rad_per_second();
         AngularVelocity::from_rad_per_second(v)
     }
 }
@@ -187,6 +206,22 @@ impl Div<Coef> for AngularVelocity {
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_rad_per_second() / rhs.get_value();
         Self::from_rad_per_second(v)
+    }
+}
+
+impl Div for AngularVelocity {
+    type Output = Coef;
+    fn div(self, rhs: Self) -> Self::Output {
+        let v = self.as_rad_per_second() / rhs.as_rad_per_second();
+        Coef::new(v)
+    }
+}
+
+impl Neg for AngularVelocity {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = self.as_rad_per_second();
+        Self::from_rad_per_second(-v)
     }
 }
 
@@ -345,7 +380,7 @@ mod tests {
         let d1 = AngularVelocity::from_rad_per_second(1000.0);
         let d2 = d1 * 2.0;
         assert_eq!(d2.as_rad_per_second(), 2000.0);
-        let d1 =  AngularVelocity::from_rad_per_second(1000.0);
+        let d1 = AngularVelocity::from_rad_per_second(1000.0);
         let d2 = d1 * Coef::new(2.0);
         assert_eq!(d2.as_rad_per_second(), 2000.0);
     }
@@ -355,16 +390,53 @@ mod tests {
         let d1 = AngularVelocity::from_rad_per_second(1000.0);
         let d2 = d1 / 2.0;
         assert_eq!(d2.as_rad_per_second(), 500.0);
-        let d1 =  AngularVelocity::from_rad_per_second(1000.0);
+        let d1 = AngularVelocity::from_rad_per_second(1000.0);
         let d2 = d1 / Coef::new(2.0);
         assert_eq!(d2.as_rad_per_second(), 500.0);
+
+        let d1 = AngularVelocity::from_rad_per_second(1000.0);
+        let d2 = AngularVelocity::from_rad_per_second(2000.0);
+        let d3 = d1 / d2;
+        assert_relative_eq!(d3.get_value(),0.5,epsilon = 1e-8);
     }
 
     #[test]
-    fn test_convert_to_velocity(){
+    fn test_convert_to_velocity() {
         let omg1 = AngularVelocity::from_rad_per_second(PI);
         let v1 = omg1 * Distance::from_m(2.0);
         assert_eq!(v1.default_type, VelocityType::MPerSecond);
         assert_relative_eq!(v1.as_m_per_sec(),6.283185307180,epsilon = 1e-8);
+    }
+
+    #[test]
+    fn test_as_any() {
+        let d1 = AngularVelocity::from_rad_per_second(1000.0);
+        let d2 = d1.as_any();
+        let d3 = d2.downcast_ref::<AngularVelocity>().unwrap();
+    }
+
+    #[test]
+    fn test_is_zero() {
+        let d1 = AngularVelocity::from_rad_per_second(0.0);
+        assert!(d1.is_zero());
+        let d1 = AngularVelocity::from_rad_per_second(1000.0);
+        assert!(!d1.is_zero());
+    }
+
+    #[test]
+    fn test_default_unit_value() {
+        let d1 = AngularVelocity::from_deg_per_second(180.0);
+        assert_eq!(d1.default_unit_value(), PI);
+
+        let mut d1 = AngularVelocity::from_rad_per_second(1000.0);
+        d1.set_value(100.0);
+        assert_relative_eq!(d1.v,100.0);
+    }
+
+    #[test]
+    fn test_negative() {
+        let d1 = AngularVelocity::from_rad_per_second(-10.0);
+        let d2 = -d1;
+        assert_relative_eq!(d2.as_rad_per_second(),10.0)
     }
 }

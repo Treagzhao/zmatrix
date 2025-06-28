@@ -1,0 +1,48 @@
+name: Rust Coverage
+
+on: [push, pull_request]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    # 安装 Rust 和工具链
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        components: llvm-tools-preview
+        profile: minimal
+
+    # 安装 grcov
+    - name: Install grcov
+      run: cargo install grcov
+
+    # 生成覆盖率报告（需设置环境变量）
+    - name: Run tests with coverage
+      run: |
+        export RUSTFLAGS="-Cinstrument-coverage"
+        export LLVM_PROFILE_FILE="rust-coverage-%p-%m.profraw"
+        cargo test --tests
+        mkdir -p ./coverage  # 新增：确保目录存在
+        grcov . \
+          --binary-path ./target/debug/ \
+          -s . \
+          --branch \
+          --ignore-not-existing \
+          --ignore "/*" \
+          --ignore "examples/*" \
+          --ignore "src/tests/*" \
+          -t lcov \
+          -o ./coverage/lcov.info
+
+    # 上传到 Codecov
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: Treagzhao/zmatrix
+        files: ./coverage/lcov.info
+        verbose: true

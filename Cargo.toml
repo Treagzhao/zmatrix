@@ -7,3 +7,5 @@ license = "MIT"
 description="This is a matrix calculation lib"
 
 [dependencies]
+approx = "0.5.1"
+serde = "1.0.219"

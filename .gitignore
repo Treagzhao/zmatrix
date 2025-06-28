@@ -3,4 +3,3 @@ Cargo.lock
 .idea/
 *.profraw
 /coverage/
-.github

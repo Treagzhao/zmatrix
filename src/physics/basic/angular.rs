@@ -1,5 +1,5 @@
 use super::*;
-use std::f64::consts::PI;
+use std::f64::consts::{PI, TAU};
 use std::ops::{Add, Div, Mul, Sub};
 use std::time::Duration;
 
@@ -36,21 +36,52 @@ impl Angular {
         self.as_rad().sin()
     }
 
+    pub fn tan(&self) -> f64 {
+        self.as_rad().tan()
+    }
+
     pub fn cos(&self) -> f64 {
         self.as_rad().cos()
     }
-
+    // 输出的结果在-PI ~ PI之间
+    pub fn mod_to_round_half(&self) -> Self {
+        let x = self.as_rad();
+        let period = 2.0 * PI;
+        Angular::from_rad(x - ((x + PI) / period).floor() * period)
+    }
+    //   输出在   0 ~ 2PI  之间
     pub fn mod_to_round(&self) -> Self {
-        let v = self.as_deg();
-        let v = v % 360.0;
-        Self::from_deg(v)
+        let v = self.as_rad() - TAU * f64::floor(self.as_rad() / TAU);
+        Self::from_rad(v)
+    }
+
+    pub fn atan2(a: f64, b: f64) -> Self {
+        let v = f64::atan2(a, b);
+        Self::from_rad(v)
+    }
+
+    pub fn atan(a: f64) -> Self {
+        let v = f64::atan(a);
+        Self::from_rad(v)
+    }
+
+    pub fn asin(v: f64) -> Self {
+        let rad = f64::asin(v);
+        Self::from_rad(rad)
+    }
+}
+
+impl From<Coef> for Angular {
+    // 角度也可以看做一个无量纲数，因为角度可以看做是弧长跟半径的比值，所以它们是可以相互转化的。
+    fn from(value: Coef) -> Self {
+        Angular::from_rad(value.get_value())
     }
 }
 
 impl Add for Angular {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
-        let mut v = self.as_deg() + rhs.as_deg();
+        let v = self.as_deg() + rhs.as_deg();
         Angular::from_deg(v)
     }
 }
@@ -68,7 +99,7 @@ impl Add<f64> for Angular {
 impl Sub for Angular {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
-        let mut v = self.as_deg() - rhs.as_deg();
+        let v = self.as_deg() - rhs.as_deg();
         Angular::from_deg(v)
     }
 }
@@ -86,7 +117,7 @@ impl Sub<f64> for Angular {
 impl Div<Duration> for Angular {
     type Output = AngularVelocity;
     fn div(self, rhs: Duration) -> Self::Output {
-        let mut v = self.as_rad() / rhs.as_secs_f64();
+        let v = self.as_rad() / rhs.as_secs_f64();
         AngularVelocity::from_rad_per_second(v)
     }
 }
@@ -150,6 +181,10 @@ mod tests {
         let angular = Angular::from_rad(2.0 * PI);
         assert_relative_eq!(angular.as_deg(),360.0);
         assert_relative_eq!(angular.as_rad(),2.0*PI,epsilon = 1e-8);
+
+        let c: Coef = Coef::new(0.5 * PI);
+        let angular: Angular = Angular::from(c);
+        assert_relative_eq!(angular.as_deg(),90.0);
     }
 
     #[test]
@@ -161,6 +196,9 @@ mod tests {
         let angular = Angular::from_rad(PI / 6.0);
         assert_relative_eq!(angular.sin(),0.5,epsilon = 1e-8);
         assert_relative_eq!(angular.cos(),0.866025403784,epsilon = 1e-8);
+
+        let angular = Angular::from_rad(PI / 4.0);
+        assert_relative_eq!(angular.tan(),1.0,epsilon = 1e-8);
     }
 
     #[test]
@@ -234,8 +272,20 @@ mod tests {
     #[test]
     fn test_angular_mod_round() {
         let theta1 = Angular::from_deg(372.0);
+        let theta2 = theta1.mod_to_round_half();
+        assert_relative_eq!(12.0, theta2.as_deg(),epsilon = 1e-8);
+
+        let theta1 = Angular::from_deg(315.0);
+        let theta2 = theta1.mod_to_round_half();
+        assert_relative_eq!(-1.0 * PI / 4.0, theta2.as_rad(),epsilon = 1e-8);
+
+        let theta1 = Angular::from_deg(372.0);
         let theta2 = theta1.mod_to_round();
-        assert_eq!(12.0, theta2.as_deg());
+        assert_relative_eq!(12.0, theta2.as_deg(),epsilon = 1e-8);
+
+        let theta1 = Angular::from_deg(315.0);
+        let theta2 = theta1.mod_to_round();
+        assert_relative_eq!(315.0, theta2.as_deg(),epsilon = 1e-8);
     }
 
     #[test]
@@ -264,5 +314,21 @@ mod tests {
         let d1 = Angular::from_rad(1000.0);
         let d2 = d1 / Coef::new(2.0);
         assert_eq!(d2.as_rad(), 500.0);
+    }
+
+    #[test]
+    fn test_atan() {
+        let sin = 0.5;
+        let cos = 0.8660254037844386;
+        let theta = Angular::atan2(sin, cos);
+        assert_relative_eq!(theta.as_deg(), 30.0,epsilon = 1e-8);
+
+        let value = 1.0f64;
+        let theta = Angular::atan(value);
+        assert_relative_eq!(theta.as_deg(), 45.0,epsilon = 1e-8);
+
+        let value = 0.5f64;
+        let theta = Angular::asin(value);
+        assert_relative_eq!(theta.as_deg(), 30.0,epsilon = 1e-8);
     }
 }

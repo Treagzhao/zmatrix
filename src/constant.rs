@@ -1,0 +1,1 @@
+pub const FLT64_ZERO:f64 = 1e-14;

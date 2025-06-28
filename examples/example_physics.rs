@@ -28,3 +28,11 @@ fn calculate() {
     let area:Area = dis * dis;
 
 }
+
+fn exmples_vector3(){
+    let pos_vector:Vector3<Distance> = Vector3::new(
+        Distance::from_m(1.0),
+        Distance::from_m(3.0),
+        Distance::from_m(5.0)
+    );
+}

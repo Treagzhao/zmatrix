@@ -1,5 +1,4 @@
 use std::ops::{Add, Div, Mul, Sub};
-use std::time::Duration;
 use super::*;
 impl Area {
     pub fn from_m2(v: f64) -> Self {
@@ -30,7 +29,28 @@ impl Area {
         }
     }
 }
+impl Default for Area {
+    fn default() -> Self {
+        Area::from_m2(0.0)
+    }
+}
 
+impl PhysicalQuantity for Area {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn is_zero(&self) -> bool {
+        self.v == 0.0
+    }
+
+    fn default_unit_value(&self) -> f64 {
+        self.v
+    }
+
+    fn set_value(&mut self, value: f64) {
+        self.v = value;
+    }
+}
 
 impl Div<Distance> for Area {
     type Output = Distance;
@@ -96,6 +116,14 @@ impl Mul<f64> for Area {
     }
 }
 
+impl Mul<Distance> for Area {
+    type Output = Volume;
+    fn mul(self, rhs: Distance) -> Self::Output {
+        let v = self.as_m2() * rhs.as_m();
+        Volume::from_m3(v)
+    }
+}
+
 impl Div<f64> for Area {
     type Output = Self;
     fn div(self, rhs: f64) -> Self::Output {
@@ -112,7 +140,7 @@ impl Mul<Coef> for Area {
     }
 }
 
-impl Div<Area> for Area{
+impl Div<Area> for Area {
     type Output = Coef;
     fn div(self, rhs: Area) -> Self::Output {
         let v = self.as_m2() / rhs.as_m2();
@@ -130,7 +158,14 @@ impl Div<Coef> for Area {
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_relative_eq;
     use super::*;
+    #[test]
+    fn test_area_default() {
+        let area = Area::default();
+        assert_eq!(area.default_type, AreaType::M2);
+        assert_eq!(area.v, 0.0);
+    }
     #[test]
     fn test_area_from() {
         let area = Area::from_m2(0.5);
@@ -143,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    fn test_area_convert() {
+    fn test_area_as() {
         let area = Area::from_m2(1000000.0);
         assert_eq!(area.as_km2(), 1.0);
         assert_eq!(area.as_m2(), 1000000.0);
@@ -159,10 +194,15 @@ mod tests {
     }
 
     #[test]
-    fn test_to_distance() {
+    fn test_convert() {
         let area = Area::from_m2(1000000.0);
         let distance = area / Distance::from_m(1000.0);
         assert_eq!(distance.as_m(), 1000.0);
+
+        let area = Area::from_m2(200.0);
+        let d = Distance::from_m(0.6);
+        let result = area * d;
+        assert_relative_eq!(result.as_m3(),120.0);
     }
 
     #[test]
@@ -226,5 +266,35 @@ mod tests {
         let area = Area::from_m2(100.0);
         let area2 = area / Coef::new(2.0);
         assert_eq!(area2.as_m2(), 50.0);
+    }
+
+    #[test]
+    fn test_as_any() {
+        let area = Area::default();
+        let any = area.as_any();
+        let a: &Area = any.downcast_ref::<Area>().unwrap();
+    }
+
+    #[test]
+    fn test_is_zero() {
+        let area = Area::default();
+        assert!(area.is_zero());
+        let area = Area::from_m2(0.0);
+        assert!(area.is_zero());
+        let area = Area::from_m2(1.0);
+        assert!(!area.is_zero());
+    }
+
+    #[test]
+    fn test_default_unit_value() {
+        let area = Area::from_m2(1.0);
+        assert_eq!(area.default_unit_value(), 1.0);
+    }
+
+    #[test]
+    fn test_set_value() {
+        let mut area = Area::from_m2(1.0);
+        area.set_value(2.0);
+        assert_eq!(area.as_m2(), 2.0);
     }
 }

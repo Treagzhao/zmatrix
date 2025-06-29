@@ -8,6 +8,25 @@ let m1 = Matrix::new(2,3,vec![1,2,3,4,5,6]);
 println!("{}",m1);
 ```
 
+生成一个全0/全1矩阵
+ create a new matrix with all 0
+``` rust
+    let m1 = Matrix::zeros(3, 3);
+    println!("{}", m1);   
+    
+    let m1 = Matrix::ones(3, 3);
+    println!("{}", m1);   
+ ```
+
+生成一个随机矩阵(只有f64类型)
+ create a new matrix with random values
+``` rust
+    let m1 = Matrix::random(3, 3);
+    println!("{}", m1);  
+ ```
+
+
+
 #### 获取值以及设置值
  get value & set value
 ``` rust
@@ -59,13 +78,27 @@ println!("{}",m1);
     println!("\nscale result:\n{}", m2);
 ```
 
-#### 矩阵的转置
- Matrix transpose
+#### 矩阵的操作
+ 矩阵转置 Matrix transpose
 ``` rust
     let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-    let m2 = !m1;
+    let m2 = !m1; 
     println!("\ntransform:\n{}", m2);
+    
+    let m2 = m1.T();
+    println!("\ntransform:\n{}", m2);   
 ```
+矩阵的水平拼接和垂直拼接
+ Matrix horizontal concatenation
+``` rust
+     let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+     let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
+     println!("\nconcat:\n{}", m.hstack(m1));
+     
+     let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+     let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
+     println!("\nconcat:\n{}", m.vstack(m1));    
+ ```
 
 #### 矩阵的行列式
  matrix determinant

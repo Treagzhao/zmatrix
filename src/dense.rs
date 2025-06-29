@@ -1,5 +1,7 @@
 pub mod error;
 mod util;
+mod initial;
+mod shape;
 
 use std::ops::{Add, Mul, Not, Sub};
 use std::fmt::{Debug, Display, Formatter};
@@ -46,14 +48,7 @@ where
         })
     }
 
-    pub fn new_with_default(height: u64, width: u64, v: T) -> Result<Matrix<T>, error::OperationError>
-    where
-        T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
-        f64: From<T>,
-    {
-        let vec: Vec<T> = vec![v; (height * width) as usize];
-        Matrix::new(height, width, vec)
-    }
+
 
     fn display(&self) -> String {
         if self.data.len() == 0 {
@@ -80,16 +75,7 @@ where
         }
         result
     }
-    // 生成单位方阵
-    //
-    pub fn unit(height: u64) -> Result<Matrix<T>, error::OperationError> {
-        let mut vec = vec![T::default(); (height * height) as usize];
-        for i in 0..height {
-            let index = i * height + i;
-            vec[index as usize] = T::from(1);
-        }
-        Matrix::new(height, height, vec)
-    }
+
 }
 
 
@@ -613,23 +599,4 @@ mod test {
         assert_eq!(-18, result);
     }
 
-    #[test]
-    fn test_new_with_default() {
-        let m: Matrix<f64> = Matrix::new_with_default(3, 3, 1.2).unwrap();
-        assert_eq!(m.size(), (3, 3));
-        for row in 0..3 {
-            for col in 0..3 {
-                let v = m.get(row, col).unwrap();
-                assert_eq!(1.2, v)
-            }
-        }
-    }
-
-
-    #[test]
-    fn test_unit_matrix() {
-        let m: Matrix<f64> = Matrix::unit(3).unwrap();
-        println!("{}", m);
-        assert_eq!(vec![1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0], m.data);
-    }
 }

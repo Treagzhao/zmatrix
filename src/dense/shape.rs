@@ -123,4 +123,21 @@ mod tests {
         assert_eq!(mr.size(), (2, 7));
         assert_eq!(mr.data, vec![1, 2, 3, 1, 2, 3, 4, 4, 5, 6, 5, 6, 7, 8]);
     }
+
+    #[test]
+    #[should_panic("shape size does not match")]
+    fn test_vstack_panic() {
+        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m1 = Matrix::new(2, 2, vec![1, 2, 3, 4]).unwrap();
+        let r = m.vstack(&m1).unwrap();
+    }
+
+    #[test]
+    fn test_vstack() {
+        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
+        let mr = m.vstack(&m1).unwrap();
+        assert_eq!(mr.size(), (5, 3));
+        assert_eq!(mr.data, vec![1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    }
 }

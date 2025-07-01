@@ -2,6 +2,7 @@ pub mod error;
 mod util;
 mod initial;
 mod shape;
+pub mod column_vector;
 
 use std::ops::{Add, Mul, Not, Sub};
 use std::fmt::{Debug, Display, Formatter};
@@ -161,7 +162,7 @@ where
         Result::Ok(())
     }
 
-    pub fn product(&self, target: Matrix<T>) -> Result<Matrix<T>, error::OperationError> {
+    pub fn product(&self, target: &Matrix<T>) -> Result<Matrix<T>, error::OperationError> {
         if self.width != target.height {
             return Result::Err(error::OperationError { message: "target height and width do not match".to_string() });
         }
@@ -235,29 +236,6 @@ where
         write!(f, "{}", result)
     }
 }
-
-impl<T> Not for Matrix<T>
-where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
-    f64: From<T>,
-{
-    type Output = Matrix<T>;
-
-    fn not(self) -> Self::Output {
-        let mut vec: Vec<T> = vec![T::default(); (self.height * self.width) as usize];
-        for row in 0..self.height {
-            for col in 0..self.width {
-                let index: usize = (row * self.width + col) as usize;
-                let target_index: usize = (col * self.height + row) as usize;
-                vec[target_index] = self.data[index];
-            }
-        }
-        //这里宽和高参数换位置了
-        let m = Matrix::new(self.width, self.height, vec).unwrap();
-        m
-    }
-}
-
 impl<T> Add for Matrix<T>
 where
     T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
@@ -496,7 +474,7 @@ mod test {
     fn test_matrix_product() {
         let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
         let m2 = Matrix::new(3, 4, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).unwrap();
-        let result = m1.product(m2);
+        let result = m1.product(&m2);
         assert!(result.is_ok());
 
         if let Ok(m3) = result {
@@ -536,35 +514,6 @@ mod test {
         if let Some(x) = v {
             assert_eq!(x, 12);
         }
-    }
-
-    #[test]
-    fn test_transform() {
-        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m1 = !m;
-        assert_eq!(3, m1.height);
-        assert_eq!(2, m1.width);
-        println!("{}", m1);
-        assert_eq!(vec![1, 4, 2, 5, 3, 6], m1.data);
-        let vec: Vec<i32> = vec![];
-        let m = Matrix::new(0, 0, vec).unwrap();
-        let m1 = !m;
-        assert_eq!(0, m1.height);
-        assert_eq!(0, m1.width);
-        println!("{}", m1);
-
-
-        let m = Matrix::new(1, 3, vec![1, 2, 3]).unwrap();
-        let m1 = !m;
-        println!("{}", m1);
-        assert_eq!(3, m1.height);
-        assert_eq!(1, m1.width);
-
-        let m = Matrix::new(3, 1, vec![1, 2, 3]).unwrap();
-        let m1 = !m;
-        println!("{}", m1);
-        assert_eq!(1, m1.height);
-        assert_eq!(3, m1.width);
     }
 
     #[test]

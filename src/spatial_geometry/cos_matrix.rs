@@ -80,7 +80,7 @@ impl CosMatrix {
 
     // 矩阵转置
     pub fn transfer(&self) -> Self {
-        let m = !self.matrix.clone();
+        let m = self.matrix.T();
         let mut cos = CosMatrix::default();
         cos.matrix = m;
         cos
@@ -149,7 +149,7 @@ impl CosMatrix {
     pub fn product_vector<T: PhysicalQuantity + Default>(&self, vec: &Vector3<T>) -> Vector3<T> {
         let mut result: Vector3<T> = Vector3::default();
         let m = vec.to_col_matrix();
-        let r = self.matrix.product(m).unwrap();
+        let r = self.matrix.product(&m).unwrap();
         result.x.set_value(r.get(0, 0).unwrap());
         result.y.set_value(r.get(0, 1).unwrap());
         result.z.set_value(r.get(0, 2).unwrap());
@@ -157,7 +157,7 @@ impl CosMatrix {
     }
 
     pub fn product(&self, other: &CosMatrix) -> CosMatrix {
-        let m = self.matrix.product(other.matrix.clone()).unwrap();
+        let m = self.matrix.product(&other.matrix.clone()).unwrap();
         let mut cos = CosMatrix::default();
         cos.matrix = m;
         cos

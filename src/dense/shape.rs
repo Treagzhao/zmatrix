@@ -17,8 +17,18 @@ where
         + From<i8>,
     f64: From<T>,
 {
-    pub fn T(self) -> Matrix<T> {
-        !self
+    pub fn T(&self) -> Matrix<T> {
+        let mut vec: Vec<T> = vec![T::default(); (self.height * self.width) as usize];
+        for row in 0..self.height {
+            for col in 0..self.width {
+                let index: usize = (row * self.width + col) as usize;
+                let target_index: usize = (col * self.height + row) as usize;
+                vec[target_index] = self.data[index];
+            }
+        }
+        //这里宽和高参数换位置了
+        let m = Matrix::new(self.width, self.height, vec).unwrap();
+        m
     }
 
     pub fn reshape(&self, height: u64, width: u64) -> Result<Matrix<T>, OperationError> {
@@ -69,7 +79,7 @@ mod tests {
     #[test]
     fn test_T() {
         let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m1 = !m;
+        let m1 = m.T();
         assert_eq!(3, m1.height);
         assert_eq!(2, m1.width);
         println!("{}", m1);

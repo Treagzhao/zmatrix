@@ -118,7 +118,7 @@ impl Quaternion {
     pub fn linear_transform(&self, m: Matrix<f64>) -> Quaternion {
         let vec: Vec<f64> = vec![self.q1, self.q2, self.q3, self.q0];
         let col_vec = Matrix::new(4, 1, vec).unwrap();
-        let result = m.product(col_vec).unwrap();
+        let result = m.product(&col_vec).unwrap();
         Quaternion::new(result.get(0, 3).unwrap(), result.get(0, 0).unwrap(), result.get(0, 1).unwrap(), result.get(0, 2).unwrap())
     }
 

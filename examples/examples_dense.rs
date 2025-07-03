@@ -46,13 +46,13 @@ fn show_get() {
 fn show_matrix_product() {
     let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
     let m2 = Matrix::new(3, 4, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).unwrap();
-    let result = m1.product(m2).unwrap();
+    let result = m1.product(&m2).unwrap();
     println!("matrix product:\n{}", result);
 }
 
 fn show_transform() {
     let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-    let m2 = !m1;
+    let m2 = m1.T();
     println!("\ntransform:\n{}", m2);
 }
 

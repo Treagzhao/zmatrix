@@ -366,7 +366,7 @@ mod tests {
         let expected = [[0.0, 0.0029880027, -0.001097387], [-0.0029880027, 0.0, 8.2051265e-6], [0.001097387, -8.2051265e-6, 0.0]];
         for (row, list) in expected.into_iter().enumerate() {
             for (col, val) in list.into_iter().enumerate() {
-                assert_relative_eq!(result.get(col as u64, row as u64).unwrap(), val, epsilon = 1e-6);
+                assert_relative_eq!(result.get(col, row).unwrap(), val, epsilon = 1e-6);
             }
         }
     }

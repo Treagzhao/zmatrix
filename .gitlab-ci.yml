@@ -1,0 +1,54 @@
+stages:
+  - test
+  - coverage
+
+variables:
+  COVERAGE_THRESHOLD: "90"  # 覆盖率阈值（百分比）
+  CARGO_INCREMENTAL: "0"     # 禁用增量编译以获得准确覆盖率
+
+# 使用 Rust 官方 Docker 镜像
+image: rust:latest
+
+# 缓存依赖以加速构建
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - target
+    - .cargo
+
+# 单元测试任务
+unit_test:
+  stage: test
+  script:
+    - cargo test --workspace --verbose
+  artifacts:
+    paths:
+      - target/debug/deps/  # 保留测试二进制文件供覆盖率工具使用
+
+# 生成覆盖率报告
+coverage:
+  stage: coverage
+  needs: ["unit_test"]  # 依赖单元测试任务
+  script:
+    # 安装 grcov 和 lcov
+    - cargo install grcov
+    - apt-get update -y && apt-get install -y lcov
+
+    # 设置环境变量以启用覆盖率数据收集
+    - export RUSTFLAGS="-Cinstrument-coverage"
+    - export LLVM_PROFILE_FILE="target/coverage/%p-%m.profraw"
+
+    # 重新运行测试以收集覆盖率数据
+    - cargo test --workspace
+
+    # 生成 lcov 格式的报告
+    - grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+
+    # 转换为 cobertura 格式（供 GitLab 解析）
+    - lcov --list lcov.info  # 打印覆盖率摘要（调试用）
+    - pip install lcov-cobertura
+    - lcov_cobertura lcov.info --output coverage.xml
+
+    # 提取总覆盖率数值
+    - TOTAL_COVERAGE=$(grep -oP '^TOTAL.*?\s+\K\d+' lcov.info | head -1)
+    - echo "Total test cover

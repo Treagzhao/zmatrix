@@ -1,3 +1,4 @@
+use crate::dense::error::OperationError;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Mul, Sub};
 
@@ -16,7 +17,7 @@ where
     f64: From<T>,
 {
     data: Vec<T>,
-    height: usize,
+    pub(crate) height: usize,
 }
 
 impl<T> ColumnVector<T>
@@ -38,6 +39,15 @@ where
             data: data.clone(),
             height: data.len(),
         }
+    }
+
+    pub fn get(&self, i: usize) -> Result<T, OperationError> {
+        if i >= self.height {
+            return Err(OperationError {
+                message: "out of index".to_string(),
+            });
+        }
+        Ok(self.data[i])
     }
 }
 

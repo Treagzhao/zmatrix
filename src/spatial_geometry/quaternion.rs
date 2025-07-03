@@ -382,7 +382,7 @@ mod tests {
             [0.644067, -0.743605, -0.15994]];
         for (row, list) in expected.iter().enumerate() {
             for (col, exp) in list.iter().enumerate() {
-                assert_relative_eq!(*exp,result.get(col as u64,row as u64).unwrap(),epsilon = 1e-7);
+                assert_relative_eq!(*exp,result.get(col,row).unwrap(),epsilon = 1e-7);
             }
         }
     }

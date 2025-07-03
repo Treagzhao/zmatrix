@@ -32,6 +32,7 @@ coverage:
   script:
     # 安装 grcov 和 lcov
     - cargo install grcov
+    - rustup component add llvm-tools  # 关键修复：安装缺失的 LLVM 工具
     - apt-get update -y && apt-get install -y lcov
 
     # 设置环境变量以启用覆盖率数据收集

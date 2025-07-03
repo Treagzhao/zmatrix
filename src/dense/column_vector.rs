@@ -16,6 +16,7 @@ where
     f64: From<T>,
 {
     data: Vec<T>,
+    height: usize,
 }
 
 impl<T> ColumnVector<T>
@@ -33,7 +34,10 @@ where
     f64: From<T>,
 {
     pub fn new(data: &Vec<T>) -> ColumnVector<T> {
-        ColumnVector { data: data.clone() }
+        ColumnVector {
+            data: data.clone(),
+            height: data.len(),
+        }
     }
 }
 
@@ -77,12 +81,15 @@ mod tests {
         let column_vector = ColumnVector::new(&data);
         let s = format!("{}", column_vector);
         println!("{}", s);
-        assert_eq!(s, "--
+        assert_eq!(
+            s,
+            "--
 │1│
 │2│
 │3│
 │4│
 │5│
---");
+--"
+        );
     }
 }

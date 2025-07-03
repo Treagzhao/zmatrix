@@ -31,7 +31,7 @@ where
         m
     }
 
-    pub fn reshape(&self, height: u64, width: u64) -> Result<Matrix<T>, OperationError> {
+    pub fn reshape(&self, height: usize, width: usize) -> Result<Matrix<T>, OperationError> {
         if self.height * self.width != height * width {
             return Err(OperationError {
                 message: "shape size does not match".to_string(),

@@ -14,8 +14,8 @@ where
     T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
-    height: u64,
-    width: u64,
+    height: usize,
+    width: usize,
     data: Vec<T>,
     digits: u8,
 }
@@ -25,7 +25,7 @@ where
     T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
-    pub fn new(height: u64, width: u64, vec: Vec<T>) -> Result<Matrix<T>, error::OperationError>
+    pub fn new(height: usize, width: usize, vec: Vec<T>) -> Result<Matrix<T>, error::OperationError>
     where
         T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
         f64: From<T>,
@@ -98,7 +98,7 @@ where
     T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
     f64: From<T>,
 {
-    pub fn get(&self, x: u64, y: u64) -> Option<T> {
+    pub fn get(&self, x: usize, y: usize) -> Option<T> {
         if (x >= self.width) || (y >= self.height) {
             return None;
         }
@@ -141,19 +141,19 @@ where
         Result::Ok(sum)
     }
 
-    pub fn height(&self) -> u64 {
+    pub fn height(&self) -> usize {
         self.height
     }
 
-    pub fn width(&self) -> u64 {
+    pub fn width(&self) -> usize {
         self.width
     }
 
-    pub fn size(&self) -> (u64, u64) {
+    pub fn size(&self) -> (usize,usize) {
         (self.height, self.width)
     }
 
-    pub fn set(&mut self, x: u64, y: u64, value: T) -> Result<(), error::OperationError> {
+    pub fn set(&mut self, x: usize, y: usize, value: T) -> Result<(), error::OperationError> {
         let index: usize = (y * self.width + x) as usize;
         if index >= self.data.len() {
             return Result::Err(error::OperationError { message: "index out of bounds".to_string() });

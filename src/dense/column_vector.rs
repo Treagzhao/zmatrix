@@ -1,7 +1,7 @@
 use crate::dense::error::OperationError;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Mul, Sub};
-
+#[derive(Clone,Debug)]
 pub struct ColumnVector<T>
 where
     T: Copy
@@ -19,6 +19,9 @@ where
     data: Vec<T>,
     pub(crate) height: usize,
 }
+
+
+
 
 impl<T> ColumnVector<T>
 where
@@ -133,5 +136,14 @@ mod tests {
         let column_vector = ColumnVector::<f64>::zeros(5);
         assert_eq!(column_vector.data, vec![0.0, 0.0, 0.0, 0.0, 0.0]);
         assert_eq!(column_vector.height, 5);
+    }
+
+    #[test]
+    fn test_clone(){
+        let data = vec![1, 2, 3, 4, 5];
+        let column_vector = ColumnVector::new(&data);
+        let column_vector2 = column_vector.clone();
+        assert_eq!(column_vector.data, column_vector2.data);
+        assert_eq!(column_vector.height, column_vector2.height);
     }
 }

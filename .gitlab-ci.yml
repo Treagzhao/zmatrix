@@ -31,6 +31,8 @@ coverage:
   needs: ["unit_test"]  # 依赖单元测试任务
   script:
     # 安装 grcov 和 lcov
+    - apt-get update -y && apt-get install -y python3-pip
+    - ln -s /usr/bin/pip3 /usr/bin/pip  # 创建软链接（可选）
     - cargo install grcov
     - rustup component add llvm-tools  # 关键修复：安装缺失的 LLVM 工具
     - apt-get update -y && apt-get install -y lcov

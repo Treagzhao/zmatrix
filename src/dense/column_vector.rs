@@ -41,6 +41,14 @@ where
         }
     }
 
+    pub fn zeros(height: usize) -> ColumnVector<T> {
+        let mut data = Vec::with_capacity(height);
+        for _ in 0..height {
+            data.push(T::default());
+        }
+        ColumnVector { data, height }
+    }
+
     pub fn get(&self, i: usize) -> Result<T, OperationError> {
         if i >= self.height {
             return Err(OperationError {
@@ -101,5 +109,29 @@ mod tests {
 │5│
 --"
         );
+    }
+
+    #[test]
+    fn test_column_vector_get() {
+        let data = vec![1, 2, 3, 4, 5];
+        let column_vector = ColumnVector::new(&data);
+        for i in 0..data.len() {
+            assert_eq!(column_vector.get(i).unwrap(), data[i]);
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "out of index")]
+    fn test_column_vector_get_error() {
+        let data = vec![1, 2, 3, 4, 5];
+        let column_vector = ColumnVector::new(&data);
+        column_vector.get(5).unwrap();
+    }
+
+    #[test]
+    fn test_column_vector_zeros() {
+        let column_vector = ColumnVector::<f64>::zeros(5);
+        assert_eq!(column_vector.data, vec![0.0, 0.0, 0.0, 0.0, 0.0]);
+        assert_eq!(column_vector.height, 5);
     }
 }

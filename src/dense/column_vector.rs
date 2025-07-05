@@ -1,6 +1,8 @@
 use crate::dense::error::OperationError;
+use crate::dense::Matrix;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Mul, Sub};
+
 #[derive(Clone, Debug)]
 pub struct ColumnVector<T>
 where
@@ -19,6 +21,11 @@ where
             data: data.clone(),
             height: data.len(),
         }
+    }
+
+    pub fn to_matrix(&self) -> Matrix<T> {
+        let vec = self.data.clone();
+        Matrix::new(self.height, 1, vec).unwrap()
     }
 
     pub fn zeros(height: usize) -> ColumnVector<T> {
@@ -122,5 +129,77 @@ mod tests {
         let column_vector2 = column_vector.clone();
         assert_eq!(column_vector.data, column_vector2.data);
         assert_eq!(column_vector.height, column_vector2.height);
+    }
+
+
+    #[test]
+    fn test_to_matrix_with_non_empty_vector() {
+        // Test converting a non-empty ColumnVector to Matrix
+        let data = vec![1, 2, 3];
+        let column_vector = ColumnVector::new(&data);
+        let matrix = column_vector.to_matrix();
+
+        assert_eq!(matrix.height(), 3);
+        assert_eq!(matrix.width(), 1);
+        assert_eq!(matrix.data, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_to_matrix_with_single_element() {
+        // Test converting a single-element ColumnVector to Matrix
+        let data = vec![42];
+        let column_vector = ColumnVector::new(&data);
+        let matrix = column_vector.to_matrix();
+
+        assert_eq!(matrix.height(), 1);
+        assert_eq!(matrix.width(), 1);
+        assert_eq!(matrix.data, vec![42]);
+    }
+
+    #[test]
+    fn test_to_matrix_with_empty_vector() {
+        // Test converting an empty ColumnVector to Matrix
+        let data: Vec<i32> = vec![];
+        let column_vector = ColumnVector::new(&data);
+        let matrix = column_vector.to_matrix();
+
+        assert_eq!(matrix.height(), 0);
+        assert_eq!(matrix.width(), 1);
+        assert!(matrix.data.is_empty());
+    }
+
+    #[test]
+    fn test_to_matrix_verify_dimensions() {
+        // Verify the resulting matrix dimensions are correct
+        let data = vec![1.0, 2.0, 3.0, 4.0];
+        let column_vector = ColumnVector::new(&data);
+        let matrix = column_vector.to_matrix();
+
+        assert_eq!(matrix.height(), column_vector.height);
+        assert_eq!(matrix.width(), 1);
+    }
+
+    #[test]
+    fn test_to_matrix_data_integrity() {
+        // Verify the data is correctly transferred to matrix
+        let data = vec![10, 20, 30, 40, 50];
+        let column_vector = ColumnVector::new(&data);
+        let matrix = column_vector.to_matrix();
+
+        for i in 0..column_vector.height {
+            assert_eq!(matrix.get(0,i).unwrap(), column_vector.get(i).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_to_matrix_with_large_vector() {
+        // Test with a large vector to check performance/stability
+        let data: Vec<_> = (0..1000).collect();
+        let column_vector = ColumnVector::new(&data);
+        let matrix = column_vector.to_matrix();
+
+        assert_eq!(matrix.height(), 1000);
+        assert_eq!(matrix.width(), 1);
+        assert_eq!(matrix.get(0,999).unwrap(), 999);
     }
 }

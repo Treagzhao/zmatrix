@@ -12,6 +12,25 @@ where
     pub(crate) height: usize,
 }
 
+impl<T> Sub for ColumnVector<T>
+where
+    T: Copy + Display + Default + Send + Sync + Sub<Output = T>,
+{
+    type Output = ColumnVector<T>;
+    fn sub(self, rhs: Self) -> Self::Output {
+        if self.height != rhs.height {
+            panic!("column vector size not match");
+        }
+        let mut vec = self
+            .data
+            .iter()
+            .zip(rhs.data.iter())
+            .map(|(a, b)| *a - *b)
+            .collect();
+        ColumnVector::new(&vec)
+    }
+}
+
 impl<T> ColumnVector<T>
 where
     T: Copy + Display + Default + Send + Sync,
@@ -99,6 +118,18 @@ where
         for i in 0..self.height {
             vec.push(self.data[i] + rhs.data[i]);
         }
+        ColumnVector::new(&vec)
+    }
+}
+
+impl<T> Mul<T> for ColumnVector<T>
+where
+    T: Copy + Display + Default + Send + Sync + Mul<Output = T>,
+{
+    type Output = ColumnVector<T>;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        let vec = self.data.iter().map(|x| *x * rhs).collect();
         ColumnVector::new(&vec)
     }
 }
@@ -313,13 +344,12 @@ mod tests {
         assert_eq!(column_vector.data[999], 999.0);
     }
 
-
     #[test]
     fn test_add_column_vectors_success() {
         // Test normal case: add two vectors of same size
         let vec1 = ColumnVector::new(&vec![1, 2, 3]);
         let vec2 = ColumnVector::new(&vec![4, 5, 6]);
-        let result = vec1.add(vec2);
+        let result = vec1 + vec2;
 
         assert_eq!(result.data, vec![5, 7, 9]);
         assert_eq!(result.height, 3);
@@ -339,7 +369,7 @@ mod tests {
         // Test edge case: add two empty vectors
         let vec1 = ColumnVector::<i32>::zeros(0);
         let vec2 = ColumnVector::<i32>::zeros(0);
-        let result = vec1.add(vec2);
+        let result = vec1 + vec2;
 
         assert_eq!(result.data, vec![]);
         assert_eq!(result.height, 0);
@@ -352,7 +382,7 @@ mod tests {
         let data2: Vec<_> = (0..1000).rev().collect();
         let vec1 = ColumnVector::new(&data1);
         let vec2 = ColumnVector::new(&data2);
-        let result = vec1.add(vec2);
+        let result = vec1 + vec2;
 
         assert_eq!(result.height, 1000);
         for i in 0..result.height {
@@ -365,7 +395,7 @@ mod tests {
         // Test special case: add vectors containing zeros
         let vec1 = ColumnVector::new(&vec![1, 0, 3]);
         let vec2 = ColumnVector::new(&vec![0, 5, 0]);
-        let result = vec1.add(vec2);
+        let result = vec1 + vec2;
 
         assert_eq!(result.data, vec![1, 5, 3]);
     }
@@ -375,7 +405,7 @@ mod tests {
         // Test float precision case
         let vec1 = ColumnVector::new(&vec![1.5, 2.25]);
         let vec2 = ColumnVector::new(&vec![0.5, 0.75]);
-        let result = vec1.add(vec2);
+        let result = vec1 + vec2;
 
         assert_eq!(result.data, vec![2.0, 3.0]);
     }
@@ -387,8 +417,205 @@ mod tests {
         let data2 = vec![3, 4];
         let vec1 = ColumnVector::new(&data1);
         let vec2 = ColumnVector::new(&data2);
-        let _ = vec1.clone().add(vec2.clone());
+        let _ = vec1.clone() + vec2.clone();
 
+        assert_eq!(vec1.data, data1);
+        assert_eq!(vec2.data, data2);
+    }
+
+    #[test]
+    fn test_mul_scalar() {
+        // Test basic scalar multiplication
+        let vec = ColumnVector::new(&vec![1, 2, 3]);
+        let result = vec * 2;
+        assert_eq!(result.data, vec![2, 4, 6]);
+        assert_eq!(result.height, 3);
+    }
+
+    #[test]
+    fn test_mul_zero() {
+        // Test multiplying by zero
+        let vec = ColumnVector::new(&vec![1.5, 2.5, 3.5]);
+        let result = vec * 0.0;
+        assert_eq!(result.data, vec![0.0, 0.0, 0.0]);
+        assert_eq!(result.height, 3);
+    }
+
+    #[test]
+    fn test_mul_negative() {
+        // Test multiplying by negative numbers
+        let vec = ColumnVector::new(&vec![4, 5, 6]);
+        let result = vec * -1;
+        assert_eq!(result.data, vec![-4, -5, -6]);
+        assert_eq!(result.height, 3);
+    }
+
+    #[test]
+    fn test_mul_identity() {
+        // Test multiplying by identity (1)
+        let vec = ColumnVector::new(&vec![7, 8, 9]);
+        let result = vec * 1;
+        assert_eq!(result.data, vec![7, 8, 9]);
+        assert_eq!(result.height, 3);
+    }
+
+    #[test]
+    fn test_mul_large_scalar() {
+        // Test multiplying by large scalar value
+        let vec = ColumnVector::new(&vec![10, 20, 30]);
+        let result = vec * 1000;
+        assert_eq!(result.data, vec![10000, 20000, 30000]);
+        assert_eq!(result.height, 3);
+    }
+
+    #[test]
+    fn test_mul_empty_vector() {
+        // Test multiplying empty vector
+        let vec = ColumnVector::<i32>::zeros(0);
+        let result = vec * 5;
+        assert!(result.data.is_empty());
+        assert_eq!(result.height, 0);
+    }
+
+    #[test]
+    fn test_mul_float_values() {
+        // Test multiplying float values
+        let vec = ColumnVector::new(&vec![1.5, 2.5]);
+        let result = vec * 2.0;
+        assert_eq!(result.data, vec![3.0, 5.0]);
+        assert_eq!(result.height, 2);
+    }
+
+    #[test]
+    fn test_mul_mixed_types() {
+        // Test multiplying with type conversion
+        let vec = ColumnVector::new(&vec![1.0, 2.0, 3.0]);
+        let result = vec * 2.5_f64;
+        assert_eq!(result.data, vec![2.5, 5.0, 7.5]);
+        assert_eq!(result.height, 3);
+    }
+
+    #[test]
+    fn test_mul_verify_immutability() {
+        // Verify original vector is not modified
+        let data = vec![1, 2, 3];
+        let vec = ColumnVector::new(&data);
+        let _ = vec.clone() * 2;
+        assert_eq!(vec.data, data);
+    }
+
+
+    // Test normal subtraction of two vectors
+    #[test]
+    fn test_sub_normal_case() {
+        let vec1 = ColumnVector::new(&vec![1, 2, 3]);
+        let vec2 = ColumnVector::new(&vec![4, 5, 6]);
+        let result = vec1 - vec2;
+        assert_eq!(result.data, vec![-3, -3, -3]);
+        assert_eq!(result.height, 3);
+    }
+
+    // Test subtraction of same vectors
+    #[test]
+    fn test_sub_same_vector() {
+        let vec1 = ColumnVector::new(&vec![1.5, 2.5, 3.5]);
+        let vec2 = ColumnVector::new(&vec![1.5, 2.5, 3.5]);
+        let result = vec1 - vec2;
+        assert_eq!(result.data, vec![0.0, 0.0, 0.0]);
+        assert_eq!(result.height, 3);
+    }
+
+    // Test subtraction with negative numbers
+    #[test]
+    fn test_sub_negative_numbers() {
+        let vec1 = ColumnVector::new(&vec![-1, -2, -3]);
+        let vec2 = ColumnVector::new(&vec![-4, -5, -6]);
+        let result = vec1 - vec2;
+        assert_eq!(result.data, vec![3, 3, 3]);
+        assert_eq!(result.height, 3);
+    }
+
+    // Test subtraction of empty vectors
+    #[test]
+    fn test_sub_empty_vectors() {
+        let vec1 = ColumnVector::<i32>::zeros(0);
+        let vec2 = ColumnVector::<i32>::zeros(0);
+        let result = vec1 - vec2;
+        assert!(result.data.is_empty());
+        assert_eq!(result.height, 0);
+    }
+
+    // Test subtraction of large vectors
+    #[test]
+    fn test_sub_large_vectors() {
+        let data1: Vec<_> = (0..1000).collect();
+        let data2: Vec<_> = (1..1001).collect();
+        let vec1 = ColumnVector::new(&data1);
+        let vec2 = ColumnVector::new(&data2);
+        let result = vec1 - vec2;
+        assert_eq!(result.height, 1000);
+        for i in 0..result.height {
+            assert_eq!(result.data[i], -1);
+        }
+    }
+
+    // Test subtraction with mixed positive and negative numbers
+    #[test]
+    fn test_sub_mixed_signs() {
+        let vec1 = ColumnVector::new(&vec![1, -2, 3]);
+        let vec2 = ColumnVector::new(&vec![-4, 5, -6]);
+        let result = vec1 - vec2;
+        assert_eq!(result.data, vec![5, -7, 9]);
+        assert_eq!(result.height, 3);
+    }
+
+    // Test subtraction of floating point vectors
+    #[test]
+    fn test_sub_float_vectors() {
+        let vec1 = ColumnVector::new(&vec![1.5, 2.5, 3.5]);
+        let vec2 = ColumnVector::new(&vec![0.5, 1.5, 2.5]);
+        let result = vec1 - vec2;
+        assert_eq!(result.data, vec![1.0, 1.0, 1.0]);
+        assert_eq!(result.height, 3);
+    }
+
+    // Test subtraction with vectors containing zeros
+    #[test]
+    fn test_sub_with_zeros() {
+        let vec1 = ColumnVector::new(&vec![0, 0, 0]);
+        let vec2 = ColumnVector::new(&vec![1, 2, 3]);
+        let result = vec1 - vec2;
+        assert_eq!(result.data, vec![-1, -2, -3]);
+        assert_eq!(result.height, 3);
+    }
+
+    // Test subtraction with single element vectors
+    #[test]
+    fn test_sub_single_element() {
+        let vec1 = ColumnVector::new(&vec![42]);
+        let vec2 = ColumnVector::new(&vec![24]);
+        let result = vec1 - vec2;
+        assert_eq!(result.data, vec![18]);
+        assert_eq!(result.height, 1);
+    }
+
+    // Test size mismatch should panic
+    #[test]
+    #[should_panic(expected = "column vector size not match")]
+    fn test_sub_size_mismatch() {
+        let vec1 = ColumnVector::new(&vec![1, 2, 3]);
+        let vec2 = ColumnVector::new(&vec![4, 5]);
+        let _ = vec1 - vec2;
+    }
+
+    // Test original vectors are not modified
+    #[test]
+    fn test_sub_verify_immutability() {
+        let data1 = vec![1, 2];
+        let data2 = vec![3, 4];
+        let vec1 = ColumnVector::new(&data1);
+        let vec2 = ColumnVector::new(&data2);
+        let _ = vec1.clone() - vec2.clone();
         assert_eq!(vec1.data, data1);
         assert_eq!(vec2.data, data2);
     }

@@ -1,7 +1,7 @@
 pub mod column_vector;
 pub mod error;
 mod initial;
-mod operation;
+pub mod operation;
 mod shape;
 mod util;
 

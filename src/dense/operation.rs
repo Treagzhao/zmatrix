@@ -313,9 +313,20 @@ where
             .collect();
         Matrix::new(self.height, self.width, vec).unwrap()
     }
+
+    pub fn clamp(&self, min: T, max: T) -> Matrix<f64> {
+        let mut vec: Vec<f64> = self.data.iter().map(|x| {
+            let f:f64 = (*x).into();
+            f.clamp(min.into(),max.into())
+        }).collect();
+        Matrix::new(self.height, self.width, vec).unwrap()
+    }
 }
 
-impl<T> Matrix<T> where T: Copy + Send + Sync + Display + Add<Output = T> {
+impl<T> Matrix<T>
+where
+    T: Copy + Send + Sync + Display + Add<Output = T>,
+{
     pub fn sum(&self) -> T {
         let mut sum = self.data[0];
         for i in 1..self.data.len() {
@@ -787,7 +798,6 @@ mod test {
         assert_relative_eq!(result.data[1], (1.0 + 1e-10f64).ln(), epsilon = 1e-6);
     }
 
-
     #[test]
     fn test_sum_empty_matrix() {
         // Test with empty matrix (should panic)
@@ -815,7 +825,6 @@ mod test {
         let matrix = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
         let sum = matrix.sum();
         assert_eq!(sum, 21);
-
     }
 
     #[test]
@@ -855,8 +864,6 @@ mod test {
         let sum = matrix.sum();
         assert_eq!(sum, i32::MIN);
     }
-
-
 
     #[test]
     fn test_sum_multiple_calls_consistency() {
@@ -912,5 +919,114 @@ mod test {
         let matrix = Matrix::new(1, 2, vec![f64::MIN, f64::MAX]).unwrap();
         let sum = matrix.sum();
         assert_relative_eq!(sum, f64::MIN + f64::MAX, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_clamp_basic_values() {
+        // Test basic clamping with normal values
+        let matrix = Matrix::new(2, 2, vec![1.0, 2.5, 3.0, 4.5]).unwrap();
+        let result = matrix.clamp(2.0, 4.0);
+        assert_eq!(result.height, 2);
+        assert_eq!(result.width, 2);
+        assert_relative_eq!(result.data[0], 2.0, epsilon = 1e-10); // 1.0 clamped to 2.0
+        assert_relative_eq!(result.data[1], 2.5, epsilon = 1e-10); // unchanged
+        assert_relative_eq!(result.data[2], 3.0, epsilon = 1e-10); // unchanged
+        assert_relative_eq!(result.data[3], 4.0, epsilon = 1e-10); // 4.5 clamped to 4.0
+    }
+
+    #[test]
+    fn test_clamp_all_values_below_min() {
+        // Test all values below minimum
+        let matrix = Matrix::new(1, 3, vec![0.5, 1.0, 1.5]).unwrap();
+        let result = matrix.clamp(2.0, 4.0);
+        assert_eq!(result.data.len(), 3);
+        assert_relative_eq!(result.data[0], 2.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[1], 2.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[2], 2.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_clamp_all_values_above_max() {
+        // Test all values above maximum
+        let matrix = Matrix::new(1, 3, vec![5.0, 6.0, 7.0]).unwrap();
+        let result = matrix.clamp(2.0, 4.0);
+        assert_eq!(result.data.len(), 3);
+        assert_relative_eq!(result.data[0], 4.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[1], 4.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[2], 4.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_clamp_with_equal_bounds() {
+        // Test with min == max
+        let matrix = Matrix::new(2, 2, vec![1.0, 2.0, 3.0, 4.0]).unwrap();
+        let result = matrix.clamp(3.0, 3.0);
+        assert_eq!(result.data.len(), 4);
+        assert_relative_eq!(result.data[0], 3.0, epsilon = 1e-10); // clamped
+        assert_relative_eq!(result.data[1], 3.0, epsilon = 1e-10); // clamped
+        assert_relative_eq!(result.data[2], 3.0, epsilon = 1e-10); // unchanged
+        assert_relative_eq!(result.data[3], 3.0, epsilon = 1e-10); // clamped
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_clamp_with_reversed_bounds() {
+        // Test with min > max (should clamp to max)
+        let matrix = Matrix::new(1, 2, vec![1.5, 2.5]).unwrap();
+        let result = matrix.clamp(3.0, 2.0);
+    }
+
+    #[test]
+    fn test_clamp_with_extreme_values() {
+        // Test with extreme values (infinity, very large/small numbers)
+        let matrix = Matrix::new(1, 4, vec![f64::MIN, f64::MAX, f64::NEG_INFINITY, f64::INFINITY]).unwrap();
+        let result = matrix.clamp(-1e100, 1e100);
+        assert_eq!(result.data.len(), 4);
+        assert_relative_eq!(result.data[0], -1e100, epsilon = 1e10); // MIN clamped to -1e100
+        assert_relative_eq!(result.data[1], 1e100, epsilon = 1e10); // MAX clamped to 1e100
+        assert_relative_eq!(result.data[2], -1e100, epsilon = 1e10); // -INF clamped
+        assert_relative_eq!(result.data[3], 1e100, epsilon = 1e10); // INF clamped
+    }
+
+    #[test]
+    fn test_clamp_with_nan_values() {
+        // Test with NaN values (should propagate NaN)
+        let matrix = Matrix::new(1, 2, vec![1.0, f64::NAN]).unwrap();
+        let result = matrix.clamp(0.0, 2.0);
+        assert_eq!(result.data.len(), 2);
+        assert_relative_eq!(result.data[0], 1.0, epsilon = 1e-10);
+        assert!(result.data[1].is_nan());
+    }
+
+    #[test]
+    fn test_clamp_empty_matrix() {
+        // Test with empty matrix
+        let matrix: Matrix<f64> = Matrix::new(0, 0, vec![]).unwrap();
+        let result = matrix.clamp(1.0, 2.0);
+        assert_eq!(result.height, 0);
+        assert_eq!(result.width, 0);
+        assert_eq!(result.data.len(), 0);
+    }
+
+    #[test]
+    fn test_clamp_preserves_dimensions() {
+        // Test that dimensions are preserved
+        let matrix = Matrix::new(3, 5, vec![0.0; 15]).unwrap();
+        let result = matrix.clamp(-1.0, 1.0);
+        assert_eq!(result.height, 3);
+        assert_eq!(result.width, 5);
+        assert_eq!(result.data.len(), 15);
+    }
+
+    #[test]
+    fn test_clamp_with_integer_matrix() {
+        // Test with integer matrix (should convert to f64)
+        let matrix = Matrix::new(1, 4, vec![0,1, 2, 3]).unwrap();
+        let result = matrix.clamp(1, 2);
+        assert_eq!(result.data.len(), 4);
+        assert_relative_eq!(result.data[0], 1.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[1], 1.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[2], 2.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[3], 2.0, epsilon = 1e-10);
     }
 }

@@ -315,6 +315,16 @@ where
     }
 }
 
+impl<T> Matrix<T> where T: Copy + Send + Sync + Display + Add<Output = T> {
+    pub fn sum(&self) -> T {
+        let mut sum = self.data[0];
+        for i in 1..self.data.len() {
+            sum = sum + self.data[i];
+        }
+        sum
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -651,7 +661,6 @@ mod test {
         );
     }
 
-
     #[test]
     fn test_log_positive_values() {
         let matrix = Matrix::new(2, 2, vec![1.0, 2.0, 3.0, 4.0]).unwrap();
@@ -739,8 +748,16 @@ mod test {
         let matrix = Matrix::new(1, 2, vec![1e50, 1e100]).unwrap();
         let result = matrix.ln();
 
-        assert_relative_eq!(result.data[0], 50.0 * std::f64::consts::LN_10, epsilon = 1e-10);
-        assert_relative_eq!(result.data[1], 100.0 * std::f64::consts::LN_10, epsilon = 1e-10);
+        assert_relative_eq!(
+            result.data[0],
+            50.0 * std::f64::consts::LN_10,
+            epsilon = 1e-10
+        );
+        assert_relative_eq!(
+            result.data[1],
+            100.0 * std::f64::consts::LN_10,
+            epsilon = 1e-10
+        );
     }
 
     #[test]
@@ -748,8 +765,16 @@ mod test {
         let matrix = Matrix::new(1, 2, vec![1e-50, 1e-100]).unwrap();
         let result = matrix.ln();
 
-        assert_relative_eq!(result.data[0], -50.0 * std::f64::consts::LN_10, epsilon = 1e-10);
-        assert_relative_eq!(result.data[1], -100.0 * std::f64::consts::LN_10, epsilon = 1e-10);
+        assert_relative_eq!(
+            result.data[0],
+            -50.0 * std::f64::consts::LN_10,
+            epsilon = 1e-10
+        );
+        assert_relative_eq!(
+            result.data[1],
+            -100.0 * std::f64::consts::LN_10,
+            epsilon = 1e-10
+        );
     }
 
     #[test]
@@ -760,5 +785,132 @@ mod test {
         // Test values very close to 1.0
         assert_relative_eq!(result.data[0], (1.0 - 1e-10f64).ln(), epsilon = 1e-6); // More tolerant epsilon
         assert_relative_eq!(result.data[1], (1.0 + 1e-10f64).ln(), epsilon = 1e-6);
+    }
+
+
+    #[test]
+    fn test_sum_empty_matrix() {
+        // Test with empty matrix (should panic)
+        let matrix = Matrix::<i32>::new(0, 0, vec![]).unwrap();
+        let result = std::panic::catch_unwind(|| matrix.sum());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_sum_single_element() {
+        // Test with single element matrix
+        let matrix = Matrix::new(1, 1, vec![5]).unwrap();
+        let sum = matrix.sum();
+        assert_eq!(sum, 5);
+
+        // Test with negative value
+        let matrix = Matrix::new(1, 1, vec![-3]).unwrap();
+        let sum = matrix.sum();
+        assert_eq!(sum, -3);
+    }
+
+    #[test]
+    fn test_sum_positive_integers() {
+        // Test with positive integers
+        let matrix = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let sum = matrix.sum();
+        assert_eq!(sum, 21);
+
+    }
+
+    #[test]
+    fn test_sum_negative_integers() {
+        // Test with mixed positive/negative integers
+        let matrix = Matrix::new(2, 2, vec![1, -2, 3, -4]).unwrap();
+        let sum = matrix.sum();
+        assert_eq!(sum, -2);
+
+        // Test with all negative
+        let matrix = Matrix::new(1, 3, vec![-10, -20, -30]).unwrap();
+        let sum = matrix.sum();
+        assert_eq!(sum, -60);
+    }
+
+    #[test]
+    fn test_sum_floating_point() {
+        // Test with floating point values
+        let matrix = Matrix::new(1, 4, vec![1.5, 2.5, 3.5, 4.5]).unwrap();
+        let sum = matrix.sum();
+        assert_relative_eq!(sum, 12.0, epsilon = 1e-10);
+
+        // Test with mixed positive/negative floats
+        let matrix = Matrix::new(2, 2, vec![-1.5, 2.5, -3.5, 4.5]).unwrap();
+        let sum = matrix.sum();
+        assert_relative_eq!(sum, 2.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_sum_near_overflow() {
+        // Test values near overflow boundaries
+        let matrix = Matrix::new(1, 2, vec![i32::MAX - 5, 5]).unwrap();
+        let sum = matrix.sum();
+        assert_eq!(sum, i32::MAX);
+
+        let matrix = Matrix::new(1, 2, vec![i32::MIN + 5, -5]).unwrap();
+        let sum = matrix.sum();
+        assert_eq!(sum, i32::MIN);
+    }
+
+
+
+    #[test]
+    fn test_sum_multiple_calls_consistency() {
+        // Multiple calls should return same result
+        let matrix = Matrix::new(2, 2, vec![10, 20, 30, 40]).unwrap();
+        let sum1 = matrix.sum();
+        let sum2 = matrix.sum();
+        assert_eq!(sum1, sum2);
+        assert_eq!(sum1, 100);
+    }
+
+    #[test]
+    fn test_sum_with_zeroes() {
+        // All zeros shouldn't affect sum
+        let matrix = Matrix::new(3, 3, vec![0; 9]).unwrap();
+        let sum = matrix.sum();
+        assert_eq!(sum, 0);
+    }
+
+    #[test]
+    fn test_sum_with_large_matrix() {
+        // Test with many elements (performance check)
+        let data = vec![1; 1000];
+        let matrix = Matrix::new(20, 50, data).unwrap();
+        let sum = matrix.sum();
+        assert_eq!(sum, 1000);
+    }
+
+    #[test]
+    fn test_sum_with_nan() {
+        // Test with NaN values
+        let matrix = Matrix::new(1, 3, vec![1.0, f64::NAN, 2.0]).unwrap();
+        let sum = matrix.sum();
+        assert!(sum.is_nan());
+    }
+
+    #[test]
+    fn test_sum_with_infinity() {
+        // Test with infinity values
+        let matrix = Matrix::new(1, 3, vec![1.0, f64::INFINITY, 2.0]).unwrap();
+        let sum = matrix.sum();
+        assert_eq!(sum, f64::INFINITY);
+
+        // Mixed +inf and -inf
+        let matrix = Matrix::new(1, 2, vec![f64::INFINITY, f64::NEG_INFINITY]).unwrap();
+        let sum = matrix.sum();
+        assert!(sum.is_nan());
+    }
+
+    #[test]
+    fn test_sum_with_extreme_floats() {
+        // Test with extremely large/small float values
+        let matrix = Matrix::new(1, 2, vec![f64::MIN, f64::MAX]).unwrap();
+        let sum = matrix.sum();
+        assert_relative_eq!(sum, f64::MIN + f64::MAX, epsilon = 1e-10);
     }
 }

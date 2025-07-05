@@ -85,6 +85,24 @@ where
     }
 }
 
+impl<T> Add<ColumnVector<T>> for ColumnVector<T>
+where
+    T: Copy + Display + Default + Send + Sync + Add<Output = T>,
+{
+    type Output = ColumnVector<T>;
+
+    fn add(self, rhs: ColumnVector<T>) -> Self::Output {
+        if self.height != rhs.height {
+            panic!("column vector size not match");
+        }
+        let mut vec = Vec::with_capacity(self.height);
+        for i in 0..self.height {
+            vec.push(self.data[i] + rhs.data[i]);
+        }
+        ColumnVector::new(&vec)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -217,7 +235,6 @@ mod tests {
         assert_eq!(matrix.get(0, 999).unwrap(), 999);
     }
 
-
     #[test]
     fn test_to_column_vector_success() {
         // Test converting a valid 1-column matrix to column vector
@@ -294,5 +311,85 @@ mod tests {
         let column_vector = result.unwrap();
         assert_eq!(column_vector.height, 1000);
         assert_eq!(column_vector.data[999], 999.0);
+    }
+
+
+    #[test]
+    fn test_add_column_vectors_success() {
+        // Test normal case: add two vectors of same size
+        let vec1 = ColumnVector::new(&vec![1, 2, 3]);
+        let vec2 = ColumnVector::new(&vec![4, 5, 6]);
+        let result = vec1.add(vec2);
+
+        assert_eq!(result.data, vec![5, 7, 9]);
+        assert_eq!(result.height, 3);
+    }
+
+    #[test]
+    #[should_panic(expected = "column vector size not match")]
+    fn test_add_column_vectors_size_mismatch() {
+        // Test error case: add vectors of different sizes
+        let vec1 = ColumnVector::new(&vec![1, 2, 3]);
+        let vec2 = ColumnVector::new(&vec![4, 5]);
+        vec1.add(vec2);
+    }
+
+    #[test]
+    fn test_add_empty_vectors() {
+        // Test edge case: add two empty vectors
+        let vec1 = ColumnVector::<i32>::zeros(0);
+        let vec2 = ColumnVector::<i32>::zeros(0);
+        let result = vec1.add(vec2);
+
+        assert_eq!(result.data, vec![]);
+        assert_eq!(result.height, 0);
+    }
+
+    #[test]
+    fn test_add_large_vectors() {
+        // Test performance case: add large vectors
+        let data1: Vec<_> = (0..1000).collect();
+        let data2: Vec<_> = (0..1000).rev().collect();
+        let vec1 = ColumnVector::new(&data1);
+        let vec2 = ColumnVector::new(&data2);
+        let result = vec1.add(vec2);
+
+        assert_eq!(result.height, 1000);
+        for i in 0..result.height {
+            assert_eq!(result.data[i], 999);
+        }
+    }
+
+    #[test]
+    fn test_add_vectors_with_zeros() {
+        // Test special case: add vectors containing zeros
+        let vec1 = ColumnVector::new(&vec![1, 0, 3]);
+        let vec2 = ColumnVector::new(&vec![0, 5, 0]);
+        let result = vec1.add(vec2);
+
+        assert_eq!(result.data, vec![1, 5, 3]);
+    }
+
+    #[test]
+    fn test_add_vectors_with_f64_values() {
+        // Test float precision case
+        let vec1 = ColumnVector::new(&vec![1.5, 2.25]);
+        let vec2 = ColumnVector::new(&vec![0.5, 0.75]);
+        let result = vec1.add(vec2);
+
+        assert_eq!(result.data, vec![2.0, 3.0]);
+    }
+
+    #[test]
+    fn test_add_vectors_verify_immutability() {
+        // Verify original vectors are not modified
+        let data1 = vec![1, 2];
+        let data2 = vec![3, 4];
+        let vec1 = ColumnVector::new(&data1);
+        let vec2 = ColumnVector::new(&data2);
+        let _ = vec1.clone().add(vec2.clone());
+
+        assert_eq!(vec1.data, data1);
+        assert_eq!(vec2.data, data2);
     }
 }

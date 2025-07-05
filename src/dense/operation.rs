@@ -298,6 +298,23 @@ where
     }
 }
 
+impl<T> Matrix<T>
+where
+    T: Copy + Send + Sync + Display + Into<f64>,
+{
+    pub fn ln(&self) -> Matrix<f64> {
+        let mut vec: Vec<f64> = self
+            .data
+            .iter()
+            .map(|x| {
+                let f: f64 = (*x).into();
+                f.ln()
+            })
+            .collect();
+        Matrix::new(self.height, self.width, vec).unwrap()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -622,12 +639,126 @@ mod test {
         let m1 = Scalar::new(2) / m;
         assert_eq!(2, m1.height);
         assert_eq!(3, m1.width);
-        assert_eq!(vec![2, 1, 0,0, 0, 0], m1.data);
+        assert_eq!(vec![2, 1, 0, 0, 0, 0], m1.data);
 
         let m = Matrix::new(2, 3, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
         let m1 = Scalar::new(2.0) / m;
         assert_eq!(2, m1.height);
         assert_eq!(3, m1.width);
-        assert_eq!(vec![2.0, 1.0, 0.6666666666666666, 0.5, 0.4, 0.3333333333333333], m1.data);
+        assert_eq!(
+            vec![2.0, 1.0, 0.6666666666666666, 0.5, 0.4, 0.3333333333333333],
+            m1.data
+        );
+    }
+
+
+    #[test]
+    fn test_log_positive_values() {
+        let matrix = Matrix::new(2, 2, vec![1.0, 2.0, 3.0, 4.0]).unwrap();
+        let result = matrix.ln();
+
+        assert_eq!(result.height, 2);
+        assert_eq!(result.width, 2);
+        assert_relative_eq!(result.data[0], 1.0f64.ln(), epsilon = 1e-10);
+        assert_relative_eq!(result.data[1], 2.0f64.ln(), epsilon = 1e-10);
+        assert_relative_eq!(result.data[2], 3.0f64.ln(), epsilon = 1e-10);
+        assert_relative_eq!(result.data[3], 4.0f64.ln(), epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_log_fractional_values() {
+        let matrix = Matrix::new(1, 3, vec![0.5, 0.25, 0.125]).unwrap();
+        let result = matrix.ln();
+
+        assert_eq!(result.height, 1);
+        assert_eq!(result.width, 3);
+        assert_relative_eq!(result.data[0], 0.5f64.ln(), epsilon = 1e-10);
+        assert_relative_eq!(result.data[1], 0.25f64.ln(), epsilon = 1e-10);
+        assert_relative_eq!(result.data[2], 0.125f64.ln(), epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_log_zero_values() {
+        let matrix = Matrix::new(2, 2, vec![0.0, 0.0, 0.0, 0.0]).unwrap();
+        let r = matrix.ln();
+        println!("r: {:?}", r.data);
+        assert_eq!(r.data[0].is_infinite(), true);
+        assert_eq!(r.data[1].is_infinite(), true);
+        assert_eq!(r.data[2].is_infinite(), true);
+        assert_eq!(r.data[3].is_infinite(), true);
+    }
+
+    #[test]
+    fn test_log_negative_values() {
+        let matrix = Matrix::new(1, 2, vec![-1.0, -2.0]).unwrap();
+        let r = matrix.ln();
+        println!("r: {:?}", r.data);
+        assert_eq!(r.data[0].is_nan(), true);
+        assert_eq!(r.data[1].is_nan(), true);
+    }
+
+    #[test]
+    fn test_log_preserves_dimensions() {
+        let matrix = Matrix::new(3, 4, vec![1.1; 12]).unwrap();
+        let result = matrix.ln();
+
+        assert_eq!(result.height, 3);
+        assert_eq!(result.width, 4);
+        assert_eq!(result.data.len(), 12);
+    }
+
+    #[test]
+    fn test_log_single_element_matrix() {
+        let matrix = Matrix::new(1, 1, vec![2.718281828459045]).unwrap();
+        let result = matrix.ln();
+
+        assert_eq!(result.height, 1);
+        assert_eq!(result.width, 1);
+        assert_relative_eq!(result.data[0], 1.0, epsilon = 1e-10); // ln(e) = 1
+    }
+
+    #[test]
+    fn test_log_with_nan() {
+        let matrix = Matrix::new(1, 1, vec![f64::NAN]).unwrap();
+        let r = matrix.ln();
+        println!("r: {:?}", r.data);
+        assert_eq!(r.data[0].is_nan(), true);
+    }
+
+    #[test]
+    fn test_log_with_infinity() {
+        let matrix = Matrix::new(1, 2, vec![f64::INFINITY, f64::NEG_INFINITY]).unwrap();
+        let r = matrix.ln();
+        println!("r: {:?}", r.data);
+        assert_eq!(r.data[0].is_infinite(), true);
+        assert_eq!(r.data[1].is_nan(), true);
+    }
+
+    #[test]
+    fn test_log_large_values() {
+        let matrix = Matrix::new(1, 2, vec![1e50, 1e100]).unwrap();
+        let result = matrix.ln();
+
+        assert_relative_eq!(result.data[0], 50.0 * std::f64::consts::LN_10, epsilon = 1e-10);
+        assert_relative_eq!(result.data[1], 100.0 * std::f64::consts::LN_10, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_log_small_positive_values() {
+        let matrix = Matrix::new(1, 2, vec![1e-50, 1e-100]).unwrap();
+        let result = matrix.ln();
+
+        assert_relative_eq!(result.data[0], -50.0 * std::f64::consts::LN_10, epsilon = 1e-10);
+        assert_relative_eq!(result.data[1], -100.0 * std::f64::consts::LN_10, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_log_edge_case_near_one() {
+        let matrix = Matrix::new(1, 2, vec![1.0 - 1e-10, 1.0 + 1e-10]).unwrap();
+        let result = matrix.ln();
+
+        // Test values very close to 1.0
+        assert_relative_eq!(result.data[0], (1.0 - 1e-10f64).ln(), epsilon = 1e-6); // More tolerant epsilon
+        assert_relative_eq!(result.data[1], (1.0 + 1e-10f64).ln(), epsilon = 1e-6);
     }
 }

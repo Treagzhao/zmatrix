@@ -1,13 +1,13 @@
 use super::*;
-use std::ops::Mul;
 use crate::dense::Matrix;
 use crate::physics::basic::{Angular, Coef, PhysicalQuantity, Vector3};
 use crate::spatial_geometry::quaternion::Quaternion;
 use crate::utils::float::sgn2_64;
+use std::ops::Mul;
 
 #[derive(Debug, Clone)]
 pub struct CosMatrix {
-    matrix:   Matrix<f64>,
+    matrix: Matrix<f64>,
 }
 
 impl Default for CosMatrix {
@@ -32,9 +32,7 @@ impl CosMatrix {
             }
         }
         let m = Matrix::new(3, 3, vec).unwrap();
-        CosMatrix {
-            matrix: m,
-        }
+        CosMatrix { matrix: m }
     }
 
     pub fn get_x_vector(&self) -> Vector3<Coef> {
@@ -80,7 +78,7 @@ impl CosMatrix {
 
     // 矩阵转置
     pub fn transfer(&self) -> Self {
-        let m = !self.matrix.clone();
+        let m = self.matrix.T();
         let mut cos = CosMatrix::default();
         cos.matrix = m;
         cos
@@ -90,10 +88,7 @@ impl CosMatrix {
         let mut arr: [[f64; 3]; 3] = [[0.0; 3]; 3];
         for row in 0..3 {
             for col in 0..3 {
-                arr[col][row] = self
-                    .matrix
-                    .get(row as u64, col as u64)
-                    .expect("get matrix failed");
+                arr[col][row] = self.matrix.get(row, col).expect("get matrix failed");
             }
         }
         arr
@@ -149,7 +144,7 @@ impl CosMatrix {
     pub fn product_vector<T: PhysicalQuantity + Default>(&self, vec: &Vector3<T>) -> Vector3<T> {
         let mut result: Vector3<T> = Vector3::default();
         let m = vec.to_col_matrix();
-        let r = self.matrix.product(m).unwrap();
+        let r = self.matrix.product(&m).unwrap();
         result.x.set_value(r.get(0, 0).unwrap());
         result.y.set_value(r.get(0, 1).unwrap());
         result.z.set_value(r.get(0, 2).unwrap());
@@ -157,7 +152,7 @@ impl CosMatrix {
     }
 
     pub fn product(&self, other: &CosMatrix) -> CosMatrix {
-        let m = self.matrix.product(other.matrix.clone()).unwrap();
+        let m = self.matrix.product(&other.matrix.clone()).unwrap();
         let mut cos = CosMatrix::default();
         cos.matrix = m;
         cos
@@ -192,16 +187,13 @@ impl CosMatrix {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
     #[test]
     fn test_cos_matrix_new() {
-        let cos = CosMatrix::new(
-            [[1.1, 1.2, 1.3], [1.4, 1.5, 1.6], [1.7, 1.8, 1.9]],
-        );
+        let cos = CosMatrix::new([[1.1, 1.2, 1.3], [1.4, 1.5, 1.6], [1.7, 1.8, 1.9]]);
         assert_eq!(cos.matrix.size(), (3, 3));
         assert_eq!(cos.matrix.get(0, 0).unwrap(), 1.1);
     }
@@ -215,7 +207,7 @@ mod tests {
             .enumerate()
         {
             for (col, expected) in line.iter().enumerate() {
-                let actual = cos.matrix.get(col as u64, row as u64).unwrap();
+                let actual = cos.matrix.get(col, row).unwrap();
                 assert_relative_eq!(actual, *expected, epsilon = 1e-10);
             }
         }
@@ -258,7 +250,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_cross_matrix_to_array() {
         let mut cos = CosMatrix::default();
@@ -278,39 +269,33 @@ mod tests {
     #[test]
 
     fn test_cos_matrix_to_quaternion() {
-        let cos = CosMatrix::new(
-            [
-                [0.131510392, 0.147510082, 0.980278611],
-                [-0.986284316, 0.118965819, 0.114414386],
-                [-0.0997423381, -0.981879771, 0.161132157],
-            ],
-        );
+        let cos = CosMatrix::new([
+            [0.131510392, 0.147510082, 0.980278611],
+            [-0.986284316, 0.118965819, 0.114414386],
+            [-0.0997423381, -0.981879771, 0.161132157],
+        ]);
         let q = cos.to_quaternion();
         assert_relative_eq!(q.q1, 0.46136003293870587);
         assert_relative_eq!(q.q2, -0.4545116814403202);
         assert_relative_eq!(q.q3, 0.47714148384994104);
         assert_relative_eq!(q.q0, 0.5940555999488308);
 
-        let cos = CosMatrix::new(
-            [
-                [-0.99995, 0.00999, -0.00249],
-                [0.00999, 0.00005, -0.99995],
-                [0.00249, 0.99995, 0.00005],
-            ],
-        );
+        let cos = CosMatrix::new([
+            [-0.99995, 0.00999, -0.00249],
+            [0.00999, 0.00005, -0.99995],
+            [0.00249, 0.99995, 0.00005],
+        ]);
         let q = cos.to_quaternion();
-        assert_relative_eq!(q.q0,0.002489930281901065);
+        assert_relative_eq!(q.q0, 0.002489930281901065);
         assert_relative_eq!(q.q1, 0.009989720287627166);
         assert_relative_eq!(q.q2, 0.9999470014634607);
         assert_relative_eq!(q.q3, 0.0);
 
-        let cos = CosMatrix::new(
-            [
-                [0.9999, -0.007, -0.001],
-                [0.007, -0.0001, -0.9998],
-                [0.001, 0.9998, -0.007],
-            ],
-        );
+        let cos = CosMatrix::new([
+            [0.9999, -0.007, -0.001],
+            [0.007, -0.0001, -0.9998],
+            [0.001, 0.9998, -0.007],
+        ]);
         let q = cos.to_quaternion();
         assert_relative_eq!(q.q0, 0.7058925302408472);
         assert_relative_eq!(q.q1, -0.7083012361850654);
@@ -345,8 +330,28 @@ mod tests {
 
     #[test]
     fn test_rpy_f64() {
-        let cos = CosMatrix::new([[0.9999885554813407, 0.0047363317272977185, 0.0006609144932516187], [-0.0047358448469547315, 0.9999885069199654, -0.0007452599663012316], [-0.0006644098300277457, 0.0007421144721519446, 0.9999995132277874]]);
-        let tmp_a = Vector3::new(Angular::from_rad(-0.0007421146971568069), Angular::from_rad(-0.0006644098789106481), Angular::from_rad(0.004735863640767091));
+        let cos = CosMatrix::new([
+            [
+                0.9999885554813407,
+                0.0047363317272977185,
+                0.0006609144932516187,
+            ],
+            [
+                -0.0047358448469547315,
+                0.9999885069199654,
+                -0.0007452599663012316,
+            ],
+            [
+                -0.0006644098300277457,
+                0.0007421144721519446,
+                0.9999995132277874,
+            ],
+        ]);
+        let tmp_a = Vector3::new(
+            Angular::from_rad(-0.0007421146971568069),
+            Angular::from_rad(-0.0006644098789106481),
+            Angular::from_rad(0.004735863640767091),
+        );
         let result = cos.to_rpy();
         assert_relative_eq!(tmp_a.x.as_rad(), result.x.as_rad());
         assert_relative_eq!(tmp_a.y.as_rad(), result.y.as_rad());
@@ -355,8 +360,28 @@ mod tests {
 
     #[test]
     fn test_pry_f64() {
-        let cos = CosMatrix::new([[0.9999885554813407, 0.0047363317272977185, 0.0006609144932516187], [-0.0047358448469547315, 0.9999885069199654, -0.0007452599663012316], [-0.0006644098300277457, 0.0007421144721519446, 0.9999995132277874]]);
-        let tmp_a = Vector3::new(Angular::from_rad(-0.0007421145402698932), Angular::from_rad(-0.000664410055678244), Angular::from_rad(0.004736350745764036));
+        let cos = CosMatrix::new([
+            [
+                0.9999885554813407,
+                0.0047363317272977185,
+                0.0006609144932516187,
+            ],
+            [
+                -0.0047358448469547315,
+                0.9999885069199654,
+                -0.0007452599663012316,
+            ],
+            [
+                -0.0006644098300277457,
+                0.0007421144721519446,
+                0.9999995132277874,
+            ],
+        ]);
+        let tmp_a = Vector3::new(
+            Angular::from_rad(-0.0007421145402698932),
+            Angular::from_rad(-0.000664410055678244),
+            Angular::from_rad(0.004736350745764036),
+        );
         let result = cos.to_pry();
         assert_relative_eq!(tmp_a.x.as_rad(), result.x.as_rad());
         assert_relative_eq!(tmp_a.y.as_rad(), result.y.as_rad());

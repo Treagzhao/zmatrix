@@ -118,7 +118,7 @@ impl Quaternion {
     pub fn linear_transform(&self, m: Matrix<f64>) -> Quaternion {
         let vec: Vec<f64> = vec![self.q1, self.q2, self.q3, self.q0];
         let col_vec = Matrix::new(4, 1, vec).unwrap();
-        let result = m.product(col_vec).unwrap();
+        let result = m.product(&col_vec).unwrap();
         Quaternion::new(result.get(0, 3).unwrap(), result.get(0, 0).unwrap(), result.get(0, 1).unwrap(), result.get(0, 2).unwrap())
     }
 
@@ -382,7 +382,7 @@ mod tests {
             [0.644067, -0.743605, -0.15994]];
         for (row, list) in expected.iter().enumerate() {
             for (col, exp) in list.iter().enumerate() {
-                assert_relative_eq!(*exp,result.get(col as u64,row as u64).unwrap(),epsilon = 1e-7);
+                assert_relative_eq!(*exp,result.get(col,row).unwrap(),epsilon = 1e-7);
             }
         }
     }

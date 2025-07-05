@@ -18,8 +18,8 @@ where
     f64: From<T>,
 {
     pub fn new_with_default(
-        height: u64,
-        width: u64,
+        height: usize,
+        width: usize,
         v: T,
     ) -> Result<Matrix<T>, error::OperationError>
     where
@@ -40,7 +40,7 @@ where
     }
 
     // 生成单位方阵
-    pub fn unit(height: u64) -> Result<Matrix<T>, error::OperationError> {
+    pub fn unit(height: usize) -> Result<Matrix<T>, error::OperationError> {
         let mut vec = vec![T::default(); (height * height) as usize];
         for i in 0..height {
             let index = i * height + i;
@@ -49,11 +49,11 @@ where
         Matrix::new(height, height, vec)
     }
     // 生成全零矩阵
-    pub fn zeros(height: u64, width: u64) -> Result<Matrix<T>, error::OperationError> {
+    pub fn zeros(height: usize, width: usize) -> Result<Matrix<T>, error::OperationError> {
         Matrix::new_with_default(height, width, T::default())
     }
     // 生成全1矩阵
-    pub fn ones(height: u64, width: u64) -> Result<Matrix<T>, error::OperationError> {
+    pub fn ones(height: usize, width: usize) -> Result<Matrix<T>, error::OperationError> {
         Matrix::new_with_default(height, width, T::from(1))
     }
 
@@ -61,7 +61,7 @@ where
 }
 
 impl Matrix<f64> {
-    pub fn random(height: u64, width: u64) -> Result<Matrix<f64>, error::OperationError> {
+    pub fn random(height: usize, width: usize) -> Result<Matrix<f64>, error::OperationError> {
         let mut vec = vec![0.0; (height * width) as usize];
         let mut rng = rand::rng();
         for num in &mut vec {

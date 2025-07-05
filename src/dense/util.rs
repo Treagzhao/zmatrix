@@ -1,17 +1,26 @@
+use crate::dense::error;
 use std::convert::From;
 use std::fmt::Display;
 use std::ops::{Add, Mul, Sub};
 use std::sync::{mpsc, Arc};
 use std::thread;
-use crate::dense::error;
 
 pub struct CalculateResult<T>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
+    T: Copy
+        + Add<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + Display
+        + Default
+        + Send
+        + Sync
+        + TryInto<f64>
+        + From<i8>,
     f64: From<T>,
 {
-    pub x: u64,
-    pub y: u64,
+    pub x: usize,
+    pub y: usize,
     pub value: T,
 }
 
@@ -24,7 +33,9 @@ where
     match result {
         Ok(value) => Ok(value),
         Err(_) => {
-            return Result::Err(error::OperationError { message: "value error".to_string() });
+            return Result::Err(error::OperationError {
+                message: "value error".to_string(),
+            });
         }
     }
 }
@@ -42,7 +53,7 @@ where
     line.to_string()
 }
 
-pub fn get_boundary_char(row: u64, height: u64) -> (String, String) {
+pub fn get_boundary_char(row: usize, height: usize) -> (String, String) {
     if height == 1 {
         return ("[".to_string(), "]".to_string());
     } else if row == 0 {
@@ -54,17 +65,36 @@ pub fn get_boundary_char(row: u64, height: u64) -> (String, String) {
     }
 }
 
-pub fn calculate_in_threads<'a, T, F>(a_data: &'a Vec<T>, b_data: &'a Vec<T>, height: u64, width: u64, func: F) -> Result<Vec<T>, error::OperationError>
+pub fn calculate_in_threads<'a, T, F>(
+    a_data: &'a Vec<T>,
+    b_data: &'a Vec<T>,
+    height: usize,
+    width: usize,
+    func: F,
+) -> Result<Vec<T>, error::OperationError>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
+    T: Copy
+        + Add<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + Display
+        + Default
+        + Send
+        + Sync
+        + TryInto<f64>
+        + From<i8>,
     F: Fn(T, T) -> T + Send + Sync + Copy,
     f64: From<T>,
 {
     if a_data.len() != b_data.len() {
-        return Result::Err(error::OperationError { message: "the length of two data should be equal".to_string() });
+        return Result::Err(error::OperationError {
+            message: "the length of two data should be equal".to_string(),
+        });
     }
     if a_data.len() != (height * width) as usize {
-        return Result::Err(error::OperationError { message: "the length of data should be equal with height times width".to_string() });
+        return Result::Err(error::OperationError {
+            message: "the length of data should be equal with height times width".to_string(),
+        });
     }
     let length = a_data.len();
     let mut vec: Vec<T> = vec![T::default(); length];
@@ -98,9 +128,26 @@ where
     Result::Ok(vec)
 }
 
-pub fn calculate_multi<T>(a: &Vec<T>, b: &Vec<T>, _a_height: u64, b_width: u64, cur_row: u64, cur_col: u64, count: u64) -> Result<CalculateResult<T>, error::OperationError>
+pub fn calculate_multi<T>(
+    a: &Vec<T>,
+    b: &Vec<T>,
+    _a_height: usize,
+    b_width: usize,
+    cur_row: usize,
+    cur_col: usize,
+    count: usize,
+) -> Result<CalculateResult<T>, error::OperationError>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
+    T: Copy
+        + Add<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + Display
+        + Default
+        + Send
+        + Sync
+        + TryInto<f64>
+        + From<i8>,
     f64: From<T>,
 {
     let mut sum: T = T::default();
@@ -109,18 +156,35 @@ where
         let index_a = start_a + i as usize;
         let index_b = (i * b_width + cur_col) as usize;
         if index_a >= a.len() || index_b >= b.len() {
-            return Result::Err(error::OperationError { message: "index error".to_string() });
+            return Result::Err(error::OperationError {
+                message: "index error".to_string(),
+            });
         }
         let value = a[index_a] * b[index_b];
         sum = sum + value;
     }
-    Result::Ok(CalculateResult { x: cur_col, y: cur_row, value: sum })
+    Result::Ok(CalculateResult {
+        x: cur_col,
+        y: cur_row,
+        value: sum,
+    })
 }
 
-
-pub fn determinant_in_one_permutation<T>(data: &Vec<T>, permutation: &Vec<u64>) -> Result<T, error::OperationError>
+pub fn determinant_in_one_permutation<T>(
+    data: &Vec<T>,
+    permutation: &Vec<u64>,
+) -> Result<T, error::OperationError>
 where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Display + Default + Send + Sync + TryInto<f64> + From<i8>,
+    T: Copy
+        + Add<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + Display
+        + Default
+        + Send
+        + Sync
+        + TryInto<f64>
+        + From<i8>,
     f64: From<T>,
 {
     let inverse = inversion_number(permutation);
@@ -137,15 +201,16 @@ where
         let x = *item;
         let index: usize = y * permutation.len() + x as usize;
         if index >= data.len() {
-            return Result::Err(error::OperationError { message: "index error".to_string() });
+            return Result::Err(error::OperationError {
+                message: "index error".to_string(),
+            });
         }
         sum = sum * data[index];
     }
     Result::Ok(sum * ceof.into())
 }
 
-pub fn print_permutation(permutation: &Vec<u64>) -> String
-{
+pub fn print_permutation(permutation: &Vec<u64>) -> String {
     let mut result = String::from("");
     for i in permutation {
         let str = format!("{}", *i);
@@ -154,21 +219,29 @@ pub fn print_permutation(permutation: &Vec<u64>) -> String
     result
 }
 
-pub fn permutation(n: u64) -> Result<Vec<Vec<u64>>, error::OperationError> {
-    let mut available: Vec<u64> = vec![0; n as usize];
-    let mut flags: Vec<bool> = vec![false; n as usize];
+pub fn permutation(n: usize) -> Result<Vec<Vec<u64>>, error::OperationError> {
+    let mut available: Vec<u64> = vec![0; n];
+    let mut flags: Vec<bool> = vec![false; n];
     let mut list: Vec<u64> = Vec::new();
     let mut result: Vec<Vec<u64>> = Vec::new();
     for i in 0..n {
-        available[i as usize] = i;
+        available[i as usize] = i as u64;
     }
     let _ = fill_in_permutation(&available, &mut flags, &mut list, &mut result, 0)?;
     Ok(result)
 }
 
-fn fill_in_permutation(available: &Vec<u64>, flags: &mut Vec<bool>, list: &mut Vec<u64>, result: &mut Vec<Vec<u64>>, level: u32) -> Result<(), error::OperationError> {
+fn fill_in_permutation(
+    available: &Vec<u64>,
+    flags: &mut Vec<bool>,
+    list: &mut Vec<u64>,
+    result: &mut Vec<Vec<u64>>,
+    level: u32,
+) -> Result<(), error::OperationError> {
     if available.len() != flags.len() {
-        return Result::Err(error::OperationError { message: "flags length does not match available`s length".to_string() });
+        return Result::Err(error::OperationError {
+            message: "flags length does not match available`s length".to_string(),
+        });
     }
     if level as usize >= available.len() {
         let r = list.clone();
@@ -255,7 +328,7 @@ mod test {
     fn test_calculate_in_threads() {
         let a: Vec<i32> = vec![1, 2, 3, 4, 15, 18];
         let b: Vec<i32> = vec![2, 4, 6, 8, 10, 22];
-        let result = calculate_in_threads(&a, &b, 2, 3, |a, b| -> i32{
+        let result = calculate_in_threads(&a, &b, 2, 3, |a, b| -> i32 {
             return a + b;
         });
         assert!(result.is_ok());
@@ -264,16 +337,22 @@ mod test {
         }
         let a: Vec<i32> = vec![1, 2, 3, 4, 15];
         let b: Vec<i32> = vec![2, 4, 6, 8, 10, 22];
-        let result = calculate_in_threads(&a, &b, 2, 3, |a, b| -> i32{
+        let result = calculate_in_threads(&a, &b, 2, 3, |a, b| -> i32 {
             return a + b;
         });
-        assert_eq!("the length of two data should be equal", result.err().unwrap().message);
+        assert_eq!(
+            "the length of two data should be equal",
+            result.err().unwrap().message
+        );
         let a: Vec<i32> = vec![1, 2, 3, 4, 1, 33];
         let b: Vec<i32> = vec![2, 4, 6, 8, 10, 22];
-        let result = calculate_in_threads(&a, &b, 4, 3, |a, b| -> i32{
+        let result = calculate_in_threads(&a, &b, 4, 3, |a, b| -> i32 {
             return a + b;
         });
-        assert_eq!("the length of data should be equal with height times width", result.err().unwrap().message);
+        assert_eq!(
+            "the length of data should be equal with height times width",
+            result.err().unwrap().message
+        );
     }
 
     #[test]

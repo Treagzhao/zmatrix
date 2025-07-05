@@ -70,6 +70,21 @@ where
     }
 }
 
+impl<T> Matrix<T>
+where
+    T: Copy + Display + Default + Send + Sync,
+{
+    pub fn to_column_vector(&self) -> Result<ColumnVector<T>, OperationError> {
+        if self.width != 1 {
+            return Err(OperationError {
+                message: "only 1 column matrix could be transferred to column vector".to_string(),
+            });
+        }
+        let data = self.data.clone();
+        Ok(ColumnVector::new(&data))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -131,7 +146,6 @@ mod tests {
         assert_eq!(column_vector.height, column_vector2.height);
     }
 
-
     #[test]
     fn test_to_matrix_with_non_empty_vector() {
         // Test converting a non-empty ColumnVector to Matrix
@@ -187,7 +201,7 @@ mod tests {
         let matrix = column_vector.to_matrix();
 
         for i in 0..column_vector.height {
-            assert_eq!(matrix.get(0,i).unwrap(), column_vector.get(i).unwrap());
+            assert_eq!(matrix.get(0, i).unwrap(), column_vector.get(i).unwrap());
         }
     }
 
@@ -200,6 +214,85 @@ mod tests {
 
         assert_eq!(matrix.height(), 1000);
         assert_eq!(matrix.width(), 1);
-        assert_eq!(matrix.get(0,999).unwrap(), 999);
+        assert_eq!(matrix.get(0, 999).unwrap(), 999);
+    }
+
+
+    #[test]
+    fn test_to_column_vector_success() {
+        // Test converting a valid 1-column matrix to column vector
+        let data = vec![1, 2, 3];
+        let matrix = Matrix::new(3, 1, data).unwrap();
+        let result = matrix.to_column_vector();
+
+        assert!(result.is_ok());
+        let column_vector = result.unwrap();
+        assert_eq!(column_vector.height, 3);
+        assert_eq!(column_vector.data, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_to_column_vector_single_element() {
+        // Test converting a 1x1 matrix
+        let data = vec![42];
+        let matrix = Matrix::new(1, 1, data).unwrap();
+        let result = matrix.to_column_vector();
+
+        assert!(result.is_ok());
+        let column_vector = result.unwrap();
+        assert_eq!(column_vector.height, 1);
+        assert_eq!(column_vector.data, vec![42]);
+    }
+
+    #[test]
+    fn test_to_column_vector_empty_matrix() {
+        // Test converting an empty matrix (0x1)
+        let data: Vec<i32> = vec![];
+        let matrix = Matrix::new(0, 1, data).unwrap();
+        let result = matrix.to_column_vector();
+
+        assert!(result.is_ok());
+        let column_vector = result.unwrap();
+        assert_eq!(column_vector.height, 0);
+        assert!(column_vector.data.is_empty());
+    }
+
+    #[test]
+    fn test_to_column_vector_failure_multi_column() {
+        // Test converting a multi-column matrix should fail
+        let data = vec![1, 2, 3, 4];
+        let matrix = Matrix::new(2, 2, data).unwrap();
+        let result = matrix.to_column_vector();
+
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().message,
+            "only 1 column matrix could be transferred to column vector"
+        );
+    }
+
+    #[test]
+    fn test_to_column_vector_data_integrity() {
+        // Verify the data is correctly transferred
+        let data = vec![10.5, 20.25, 30.75];
+        let matrix = Matrix::new(3, 1, data.clone()).unwrap();
+        let result = matrix.to_column_vector();
+
+        assert!(result.is_ok());
+        let column_vector = result.unwrap();
+        assert_eq!(column_vector.data, data);
+    }
+
+    #[test]
+    fn test_to_column_vector_large_matrix() {
+        // Test with large matrix for performance/stability check
+        let data: Vec<_> = (0..1000).map(|x| x as f32).collect();
+        let matrix = Matrix::new(1000, 1, data.clone()).unwrap();
+        let result = matrix.to_column_vector();
+
+        assert!(result.is_ok());
+        let column_vector = result.unwrap();
+        assert_eq!(column_vector.height, 1000);
+        assert_eq!(column_vector.data[999], 999.0);
     }
 }

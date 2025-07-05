@@ -54,7 +54,7 @@ where
 
 impl<T> Matrix<T>
 where
-    T: Display + Copy + Send + Sync,
+    T: Display + Copy  + Send + Sync,
 {
     fn display(&self) -> String {
         if self.data.len() == 0 {
@@ -173,17 +173,7 @@ where
 
 impl<T> Debug for Matrix<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Display + Copy + Send + Sync,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let result = self.display();
@@ -193,17 +183,7 @@ where
 
 impl<T> Display for Matrix<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Display + Send + Sync,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let result = self.display();

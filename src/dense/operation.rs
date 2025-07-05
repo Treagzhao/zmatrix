@@ -5,6 +5,16 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::sync::{mpsc, Arc};
 use std::thread;
 
+pub struct Scalar<T> {
+    value: T,
+}
+
+impl<T> Scalar<T> {
+    pub fn new(value: T) -> Self {
+        Self { value }
+    }
+}
+
 impl<T> Add for Matrix<T>
 where
     T: Copy + Add<Output = T> + Display + Default + Send + Sync + TryInto<f64> + Display,
@@ -186,25 +196,24 @@ where
         Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
-//
-// impl<T> Sub<Matrix<T>> for T
-// where
-//     T: Copy + Sub<Output = T> + Display + Send + Sync,
-// {
-//     type Output = Matrix<T>;
-//
-//     fn sub(self, rhs: Matrix<T>) -> Self::Output {
-//         let mut vec = rhs.data.clone();
-//         for i in 0..vec.len() {
-//             vec[i] = self - vec[i];
-//         }
-//         Matrix::new(rhs.height, rhs.width, vec).unwrap()
-//     }
-// }
+impl<T> Sub<Matrix<T>> for Scalar<T>
+where
+    T: Copy + Sub<Output = T> + Send + Sync + Display,
+{
+    type Output = Matrix<T>;
+
+    fn sub(self, rhs: Matrix<T>) -> Self::Output {
+        let mut vec = rhs.data.clone();
+        for i in 0..vec.len() {
+            vec[i] = self.value - vec[i];
+        }
+        Matrix::new(rhs.height, rhs.width, vec).unwrap()
+    }
+}
 
 impl<T> Matrix<T>
 where
-    T: Default + Display + Send + Sync + Copy + Add<Output=T> + Mul<Output=T>,
+    T: Default + Display + Send + Sync + Copy + Add<Output = T> + Mul<Output = T>,
 {
     pub fn product(&self, target: &Matrix<T>) -> Result<Matrix<T>, error::OperationError> {
         if self.width != target.height {
@@ -258,7 +267,9 @@ where
 }
 
 impl<T> Matrix<T>
-where T:Display + Default + Send + Sync + Mul<Output=T> + Copy{
+where
+    T: Display + Default + Send + Sync + Mul<Output = T> + Copy,
+{
     pub fn scale(&self, scalar: T) -> Matrix<T> {
         let mut vec: Vec<T> = Vec::new();
         for row in 0..self.height {
@@ -269,6 +280,21 @@ where T:Display + Default + Send + Sync + Mul<Output=T> + Copy{
             }
         }
         Matrix::new(self.height, self.width, vec).unwrap()
+    }
+}
+
+impl<T> Div<Matrix<T>> for Scalar<T>
+where
+    T: Display + Default + Send + Sync + Div<Output = T> + Copy,
+{
+    type Output = Matrix<T>;
+
+    fn div(self, rhs: Matrix<T>) -> Self::Output {
+        let mut vec: Vec<T> = rhs.data.clone();
+        for i in 0..vec.len() {
+            vec[i] = self.value / vec[i];
+        }
+        Matrix::new(rhs.height, rhs.width, vec).unwrap()
     }
 }
 
@@ -522,23 +548,28 @@ mod test {
         assert_relative_eq!(result.data[1], 10.0, epsilon = 1e-10);
         assert_relative_eq!(result.data[2], 15.0, epsilon = 1e-10);
         assert_relative_eq!(result.data[3], 20.0, epsilon = 1e-10);
+    }
 
+    #[test]
+    fn test_div_zero() {
         // Test division by zero
-        let m = Matrix::new(1, 2, vec![1.0, 2.0]).unwrap();
-        let result = panic::catch_unwind(|| m / 0.0);
-        assert!(result.is_err());
+        let m: Matrix<f64> = Matrix::new(1, 2, vec![1.0, 2.0]).unwrap();
+        let result: Matrix<f64> = m / 0.0;
+        println!("{:?}", result.data);
+        assert_eq!(true, result.data[0].is_infinite());
+        assert_eq!(true, result.data[1].is_infinite());
     }
 
     #[test]
     fn test_scalar_sub_matrix() {
         // Test scalar minus matrix
         let m = Matrix::new(2, 2, vec![1, 2, 3, 4]).unwrap();
-        let result = 10 - m;
+        let result = Scalar::new(10) - m;
         assert_eq!(result.data, vec![9, 8, 7, 6]);
 
         // Test with floating point
         let m = Matrix::new(1, 3, vec![1.5, 2.5, 3.5]).unwrap();
-        let result = 10.0 - m;
+        let result = Scalar::new(10.0) - m;
         assert_relative_eq!(result.data[0], 8.5, epsilon = 1e-10);
         assert_relative_eq!(result.data[1], 7.5, epsilon = 1e-10);
         assert_relative_eq!(result.data[2], 6.5, epsilon = 1e-10);
@@ -569,5 +600,34 @@ mod test {
         assert_eq!(2, m1.height);
         assert_eq!(3, m1.width);
         assert_eq!(vec![2, 4, 6, 8, 10, 12], m1.data);
+    }
+
+    #[test]
+    fn test_new_with_integer() {
+        // Test creating Scalar with integer value
+        let scalar = Scalar::new(42);
+        assert_eq!(scalar.value, 42);
+    }
+
+    #[test]
+    fn test_new_with_float() {
+        // Test creating Scalar with float value
+        let scalar = Scalar::new(3.14);
+        assert_eq!(scalar.value, 3.14);
+    }
+
+    #[test]
+    fn test_div_by_num() {
+        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m1 = Scalar::new(2) / m;
+        assert_eq!(2, m1.height);
+        assert_eq!(3, m1.width);
+        assert_eq!(vec![2, 1, 0,0, 0, 0], m1.data);
+
+        let m = Matrix::new(2, 3, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
+        let m1 = Scalar::new(2.0) / m;
+        assert_eq!(2, m1.height);
+        assert_eq!(3, m1.width);
+        assert_eq!(vec![2.0, 1.0, 0.6666666666666666, 0.5, 0.4, 0.3333333333333333], m1.data);
     }
 }

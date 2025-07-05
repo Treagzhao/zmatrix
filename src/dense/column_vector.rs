@@ -1,41 +1,18 @@
 use crate::dense::error::OperationError;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Mul, Sub};
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct ColumnVector<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Display + Default + Send + Sync,
 {
     data: Vec<T>,
     pub(crate) height: usize,
 }
 
-
-
-
 impl<T> ColumnVector<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Display + Default + Send + Sync,
 {
     pub fn new(data: &Vec<T>) -> ColumnVector<T> {
         ColumnVector {
@@ -139,7 +116,7 @@ mod tests {
     }
 
     #[test]
-    fn test_clone(){
+    fn test_clone() {
         let data = vec![1, 2, 3, 4, 5];
         let column_vector = ColumnVector::new(&data);
         let column_vector2 = column_vector.clone();

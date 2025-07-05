@@ -7,17 +7,7 @@ use std::thread;
 
 pub struct CalculateResult<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Send + Sync + Default,
 {
     pub x: usize,
     pub y: usize,
@@ -73,18 +63,8 @@ pub fn calculate_in_threads<'a, T, F>(
     func: F,
 ) -> Result<Vec<T>, error::OperationError>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
+    T: Copy + Send + Sync + Default,
     F: Fn(T, T) -> T + Send + Sync + Copy,
-    f64: From<T>,
 {
     if a_data.len() != b_data.len() {
         return Result::Err(error::OperationError {
@@ -138,17 +118,7 @@ pub fn calculate_multi<T>(
     count: usize,
 ) -> Result<CalculateResult<T>, error::OperationError>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Display + Default + Send + Sync + Mul<Output = T> + Add<Output = T>,
 {
     let mut sum: T = T::default();
     let start_a: usize = (cur_row * count) as usize;
@@ -175,17 +145,7 @@ pub fn determinant_in_one_permutation<T>(
     permutation: &Vec<u64>,
 ) -> Result<T, error::OperationError>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Display + Default + Send + Sync + From<i8> + Add<Output=T> + Mul<Output=T>,
 {
     let inverse = inversion_number(permutation);
     let mut ceof: i8 = 0;
@@ -195,7 +155,7 @@ where
         ceof = -1;
     }
     let key = print_permutation(permutation);
-    let mut sum = T::default() + (1i8).into();
+    let mut sum = T::default() + T::from(1i8);
     for (i, item) in permutation.iter().enumerate() {
         let y = i;
         let x = *item;

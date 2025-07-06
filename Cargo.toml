@@ -17,3 +17,7 @@ serde = "1.0.219"
 [[bench]]
 name = "bench_sum"        # 对应 benches/bench_sum.rs
 harness = false
+
+[[bench]]
+name = "bench_matrix_calculate"        # 对应 benches/bench_sub.rs
+harness = false

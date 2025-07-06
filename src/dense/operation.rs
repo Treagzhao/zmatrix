@@ -1,8 +1,9 @@
 use crate::dense::column_vector::ColumnVector;
 use crate::dense::{error, util, Matrix};
 use rayon::iter::ParallelIterator;
-use rayon::prelude::IntoParallelIterator;
+use rayon::prelude::*;
 use std::fmt::Display;
+use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::sync::{mpsc, Arc};
 use std::thread;
@@ -204,7 +205,7 @@ where
 
 impl<T> Matrix<T>
 where
-    T: Default + Display + Send + Sync + Copy + Add<Output = T> + Mul<Output = T>,
+    T: Default + Display + Send + Sync + Copy + Add<Output = T> + Mul<Output = T> + Sum,
 {
     pub fn product(&self, target: &Matrix<T>) -> Result<Matrix<T>, error::OperationError> {
         if self.width != target.height {
@@ -212,48 +213,18 @@ where
                 message: "target height and width do not match".to_string(),
             });
         }
-        let mut result: Vec<T> = vec![T::default(); (self.height * target.width) as usize];
-        let self_data = Arc::new(self.data.clone());
-        let target_data = Arc::new(target.data.clone());
-        let mut err: Option<error::OperationError> = None;
-        thread::scope(|scope| {
-            let (sender, receiver) =
-                mpsc::channel::<Result<util::CalculateResult<T>, error::OperationError>>();
-            for row in 0..self.height {
-                for col in 0..target.width {
-                    let self_data_ = self_data.clone();
-                    let target_data_ = target_data.clone();
-                    let s = sender.clone();
-                    scope.spawn(move || {
-                        let res = util::calculate_multi(
-                            &self_data_,
-                            &target_data_,
-                            self.height,
-                            target.width,
-                            row,
-                            col,
-                            self.width,
-                        );
-                        s.send(res).unwrap();
-                    });
-                }
-            }
-            drop(sender);
-            for rc in receiver {
-                match rc {
-                    Ok(res) => {
-                        let index: usize = (res.y * target.width + res.x) as usize;
-                        result[index] = res.value;
-                    }
-                    Err(e) => err = Option::Some(e),
-                }
-            }
-        });
-        if let Some(e) = err {
-            return Result::Err(e);
-        }
-        let m = Matrix::new(self.height, target.width, result)?;
-        Result::Ok(m)
+        let result_data = (0..self.height)
+            .into_par_iter()
+            .flat_map(|i| {
+                (0..target.width).into_par_iter().map(move |j| {
+                    (0..self.width)
+                        .map(|k| self.data[i * self.width + k] * target.data[k * target.width + j])
+                        .sum()
+                })
+            })
+            .collect();
+
+        Matrix::new(self.height, target.width, result_data)
     }
 }
 

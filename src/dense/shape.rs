@@ -72,6 +72,36 @@ where
     }
 }
 
+impl<T> Matrix<T>
+where
+    T: Send + Copy + Sync + Display + Add<Output = T>,
+{
+    // 计算矩阵的行和，返回一个列向量
+    pub fn sum_row(&self) -> Matrix<T> {
+        let mut data: Vec<T> = Vec::with_capacity(self.height);
+        for i in 0..self.height {
+            let mut sum: T = self.data[i * self.width];
+            for j in 1..self.width {
+                sum = sum + self.data[i * self.width + j];
+            }
+            data.push(sum);
+        }
+        Matrix::new(self.height, 1, data).unwrap()
+    }
+    // 计算矩阵的列和，返回一个行向量
+    pub fn sum_column(&self) -> Matrix<T> {
+        let mut data: Vec<T> = Vec::with_capacity(self.width);
+        for i in 0..self.width {
+            let mut sum: T = self.data[i];
+            for j in 1..self.height {
+                sum = sum + self.data[j * self.width + i];
+            }
+            data.push(sum);
+        }
+        Matrix::new(1, self.width, data).unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -149,5 +179,126 @@ mod tests {
         let mr = m.vstack(&m1).unwrap();
         assert_eq!(mr.size(), (5, 3));
         assert_eq!(mr.data, vec![1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    }
+
+
+    #[test]
+    fn test_sum_vertical_basic() {
+        // 测试基本的垂直求和功能
+        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let result = m.sum_row();
+        assert_eq!(result.height, 2);
+        assert_eq!(result.width, 1);
+        assert_eq!(result.data, vec![6, 15]);  // 1+2+3=6, 4+5+6=15
+    }
+
+    #[test]
+    fn test_sum_vertical_single_row() {
+        // 测试单行矩阵
+        let m = Matrix::new(1, 4, vec![1, 2, 3, 4]).unwrap();
+        let result = m.sum_row();
+        assert_eq!(result.height, 1);
+        assert_eq!(result.width, 1);
+        assert_eq!(result.data, vec![10]);  // 1+2+3+4=10
+    }
+
+    #[test]
+    fn test_sum_vertical_single_column() {
+        // 测试已经是单列的矩阵
+        let m = Matrix::new(3, 1, vec![1, 2, 3]).unwrap();
+        let result = m.sum_row();
+        assert_eq!(result.height, 3);
+        assert_eq!(result.width, 1);
+        assert_eq!(result.data, vec![1, 2, 3]);  // 每行只有一个元素
+    }
+
+
+    #[test]
+    fn test_sum_vertical_large_matrix() {
+        // 测试大矩阵
+        let data = (1..=100).collect::<Vec<i32>>();
+        let m = Matrix::new(10, 10, data).unwrap();
+        let result = m.sum_row();
+        assert_eq!(result.height, 10);
+        assert_eq!(result.width, 1);
+        assert_eq!(
+            result.data,
+            vec![55, 155, 255, 355, 455, 555, 655, 755, 855, 955]
+        );
+    }
+
+    #[test]
+    fn test_sum_vertical_float_values() {
+        // 测试浮点数矩阵
+        let m = Matrix::new(2, 2, vec![1.5, 2.5, 3.5, 4.5]).unwrap();
+        let result = m.sum_row();
+        assert_eq!(result.height, 2);
+        assert_eq!(result.width, 1);
+        assert_eq!(result.data, vec![4.0, 8.0]);  // 1.5+2.5=4.0, 3.5+4.5=8.0
+    }
+
+
+    #[test]
+    fn test_sum_column_basic() {
+        // 测试基本的列求和功能
+        let m = Matrix::new(3, 2, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let result = m.sum_column();
+        assert_eq!(result.height, 1);
+        assert_eq!(result.width, 2);
+        assert_eq!(result.data, vec![9, 12]);  // 1+3+5=9, 2+4+6=12
+    }
+
+    #[test]
+    fn test_sum_column_single_column() {
+        // 测试单列矩阵
+        let m = Matrix::new(3, 1, vec![1, 2, 3]).unwrap();
+        let result = m.sum_column();
+        assert_eq!(result.height, 1);
+        assert_eq!(result.width, 1);
+        assert_eq!(result.data, vec![6]);  // 1+2+3=6
+    }
+
+    #[test]
+    fn test_sum_column_single_row() {
+        // 测试单行矩阵
+        let m = Matrix::new(1, 4, vec![1, 2, 3, 4]).unwrap();
+        let result = m.sum_column();
+        assert_eq!(result.height, 1);
+        assert_eq!(result.width, 4);
+        assert_eq!(result.data, vec![1, 2, 3, 4]);  // 每列只有一个元素
+    }
+
+    #[test]
+    fn test_sum_column_empty_matrix() {
+        // 测试空矩阵
+        let m:Matrix<f64> = Matrix::new(0, 0, vec![], ).unwrap();
+        let result = m.sum_column();
+        assert_eq!(result.height, 1);
+        assert_eq!(result.width, 0);
+        assert_eq!(result.data, vec![]);
+    }
+
+    #[test]
+    fn test_sum_column_large_matrix() {
+        // 测试大矩阵
+        let data = (1..=100).collect::<Vec<i32>>();
+        let m = Matrix::new(10, 10, data).unwrap();
+        let result = m.sum_column();
+        assert_eq!(result.height, 1);
+        assert_eq!(result.width, 10);
+        assert_eq!(
+            result.data,
+            vec![460, 470, 480, 490, 500, 510, 520, 530, 540, 550]
+        );
+    }
+
+    #[test]
+    fn test_sum_column_float_values() {
+        // 测试浮点数矩阵
+        let m = Matrix::new(2, 2, vec![1.5, 2.5, 3.5, 4.5]).unwrap();
+        let result = m.sum_column();
+        assert_eq!(result.height, 1);
+        assert_eq!(result.width, 2);
+        assert_eq!(result.data, vec![5.0, 7.0]);  // 1.5+3.5=5.0, 2.5+4.5=7.0
     }
 }

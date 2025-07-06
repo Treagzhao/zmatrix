@@ -1,6 +1,7 @@
 pub mod column_vector;
 pub mod error;
 mod initial;
+pub mod operation;
 mod shape;
 mod util;
 
@@ -12,17 +13,7 @@ use std::thread;
 
 pub struct Matrix<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Send + Sync,
 {
     height: usize,
     width: usize,
@@ -32,32 +23,13 @@ where
 
 impl<T> Matrix<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Send + Sync + Display,
 {
-    pub fn new(height: usize, width: usize, vec: Vec<T>) -> Result<Matrix<T>, error::OperationError>
-    where
-        T: Copy
-            + Add<Output = T>
-            + Sub<Output = T>
-            + Mul<Output = T>
-            + Display
-            + Default
-            + Send
-            + Sync
-            + TryInto<f64>
-            + From<i8>,
-        f64: From<T>,
-    {
+    pub fn new(
+        height: usize,
+        width: usize,
+        vec: Vec<T>,
+    ) -> Result<Matrix<T>, error::OperationError> {
         if height * width != vec.len().try_into().unwrap() {
             return Result::Err(error::OperationError {
                 message: "vec length doest not match height  & width".to_string(),
@@ -78,7 +50,12 @@ where
             digits,
         })
     }
+}
 
+impl<T> Matrix<T>
+where
+    T: Display + Copy  + Send + Sync,
+{
     fn display(&self) -> String {
         if self.data.len() == 0 {
             return "┌┐\n└┘\n".to_string();
@@ -108,17 +85,7 @@ where
 
 impl<T> Clone for Matrix<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Send + Sync + Display,
 {
     fn clone(&self) -> Self {
         let vec = self.data.clone();
@@ -130,17 +97,7 @@ where
 
 impl<T> Matrix<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Send + Sync,
 {
     pub fn get(&self, x: usize, y: usize) -> Option<T> {
         if (x >= self.width) || (y >= self.height) {
@@ -149,7 +106,34 @@ where
         let index: usize = (y * self.width + x) as usize;
         self.data.get(index).cloned()
     }
+    pub fn height(&self) -> usize {
+        self.height
+    }
 
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn size(&self) -> (usize, usize) {
+        (self.height, self.width)
+    }
+
+    pub fn set(&mut self, x: usize, y: usize, value: T) -> Result<(), error::OperationError> {
+        let index: usize = (y * self.width + x) as usize;
+        if index >= self.data.len() {
+            return Result::Err(error::OperationError {
+                message: "index out of bounds".to_string(),
+            });
+        }
+        self.data[index] = value;
+        Result::Ok(())
+    }
+}
+
+impl<T> Matrix<T>
+where
+    T: Copy + Display + Default + Add<Output = T> + Send + Sync + From<i8> + Mul<Output = T>,
+{
     pub fn det(&self) -> Result<T, error::OperationError> {
         if self.height != self.width {
             return Result::Err(error::OperationError {
@@ -185,106 +169,11 @@ where
         }
         Result::Ok(sum)
     }
-
-    pub fn height(&self) -> usize {
-        self.height
-    }
-
-    pub fn width(&self) -> usize {
-        self.width
-    }
-
-    pub fn size(&self) -> (usize, usize) {
-        (self.height, self.width)
-    }
-
-    pub fn set(&mut self, x: usize, y: usize, value: T) -> Result<(), error::OperationError> {
-        let index: usize = (y * self.width + x) as usize;
-        if index >= self.data.len() {
-            return Result::Err(error::OperationError {
-                message: "index out of bounds".to_string(),
-            });
-        }
-        self.data[index] = value;
-        Result::Ok(())
-    }
-
-    pub fn product(&self, target: &Matrix<T>) -> Result<Matrix<T>, error::OperationError> {
-        if self.width != target.height {
-            return Result::Err(error::OperationError {
-                message: "target height and width do not match".to_string(),
-            });
-        }
-        let mut result: Vec<T> = vec![T::default(); (self.height * target.width) as usize];
-        let self_data = Arc::new(self.data.clone());
-        let target_data = Arc::new(target.data.clone());
-        let mut err: Option<error::OperationError> = None;
-        thread::scope(|scope| {
-            let (sender, receiver) =
-                mpsc::channel::<Result<util::CalculateResult<T>, error::OperationError>>();
-            for row in 0..self.height {
-                for col in 0..target.width {
-                    let self_data_ = self_data.clone();
-                    let target_data_ = target_data.clone();
-                    let s = sender.clone();
-                    scope.spawn(move || {
-                        let res = util::calculate_multi(
-                            &self_data_,
-                            &target_data_,
-                            self.height,
-                            target.width,
-                            row,
-                            col,
-                            self.width,
-                        );
-                        s.send(res).unwrap();
-                    });
-                }
-            }
-            drop(sender);
-            for rc in receiver {
-                match rc {
-                    Ok(res) => {
-                        let index: usize = (res.y * target.width + res.x) as usize;
-                        result[index] = res.value;
-                    }
-                    Err(e) => err = Option::Some(e),
-                }
-            }
-        });
-        if let Some(e) = err {
-            return Result::Err(e);
-        }
-        let m = Matrix::new(self.height, target.width, result)?;
-        Result::Ok(m)
-    }
-
-    pub fn scale(&self, scalar: T) -> Matrix<T> {
-        let mut vec: Vec<T> = Vec::new();
-        for row in 0..self.height {
-            for col in 0..self.width {
-                let index = (row * self.width + col) as usize;
-                let value = self.data[index] * scalar;
-                vec.push(value);
-            }
-        }
-        Matrix::new(self.height, self.width, vec).unwrap()
-    }
 }
 
 impl<T> Debug for Matrix<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Display + Copy + Send + Sync,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let result = self.display();
@@ -294,146 +183,11 @@ where
 
 impl<T> Display for Matrix<T>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
+    T: Copy + Display + Send + Sync,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let result = self.display();
         write!(f, "{}", result)
-    }
-}
-impl<T> Add for Matrix<T>
-where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
-{
-    type Output = Matrix<T>;
-
-    fn add(self, other: Self) -> Self::Output {
-        if self.data.len() != other.data.len() {
-            panic!("only matrix in same height & width could be operated");
-        }
-        let vec = util::calculate_in_threads(
-            &self.data,
-            &other.data,
-            self.height,
-            self.width,
-            |a, b| -> T { a + b },
-        )
-        .unwrap();
-        Matrix::new(self.height, self.width, vec).unwrap()
-    }
-}
-
-impl<T> Sub for Matrix<T>
-where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
-{
-    type Output = Matrix<T>;
-    fn sub(self, other: Self) -> Self::Output {
-        if self.data.len() != other.data.len() {
-            panic!("only matrix in same height & width could be operated");
-        }
-        let vec = util::calculate_in_threads(
-            &self.data,
-            &other.data,
-            self.height,
-            self.width,
-            |a, b| -> T { a - b },
-        )
-        .unwrap();
-        Matrix::new(self.height, self.width, vec).unwrap()
-    }
-}
-
-impl<T> Mul for Matrix<T>
-where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Display
-        + Default
-        + Send
-        + Sync
-        + TryInto<f64>
-        + From<i8>,
-    f64: From<T>,
-{
-    type Output = Matrix<T>;
-
-    fn mul(self, other: Self) -> Self::Output {
-        if self.data.len() != other.data.len() {
-            panic!("only matrix in same height & width could be operated");
-        }
-        let vec = util::calculate_in_threads(
-            &self.data,
-            &other.data,
-            self.height,
-            self.width,
-            |a, b| -> T { a * b },
-        )
-        .unwrap();
-        Matrix::new(self.height, self.width, vec).unwrap()
-    }
-}
-
-impl<T> Add<ColumnVector<T>> for Matrix<T>
-where
-    T: Copy
-    + Add<Output = T>
-    + Sub<Output = T>
-    + Mul<Output = T>
-    + Display
-    + Default
-    + Send
-    + Sync
-    + TryInto<f64>
-    + From<i8>,
-    f64: From<T>,
-{
-    type Output = Matrix<T>;
-
-    fn add(self, rhs: ColumnVector<T>) -> Self::Output {
-        if self.width != rhs.height {
-            panic!("only matrix in same height could be operated");
-        }
-        let mut vec: Vec<T> = Vec::new();
-        for row in 0..self.height {
-            for col in 0..self.width {
-                let v = self.data[row * self.width + col].clone() + rhs.get(col).unwrap();
-                vec.push(v);
-            }
-        }
-        Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
 
@@ -578,81 +332,6 @@ mod test {
     }
 
     #[test]
-    fn test_add_ok() {
-        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = Matrix::new(2, 3, vec![12, 22, 33, 44, 51, 56]).unwrap();
-        let m3 = m1 + m2;
-        assert_eq!(2, m3.height);
-        assert_eq!(3, m3.width);
-        println!("{}", m3);
-        assert_eq!(vec![13, 24, 36, 48, 56, 62], m3.data);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_add_not_ok() {
-        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = Matrix::new(2, 2, vec![12, 22, 33, 44]).unwrap();
-        let m3 = m1 + m2;
-        println!("{}", m3);
-    }
-
-    #[test]
-    fn test_sub() {
-        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = Matrix::new(2, 3, vec![12, 22, 33, 44, 51, 56]).unwrap();
-        let m3 = m2 - m1;
-        println!("{}", m3);
-        assert_eq!(2, m3.height);
-        assert_eq!(3, m3.width);
-        assert_eq!(vec![11, 20, 30, 40, 46, 50], m3.data);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_sub_not_ok() {
-        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = Matrix::new(2, 2, vec![12, 22, 33, 44]).unwrap();
-        let m3 = m2 - m1;
-        println!("{}", m3);
-    }
-
-    #[test]
-    fn test_mul() {
-        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = Matrix::new(2, 3, vec![2, 3, 4, 5, 6, 7]).unwrap();
-        let m3 = m1 * m2;
-        assert_eq!(2, m3.height);
-        assert_eq!(3, m3.width);
-        println!("{}", m3);
-        assert_eq!(vec![2, 6, 12, 20, 30, 42], m3.data);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_mul_not_ok() {
-        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = Matrix::new(2, 2, vec![2, 3, 4, 5]).unwrap();
-        let m3 = m1 * m2;
-        println!("{}", m3);
-    }
-
-    #[test]
-    fn test_matrix_product() {
-        let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m2 = Matrix::new(3, 4, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).unwrap();
-        let result = m1.product(&m2);
-        assert!(result.is_ok());
-
-        if let Ok(m3) = result {
-            println!("{}", m3);
-            assert_eq!(2, m3.height);
-            assert_eq!(4, m3.width);
-            assert_eq!(vec![38, 44, 50, 56, 83, 98, 113, 128], m3.data);
-        }
-    }
-
-    #[test]
     fn test_size() {
         let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
         assert_eq!(m.height(), 2);
@@ -660,15 +339,6 @@ mod test {
         let (h, w) = m.size();
         assert_eq!(h, 2);
         assert_eq!(w, 3);
-    }
-
-    #[test]
-    fn test_scale() {
-        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m1 = m.scale(2);
-        assert_eq!(2, m1.height);
-        assert_eq!(3, m1.width);
-        assert_eq!(vec![2, 4, 6, 8, 10, 12], m1.data);
     }
 
     #[test]
@@ -727,7 +397,6 @@ mod test {
         let m1: Matrix<f64> = Matrix::new(2, 2, vec![1.0, 2.0, 3.0, 4.0]).unwrap();
         let v1: ColumnVector<f64> = ColumnVector::new(&vec![6.0, 7.0, 8.0]);
         let result = m1 + v1;
-
     }
 
     #[test]
@@ -736,7 +405,7 @@ mod test {
         let v1: ColumnVector<f64> = ColumnVector::new(&vec![6.0, 7.0, 8.0]);
         let result = m1 + v1;
 
-        assert_eq!((2,3),result.size());
-        assert_eq!(vec![7.0, 9.0, 11.0, 10.0, 12.0, 14.0],result.data);
+        assert_eq!((2, 3), result.size());
+        assert_eq!(vec![7.0, 9.0, 11.0, 10.0, 12.0, 14.0], result.data);
     }
 }

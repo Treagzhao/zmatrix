@@ -90,7 +90,7 @@ where
             .into_par_iter()
             .map(|i| {
                 let row = i / self.width;
-                self.data[row * self.width + i] + rhs.get(row).unwrap()
+                self.data[i] + rhs.get(row).unwrap()
             })
             .collect();
         Matrix::new(self.height, self.width, vec).unwrap()

@@ -63,6 +63,10 @@ where
         }
         Ok(self.data[i])
     }
+
+    pub fn height(&self) -> usize{
+        self.height
+    }
 }
 
 impl<T> Display for ColumnVector<T>
@@ -618,5 +622,29 @@ mod tests {
         let _ = vec1.clone() - vec2.clone();
         assert_eq!(vec1.data, data1);
         assert_eq!(vec2.data, data2);
+    }
+
+    #[test]
+    fn test_height_returns_correct_value() {
+        // Test normal case with non-empty vector
+        let data = vec![1, 2, 3];
+        let vector = ColumnVector::new(&data);
+        assert_eq!(vector.height(), 3);
+    }
+
+    #[test]
+    fn test_height_with_empty_vector() {
+        // Test edge case with empty vector
+        let data: Vec<i32> = vec![];
+        let vector = ColumnVector::new(&data);
+        assert_eq!(vector.height(), 0);
+    }
+
+    #[test]
+    fn test_height_with_single_element() {
+        // Test edge case with single element
+        let data = vec![42];
+        let vector = ColumnVector::new(&data);
+        assert_eq!(vector.height(), 1);
     }
 }

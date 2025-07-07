@@ -21,3 +21,7 @@ harness = false
 [[bench]]
 name = "bench_matrix_calculate"        # 对应 benches/bench_sub.rs
 harness = false
+
+[[bench]]
+name = "bench_scalar"
+harness = false

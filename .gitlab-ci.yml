@@ -51,10 +51,10 @@ coverage:
       --branch \
       --ignore-not-existing \
       --ignore "/*" \
-      --ignore "src/tests/*" \          # 排除测试代码本身
-      --ignore "src/generated/*" \      # 排除生成的代码
-      --ignore "examples/*" \           # 排除示例代码
-      --ignore "benches/*" \            # 排除基准测试代码
+      --ignore "src/tests/*" \          
+      --ignore "src/generated/*" \      
+      --ignore "examples/*" \           
+      --ignore "benches/*" \          
       -o lcov.info
 
     # 转换为 cobertura 格式（供 GitLab 解析）

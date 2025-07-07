@@ -42,12 +42,12 @@ unit_test:
 coverage:
   stage: coverage
   needs: ["unit_test"]  # 依赖单元测试任务
-  script:
-    # 安装 grcov 和 lcov
-    - apt-get update -y && apt-get install -y python3-pip
-    - cargo install grcov
-    - rustup component add llvm-tools  # 关键修复：安装缺失的 LLVM 工具
-    - apt-get update -y && apt-get install -y lcov
+  image: debian:bullseye  # 使用完整 Debian 镜像
+  before_script:
+    - apt-get update -y && apt-get install -y curl lcov
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    - source $HOME/.cargo/env
+    - rustup component add llvm-tools
 
     # 设置环境变量以启用覆盖率数据收集
     - export RUSTFLAGS="-Cinstrument-coverage"

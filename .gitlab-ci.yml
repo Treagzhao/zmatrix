@@ -44,7 +44,18 @@ coverage:
     - cargo test --workspace
 
     # 生成 lcov 格式的报告
-    - grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+    - grcov . \
+      --binary-path ./target/debug/deps/ \
+      -s . \
+      -t lcov \
+      --branch \
+      --ignore-not-existing \
+      --ignore "/*" \
+      --ignore "src/tests/*" \          # 排除测试代码本身
+      --ignore "src/generated/*" \      # 排除生成的代码
+      --ignore "examples/*" \           # 排除示例代码
+      --ignore "benches/*" \            # 排除基准测试代码
+      -o lcov.info
 
     # 转换为 cobertura 格式（供 GitLab 解析）
     - lcov --list lcov.info  # 打印覆盖率摘要（调试用）

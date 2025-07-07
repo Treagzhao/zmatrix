@@ -32,7 +32,7 @@ where
     ) -> Result<Matrix<T>, error::OperationError> {
         if height * width != vec.len().try_into().unwrap() {
             return Result::Err(error::OperationError {
-                message: "vec length doest not match height  & width".to_string(),
+                message: format!("vec length {} does not match height {} & width {}", vec.len(), height, width),
             });
         }
         let mut digits: u8 = 0;

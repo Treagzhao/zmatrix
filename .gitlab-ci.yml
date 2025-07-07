@@ -59,9 +59,8 @@ coverage:
 
     # 转换为 cobertura 格式（供 GitLab 解析）
     - lcov --list lcov.info  # 打印覆盖率摘要（调试用）
-    - pip install lcov-cobertura
+    - apt-get install -y python3-lcov-cobertura || pip3 install --user lcov-cobertura
     - lcov_cobertura lcov.info --output coverage.xml
-
     # 提取总覆盖率数值
     - TOTAL_COVERAGE=$(grep -oP '^TOTAL.*?\s+\K\d+' lcov.info | head -1)
     - echo "Total test cover

@@ -6,6 +6,12 @@ variables:
   COVERAGE_THRESHOLD: "90"  # 覆盖率阈值（百分比）
   CARGO_INCREMENTAL: "0"     # 禁用增量编译以获得准确覆盖率
 
+before_script:
+  # 替换 apt 源为清华源（或中科大源）
+  - sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
+  - sed -i 's|http://security.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
+  - apt-get update -y
+
 # 使用 Rust 官方 Docker 镜像
 image: rust:latest
 

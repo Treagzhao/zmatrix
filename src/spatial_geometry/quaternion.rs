@@ -26,6 +26,46 @@ impl Default for Quaternion {
 }
 
 impl Quaternion {
+    /// 从余弦矩阵创建四元数
+    /// 使用更稳健的算法，基于矩阵对角线元素的最大值来选择计算路径
+    pub fn from_cos_matrix(cos: &CosMatrix) -> Self {
+        let m = cos.to_array();
+        let (m11, m12, m13) = (m[0][0], m[0][1], m[0][2]);
+        let (m21, m22, m23) = (m[1][0], m[1][1], m[1][2]);
+        let (m31, m32, m33) = (m[2][0], m[2][1], m[2][2]);
+
+        let trace = m11 + m22 + m33;
+        let mut q = Quaternion::default();
+
+        if trace > 0.0 {
+            let s = 0.5 / (trace + 1.0).sqrt();
+            q.q0 = 0.25 / s;
+            q.q1 = (m32 - m23) * s;
+            q.q2 = (m13 - m31) * s;
+            q.q3 = (m21 - m12) * s;
+        } else if m11 > m22 && m11 > m33 {
+            let s = 2.0 * (1.0 + m11 - m22 - m33).sqrt();
+            q.q0 = (m32 - m23) / s;
+            q.q1 = 0.25 * s;
+            q.q2 = (m12 + m21) / s;
+            q.q3 = (m13 + m31) / s;
+        } else if m22 > m33 {
+            let s = 2.0 * (1.0 + m22 - m11 - m33).sqrt();
+            q.q0 = (m13 - m31) / s;
+            q.q1 = (m12 + m21) / s;
+            q.q2 = 0.25 * s;
+            q.q3 = (m23 + m32) / s;
+        } else {
+            let s = 2.0 * (1.0 + m33 - m11 - m22).sqrt();
+            q.q0 = (m21 - m12) / s;
+            q.q1 = (m13 + m31) / s;
+            q.q2 = (m23 + m32) / s;
+            q.q3 = 0.25 * s;
+        }
+
+        q.normalize()
+    }
+
     //归一化，生成单位四元数
     pub fn normalize(&self) -> Self {
         let mut tmp_norm = f64::sqrt(

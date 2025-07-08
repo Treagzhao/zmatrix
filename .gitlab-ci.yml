@@ -12,6 +12,8 @@ before_script:
   - rm -f /etc/apt/sources.list.d/*.sources
   - rm -f /etc/apt/sources.list.save
   - rm -f /etc/apt/sources.list~
+  - export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+  - export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
   # 写入清华的 bullseye 源
   - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian bullseye main contrib non-free" > /etc/apt/sources.list
   - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian bullseye-updates main contrib non-free" >> /etc/apt/sources.list

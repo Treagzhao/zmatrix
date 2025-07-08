@@ -52,7 +52,7 @@ coverage:
     - export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
     - apt-get update -y
     - apt-get install -y curl lcov
-    - apt-get install -y pip3
+    - apt-get install -y python3-pip
     - curl --proto '=https' --tlsv1.2 -sSf https://mirrors.ustc.edu.cn/rust-static/rustup/rustup-init.sh | sh -s -- -y
     - apt-get install -y python3-lcov-cobertura || pip3 install --user lcov-cobertura
     - cargo install grcov

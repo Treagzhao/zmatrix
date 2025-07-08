@@ -49,6 +49,8 @@ coverage:
     - apt-get update -y
     - apt-get install -y curl lcov
     - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    - apt-get install -y python3-lcov-cobertura || pip3 install --user lcov-cobertura
+    - cargo install grcov
     - source /usr/local/cargo/env
     - rustup component add llvm-tools
     # 设置环境变量以启用覆盖率数据收集
@@ -75,7 +77,6 @@ coverage:
 
     # 转换为 cobertura 格式（供 GitLab 解析）
     - lcov --list lcov.info  # 打印覆盖率摘要（调试用）
-    - apt-get install -y python3-lcov-cobertura || pip3 install --user lcov-cobertura
     - lcov_cobertura lcov.info --output coverage.xml
     # 提取总覆盖率数值
     - TOTAL_COVERAGE=$(grep -oP '^TOTAL.*?\s+\K\d+' lcov.info | head -1)

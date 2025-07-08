@@ -46,9 +46,11 @@ coverage:
     - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian bullseye main contrib non-free" > /etc/apt/sources.list
     - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian bullseye-updates main contrib non-free" >> /etc/apt/sources.list
     - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main contrib non-free" >> /etc/apt/sources.list
+    - export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+    - export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
     - apt-get update -y
     - apt-get install -y curl lcov
-    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    - curl --proto '=https' --tlsv1.2 -sSf https://mirrors.ustc.edu.cn/rust-static/rustup/rustup-init.sh | sh -s -- -y
     - apt-get install -y python3-lcov-cobertura || pip3 install --user lcov-cobertura
     - cargo install grcov
     - source /usr/local/cargo/env

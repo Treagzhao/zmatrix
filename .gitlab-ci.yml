@@ -43,17 +43,14 @@ coverage:
   stage: coverage
   needs: ["unit_test"]  # 依赖单元测试任务
   before_script:
-    - apt-get update -y && apt-get install -y curl lcov
-    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    - source /usr/local/cargo/env
-    - rustup component add llvm-tools
-    # 写入清华的 bullseye 源
     - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian bullseye main contrib non-free" > /etc/apt/sources.list
     - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian bullseye-updates main contrib non-free" >> /etc/apt/sources.list
     - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main contrib non-free" >> /etc/apt/sources.list
-    # 更新源
     - apt-get update -y
-
+    - apt-get install -y curl lcov
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    - source /usr/local/cargo/env
+    - rustup component add llvm-tools
     # 设置环境变量以启用覆盖率数据收集
     - export RUSTFLAGS="-Cinstrument-coverage"
     - export LLVM_PROFILE_FILE="target/coverage/%p-%m.profraw"

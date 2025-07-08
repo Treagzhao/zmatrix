@@ -45,7 +45,7 @@ coverage:
   before_script:
     - apt-get update -y && apt-get install -y curl lcov
     - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    - source $HOME/.cargo/env
+    - source /usr/local/cargo/env
     - rustup component add llvm-tools
 
     # 设置环境变量以启用覆盖率数据收集

@@ -42,7 +42,6 @@ unit_test:
 coverage:
   stage: coverage
   needs: ["unit_test"]  # 依赖单元测试任务
-  image: debian:bullseye  # 使用完整 Debian 镜像
   before_script:
     - apt-get update -y && apt-get install -y curl lcov
     - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -52,6 +51,7 @@ coverage:
     # 设置环境变量以启用覆盖率数据收集
     - export RUSTFLAGS="-Cinstrument-coverage"
     - export LLVM_PROFILE_FILE="target/coverage/%p-%m.profraw"
+  script:
 
     # 重新运行测试以收集覆盖率数据
     - cargo test --workspace

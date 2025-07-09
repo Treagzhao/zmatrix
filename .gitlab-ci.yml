@@ -54,7 +54,11 @@ coverage:
     - apt-get install -y curl lcov
     - apt-get install -y python3-pip
     - curl --proto '=https' --tlsv1.2 -sSf https://mirrors.ustc.edu.cn/rust-static/rustup/rustup-init.sh | sh -s -- -y
-    - apt-get install -y python3-lcov-cobertura || pip3 install --user lcov-cobertura
+    - apt-get update -y && apt-get install -y python3-pip python3-venv
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip install lcov-cobertura
+    - export PATH="$(pwd)/venv/bin:$PATH"  # 确保虚拟环境的二进制可用
     - cargo install grcov
     - source /usr/local/cargo/env
     - rustup component add llvm-tools

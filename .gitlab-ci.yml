@@ -71,10 +71,10 @@ coverage:
     - export RUSTFLAGS="-Cinstrument-coverage"
     - export LLVM_PROFILE_FILE="target/coverage/%p-%m.profraw"
     - export PATH="$(pwd)/venv/bin:$PATH"
-  script:
-    - cargo test --workspace
-    - grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" --ignore "src/tests/*" --ignore "src/generated/*" --ignore "examples/*" --ignore "benches/*" -o lcov.info
-    - lcov_cobertura lcov.info --output coverage.xml
-    - TOTAL_COVERAGE=$(grep -oP '^TOTAL.*?\s+\K\d+' lcov.info | head -1)
-    - echo "Total test coverage: ${TOTAL_COVERAGE}%"
-    - if [ "$TOTAL_COVERAGE" -lt "$COVERAGE_THRESHOLD" ]; then echo "Coverage below threshold"; exit 1; fi
+  script: |
+    cargo test --workspace
+    grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" --ignore "src/tests/*" --ignore "src/generated/*" --ignore "examples/*" --ignore "benches/*" -o lcov.info
+    lcov_cobertura lcov.info --output coverage.xml
+    TOTAL_COVERAGE=$(grep -oP '^TOTAL.*?\s+\K\d+' lcov.info | head -1)
+    echo "Total test coverage: ${TOTAL_COVERAGE}%"
+    if [ "$TOTAL_COVERAGE" -lt "$COVERAGE_THRESHOLD" ]; then echo "Coverage below threshold"; exit 1; fi

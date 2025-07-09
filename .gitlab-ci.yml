@@ -52,25 +52,31 @@ coverage:
     - export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
     - apt-get update -y
     - apt-get install -y curl lcov
-    - apt-get install -y python3-pip
+    - apt-get install -y curl lcov python3-pip python3-venv
+    
+    # 设置Rust环境
+    - export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+    - export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
     - curl --proto '=https' --tlsv1.2 -sSf https://mirrors.ustc.edu.cn/rust-static/rustup/rustup-init.sh | sh -s -- -y
-    - apt-get update -y && apt-get install -y python3-pip python3-venv
+    - rustup component add llvm-tools
+    - cargo install grcov
+    - source /usr/local/cargo/env
+    
+    # 创建并激活Python虚拟环境
     - python3 -m venv venv
     - source venv/bin/activate
     - pip install lcov-cobertura
-    - export PATH="$(pwd)/venv/bin:$PATH"  # 确保虚拟环境的二进制可用
-    - cargo install grcov
-    - source /usr/local/cargo/env
-    - rustup component add llvm-tools
-    # 设置环境变量以启用覆盖率数据收集
+    
+    # 设置覆盖率收集环境
     - export RUSTFLAGS="-Cinstrument-coverage"
     - export LLVM_PROFILE_FILE="target/coverage/%p-%m.profraw"
+    - export PATH="$(pwd)/venv/bin:$PATH"
   script:
 
-    # 重新运行测试以收集覆盖率数据
+    # 重新运行测试收集覆盖率数据
     - cargo test --workspace
-
-    # 生成 lcov 格式的报告
+    
+    # 生成lcov报告
     - grcov . \
       --binary-path ./target/debug/deps/ \
       -s . \
@@ -78,15 +84,14 @@ coverage:
       --branch \
       --ignore-not-existing \
       --ignore "/*" \
-      --ignore "src/tests/*" \          
-      --ignore "src/generated/*" \      
-      --ignore "examples/*" \           
-      --ignore "benches/*" \          
+      --ignore "src/tests/*" \
+      --ignore "src/generated/*" \
+      --ignore "examples/*" \
+      --ignore "benches/*" \
       -o lcov.info
-
-    # 转换为 cobertura 格式（供 GitLab 解析）
-    - lcov --list lcov.info  # 打印覆盖率摘要（调试用）
+    
+    # 转换并检查覆盖率报告
     - lcov_cobertura lcov.info --output coverage.xml
-    # 提取总覆盖率数值
     - TOTAL_COVERAGE=$(grep -oP '^TOTAL.*?\s+\K\d+' lcov.info | head -1)
-    - echo "Total test cover
+    - echo "Total test coverage: ${TOTAL_COVERAGE}%"
+    - if [ "$TOTAL_COVERAGE" -lt "$COVERAGE_THRESHOLD" ]; then echo "Coverage below threshold"; exit 1; fi

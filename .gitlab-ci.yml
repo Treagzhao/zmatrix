@@ -72,25 +72,8 @@ coverage:
     - export LLVM_PROFILE_FILE="target/coverage/%p-%m.profraw"
     - export PATH="$(pwd)/venv/bin:$PATH"
   script:
-
-    # 重新运行测试收集覆盖率数据
     - cargo test --workspace
-    
-    # 生成lcov报告
-    - grcov . \
-      --binary-path ./target/debug/deps/ \
-      -s . \
-      -t lcov \
-      --branch \
-      --ignore-not-existing \
-      --ignore "/*" \
-      --ignore "src/tests/*" \
-      --ignore "src/generated/*" \
-      --ignore "examples/*" \
-      --ignore "benches/*" \
-      -o lcov.info
-    
-    # 转换并检查覆盖率报告
+    - grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" --ignore "src/tests/*" --ignore "src/generated/*" --ignore "examples/*" --ignore "benches/*" -o lcov.info
     - lcov_cobertura lcov.info --output coverage.xml
     - TOTAL_COVERAGE=$(grep -oP '^TOTAL.*?\s+\K\d+' lcov.info | head -1)
     - echo "Total test coverage: ${TOTAL_COVERAGE}%"

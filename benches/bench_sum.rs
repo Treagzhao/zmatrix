@@ -54,3 +54,7 @@ fn bench_sum_column(c: &mut Criterion) {
 // 4. 注册基准测试组
 criterion_group!(benches, bench_sum_row,bench_sum_column);
 criterion_main!(benches);
+
+
+
+

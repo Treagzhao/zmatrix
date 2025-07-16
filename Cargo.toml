@@ -1,13 +1,27 @@
 [package]
 name = "zmatrix"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2021"
 authors = ["Treagzhao"]
 license = "MIT"
-description="This is a matrix calculation lib"
+description = "This is a matrix calculation lib"
 
 [dependencies]
 approx = "0.5.1"
+criterion = { version = "0.6.0"}
 lazy_static = "1.5.0"
 rand = "0.9.1"
+rayon = "1.10.0"
 serde = "1.0.219"
+
+[[bench]]
+name = "bench_sum"        # 对应 benches/bench_sum.rs
+harness = false
+
+[[bench]]
+name = "bench_matrix_calculate"        # 对应 benches/bench_sub.rs
+harness = false
+
+[[bench]]
+name = "bench_scalar"
+harness = false

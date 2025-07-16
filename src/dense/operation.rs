@@ -1,6 +1,9 @@
 use crate::dense::column_vector::ColumnVector;
 use crate::dense::{error, util, Matrix};
+use rayon::iter::ParallelIterator;
+use rayon::prelude::*;
 use std::fmt::Display;
+use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::sync::{mpsc, Arc};
 use std::thread;
@@ -23,17 +26,14 @@ where
     type Output = Matrix<T>;
 
     fn add(self, other: Self) -> Self::Output {
-        if self.data.len() != other.data.len() {
+        if self.height != other.height || self.width != other.width {
             panic!("only matrix in same height & width could be operated");
         }
-        let vec = util::calculate_in_threads(
-            &self.data,
-            &other.data,
-            self.height,
-            self.width,
-            |a, b| -> T { a + b },
-        )
-        .unwrap();
+        let vec: Vec<T> = (0..self.data.len())
+            .into_par_iter()
+            .map(|i| self.data[i] + other.data[i])
+            .collect();
+
         Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
@@ -45,17 +45,13 @@ where
 {
     type Output = Matrix<T>;
     fn sub(self, other: Self) -> Self::Output {
-        if self.data.len() != other.data.len() {
+        if self.height != other.height || self.width != other.width {
             panic!("only matrix in same height & width could be operated");
         }
-        let vec = util::calculate_in_threads(
-            &self.data,
-            &other.data,
-            self.height,
-            self.width,
-            |a, b| -> T { a - b },
-        )
-        .unwrap();
+        let vec = (0..self.data.len())
+            .into_par_iter()
+            .map(|i| self.data[i] - other.data[i])
+            .collect();
         Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
@@ -68,17 +64,13 @@ where
     type Output = Matrix<T>;
 
     fn mul(self, other: Self) -> Self::Output {
-        if self.data.len() != other.data.len() {
+        if self.height != other.height || self.width != other.width {
             panic!("only matrix in same height & width could be operated");
         }
-        let vec = util::calculate_in_threads(
-            &self.data,
-            &other.data,
-            self.height,
-            self.width,
-            |a, b| -> T { a * b },
-        )
-        .unwrap();
+        let vec = (0..self.data.len())
+            .into_par_iter()
+            .map(|i| self.data[i] * other.data[i])
+            .collect();
         Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
@@ -91,16 +83,16 @@ where
     type Output = Matrix<T>;
 
     fn add(self, rhs: ColumnVector<T>) -> Self::Output {
-        if self.width != rhs.height {
-            panic!("only matrix in same height could be operated");
+        if self.height != rhs.height {
+            panic!("only matrix in same height & width could be operated");
         }
-        let mut vec: Vec<T> = Vec::new();
-        for row in 0..self.height {
-            for col in 0..self.width {
-                let v = self.data[row * self.width + col].clone() + rhs.get(col).unwrap();
-                vec.push(v);
-            }
-        }
+        let mut vec: Vec<T> = (0..self.data.len())
+            .into_par_iter()
+            .map(|i| {
+                let row = i / self.width;
+                self.data[i] + rhs.get(row).unwrap()
+            })
+            .collect();
         Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
@@ -113,10 +105,10 @@ where
     type Output = Matrix<T>;
 
     fn neg(self) -> Self::Output {
-        let mut vec = self.data.clone();
-        for i in 0..vec.len() {
-            vec[i] = -vec[i];
-        }
+        let mut vec = (0..self.data.len())
+            .into_par_iter()
+            .map(|i| -self.data[i])
+            .collect();
         Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
@@ -127,10 +119,10 @@ where
     f64: From<T>,
 {
     pub fn exp(&self) -> Matrix<f64> {
-        let mut vec: Vec<f64> = Vec::new();
-        for i in 0..self.data.len() {
-            vec.push(f64::from(self.data[i]).exp());
-        }
+        let mut vec: Vec<f64> = (0..self.data.len())
+            .into_par_iter()
+            .map(|i| f64::from(self.data[i]).exp())
+            .collect();
         Matrix::<f64>::new(self.height, self.width, vec).unwrap()
     }
 }
@@ -143,10 +135,10 @@ where
     type Output = Matrix<T>;
 
     fn add(self, rhs: T) -> Self::Output {
-        let mut vec = self.data.clone();
-        for i in 0..vec.len() {
-            vec[i] = vec[i] + rhs;
-        }
+        let mut vec = (0..self.data.len())
+            .into_par_iter()
+            .map(|i| self.data[i] + rhs)
+            .collect();
         Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
@@ -174,10 +166,10 @@ where
     type Output = Matrix<T>;
 
     fn mul(self, rhs: T) -> Self::Output {
-        let mut vec = self.data.clone();
-        for i in 0..vec.len() {
-            vec[i] = vec[i] * rhs;
-        }
+        let mut vec = (0..self.data.len())
+            .into_par_iter()
+            .map(|i| self.data[i] * rhs)
+            .collect();
         Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
@@ -189,10 +181,10 @@ where
 {
     type Output = Matrix<T>;
     fn div(self, rhs: T) -> Self::Output {
-        let mut vec = self.data.clone();
-        for i in 0..vec.len() {
-            vec[i] = vec[i] / rhs;
-        }
+        let mut vec = (0..self.data.len())
+            .into_par_iter()
+            .map(|i| self.data[i] / rhs)
+            .collect();
         Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
@@ -203,17 +195,17 @@ where
     type Output = Matrix<T>;
 
     fn sub(self, rhs: Matrix<T>) -> Self::Output {
-        let mut vec = rhs.data.clone();
-        for i in 0..vec.len() {
-            vec[i] = self.value - vec[i];
-        }
+        let vec = (0..rhs.data.len())
+            .into_par_iter()
+            .map(|i| self.value - rhs.data[i])
+            .collect();
         Matrix::new(rhs.height, rhs.width, vec).unwrap()
     }
 }
 
 impl<T> Matrix<T>
 where
-    T: Default + Display + Send + Sync + Copy + Add<Output = T> + Mul<Output = T>,
+    T: Default + Display + Send + Sync + Copy + Add<Output = T> + Mul<Output = T> + Sum,
 {
     pub fn product(&self, target: &Matrix<T>) -> Result<Matrix<T>, error::OperationError> {
         if self.width != target.height {
@@ -221,48 +213,18 @@ where
                 message: "target height and width do not match".to_string(),
             });
         }
-        let mut result: Vec<T> = vec![T::default(); (self.height * target.width) as usize];
-        let self_data = Arc::new(self.data.clone());
-        let target_data = Arc::new(target.data.clone());
-        let mut err: Option<error::OperationError> = None;
-        thread::scope(|scope| {
-            let (sender, receiver) =
-                mpsc::channel::<Result<util::CalculateResult<T>, error::OperationError>>();
-            for row in 0..self.height {
-                for col in 0..target.width {
-                    let self_data_ = self_data.clone();
-                    let target_data_ = target_data.clone();
-                    let s = sender.clone();
-                    scope.spawn(move || {
-                        let res = util::calculate_multi(
-                            &self_data_,
-                            &target_data_,
-                            self.height,
-                            target.width,
-                            row,
-                            col,
-                            self.width,
-                        );
-                        s.send(res).unwrap();
-                    });
-                }
-            }
-            drop(sender);
-            for rc in receiver {
-                match rc {
-                    Ok(res) => {
-                        let index: usize = (res.y * target.width + res.x) as usize;
-                        result[index] = res.value;
-                    }
-                    Err(e) => err = Option::Some(e),
-                }
-            }
-        });
-        if let Some(e) = err {
-            return Result::Err(e);
-        }
-        let m = Matrix::new(self.height, target.width, result)?;
-        Result::Ok(m)
+        let result_data = (0..self.height)
+            .into_par_iter()
+            .flat_map(|i| {
+                (0..target.width).into_par_iter().map(move |j| {
+                    (0..self.width)
+                        .map(|k| self.data[i * self.width + k] * target.data[k * target.width + j])
+                        .sum()
+                })
+            })
+            .collect();
+
+        Matrix::new(self.height, target.width, result_data)
     }
 }
 
@@ -271,14 +233,10 @@ where
     T: Display + Default + Send + Sync + Mul<Output = T> + Copy,
 {
     pub fn scale(&self, scalar: T) -> Matrix<T> {
-        let mut vec: Vec<T> = Vec::new();
-        for row in 0..self.height {
-            for col in 0..self.width {
-                let index = (row * self.width + col) as usize;
-                let value = self.data[index] * scalar;
-                vec.push(value);
-            }
-        }
+        let mut vec: Vec<T> = (0..self.data.len())
+            .into_par_iter()
+            .map(|x| self.data[x] * scalar)
+            .collect();
         Matrix::new(self.height, self.width, vec).unwrap()
     }
 }
@@ -290,10 +248,10 @@ where
     type Output = Matrix<T>;
 
     fn div(self, rhs: Matrix<T>) -> Self::Output {
-        let mut vec: Vec<T> = rhs.data.clone();
-        for i in 0..vec.len() {
-            vec[i] = self.value / vec[i];
-        }
+        let mut vec: Vec<T> = (0..rhs.data.len())
+            .into_par_iter()
+            .map(|i| self.value / rhs.data[i])
+            .collect();
         Matrix::new(rhs.height, rhs.width, vec).unwrap()
     }
 }
@@ -303,11 +261,10 @@ where
     T: Copy + Send + Sync + Display + Into<f64>,
 {
     pub fn ln(&self) -> Matrix<f64> {
-        let mut vec: Vec<f64> = self
-            .data
-            .iter()
+        let mut vec: Vec<f64> = (0..self.data.len())
+            .into_par_iter()
             .map(|x| {
-                let f: f64 = (*x).into();
+                let f: f64 = self.data[x].into();
                 f.ln()
             })
             .collect();
@@ -315,11 +272,10 @@ where
     }
 
     pub fn clamp(&self, min: T, max: T) -> Matrix<f64> {
-        let mut vec: Vec<f64> = self
-            .data
-            .iter()
-            .map(|x| {
-                let f: f64 = (*x).into();
+        let mut vec: Vec<f64> = (0..self.data.len())
+            .into_par_iter()
+            .map(|i| {
+                let f: f64 = self.data[i].into();
                 f.clamp(min.into(), max.into())
             })
             .collect();
@@ -329,26 +285,38 @@ where
 
 impl<T> Matrix<T>
 where
-    T: Copy + Send + Sync + Display + Add<Output = T>,
+    T: Copy + Send + Sync + Display + Add<Output = T> + Default,
 {
     pub fn sum(&self) -> T {
-        let mut sum = self.data[0];
-        for i in 1..self.data.len() {
-            sum = sum + self.data[i];
+        if self.data.len() == 0 {
+            return T::default();
         }
-        sum
+        let vec: Vec<T> = (0..self.width)
+            .into_par_iter()
+            .map(|col| {
+                let mut sum = self.data[col];
+                for row in 1..self.height {
+                    sum = sum + self.data[row * self.width + col];
+                }
+                sum
+            })
+            .collect();
+        vec.into_iter().reduce(|acc, x| acc + x).unwrap()
     }
 }
 
 impl<T> Matrix<T>
 where
-    T: Copy + Send + Sync + Display + Div<Output = T> + Add<Output = T>,
-    f64:From<T>,
+    T: Copy + Send + Sync + Display + Div<Output = T> + Add<Output = T> + Default,
+    f64: From<T>,
 {
     pub fn mean(&self) -> f64 {
+        if self.data.len() == 0 {
+            return 0.0;
+        }
         let sum = self.sum();
-        let s:f64 = sum.into();
-        let mean = s / self.data.len() as f64;
+        let s: f64 = sum.into();
+        let mean = s / (self.data.len() as f64);
         mean
     }
 }
@@ -819,8 +787,8 @@ mod test {
     fn test_sum_empty_matrix() {
         // Test with empty matrix (should panic)
         let matrix = Matrix::<i32>::new(0, 0, vec![]).unwrap();
-        let result = std::panic::catch_unwind(|| matrix.sum());
-        assert!(result.is_err());
+        let sum = matrix.sum();
+        assert_eq!(0, sum);
     }
 
     #[test]
@@ -1052,7 +1020,6 @@ mod test {
         assert_relative_eq!(result.data[3], 2.0, epsilon = 1e-10);
     }
 
-
     #[test]
     fn test_mean_basic_values() {
         // Test basic mean calculation
@@ -1070,11 +1037,11 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn test_mean_empty_matrix() {
         // Test with empty matrix (should panic)
         let matrix: Matrix<f64> = Matrix::new(0, 0, vec![]).unwrap();
-        let _ = matrix.mean();
+        let v = matrix.mean();
+        assert_eq!(0.0, v);
     }
 
     #[test]
@@ -1132,7 +1099,7 @@ mod test {
         // Test with NaN values
         let matrix = Matrix::new(1, 2, vec![1.0, f64::NAN]).unwrap();
         let r = matrix.mean(); // Will panic when converting NAN to f64
-        assert_eq!(true,r.is_nan())
+        assert_eq!(true, r.is_nan())
     }
 
     #[test]
@@ -1140,8 +1107,7 @@ mod test {
         // Test with infinity values
         let matrix = Matrix::new(1, 2, vec![1.0, f64::INFINITY]).unwrap();
         let r = matrix.mean(); // Will panic when converting INFINITY to f64
-        assert_eq!(true,r.is_infinite())
-
+        assert_eq!(true, r.is_infinite())
     }
 
     #[test]

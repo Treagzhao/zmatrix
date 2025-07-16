@@ -1,0 +1,13 @@
+[config]
+# 每个 MR 最多包含的文件数限制，如超过最大限制会报错并不会触发代码审核
+mr_max_files = 100  # 1-15之间的整数
+
+[coderider_code_suggestions]
+# 评审建议数量限制
+num_code_suggestions = 5  # 1-5之间的整数
+# 生成代码时的额外指令
+extra_instructions = " " # 不超过1000字的文本
+
+[coderider_reviewer]
+# 代码审查时的额外指令
+extra_instructions = " " # 不超过1000字的文本

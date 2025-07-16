@@ -32,7 +32,7 @@ where
     ) -> Result<Matrix<T>, error::OperationError> {
         if height * width != vec.len().try_into().unwrap() {
             return Result::Err(error::OperationError {
-                message: "vec length doest not match height  & width".to_string(),
+                message: format!("vec length {} does not match height {} & width {}", vec.len(), height, width),
             });
         }
         let mut digits: u8 = 0;
@@ -401,11 +401,11 @@ mod test {
 
     #[test]
     fn test_add_column_vector() {
-        let m1: Matrix<f64> = Matrix::new(2, 3, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
+        let m1: Matrix<f64> = Matrix::new(3, 2, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
         let v1: ColumnVector<f64> = ColumnVector::new(&vec![6.0, 7.0, 8.0]);
         let result = m1 + v1;
 
-        assert_eq!((2, 3), result.size());
-        assert_eq!(vec![7.0, 9.0, 11.0, 10.0, 12.0, 14.0], result.data);
+        assert_eq!((3,2), result.size());
+        assert_eq!(vec![7.0, 8.0, 10.0, 11.0, 13.0, 14.0], result.data);
     }
 }

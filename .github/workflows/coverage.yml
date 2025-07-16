@@ -34,6 +34,7 @@ jobs:
           --ignore-not-existing \
           --ignore "/*" \
           --ignore "examples/*" \
+          --ignore "benches/*" \
           --ignore "src/tests/*" \
           -t lcov \
           -o ./coverage/lcov.info

@@ -6,6 +6,21 @@ variables:
   COVERAGE_THRESHOLD: "90"  # 覆盖率阈值（百分比）
   CARGO_INCREMENTAL: "0"     # 禁用增量编译以获得准确覆盖率
 
+before_script:
+  # 删除所有可能残留的 apt 源配置文件
+  - rm -f /etc/apt/sources.list.d/*.list
+  - rm -f /etc/apt/sources.list.d/*.sources
+  - rm -f /etc/apt/sources.list.save
+  - rm -f /etc/apt/sources.list~
+  - export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+  - export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
+  # 写入清华的 bullseye 源
+  - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian bullseye main contrib non-free" > /etc/apt/sources.list
+  - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian bullseye-updates main contrib non-free" >> /etc/apt/sources.list
+  - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main contrib non-free" >> /etc/apt/sources.list
+  # 更新源
+  - apt-get update -y
+
 # 使用 Rust 官方 Docker 镜像
 image: rust:latest
 
@@ -29,28 +44,37 @@ unit_test:
 coverage:
   stage: coverage
   needs: ["unit_test"]  # 依赖单元测试任务
-  script:
-    # 安装 grcov 和 lcov
-    - apt-get update -y && apt-get install -y python3-pip
+  before_script:
+    - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian bullseye main contrib non-free" > /etc/apt/sources.list
+    - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian bullseye-updates main contrib non-free" >> /etc/apt/sources.list
+    - echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main contrib non-free" >> /etc/apt/sources.list
+    - export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+    - export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
+    - apt-get update -y
+    - apt-get install -y curl lcov
+    - apt-get install -y curl lcov python3-pip python3-venv
+    
+    # 设置Rust环境
+    - export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+    - export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
+    - curl --proto '=https' --tlsv1.2 -sSf https://mirrors.ustc.edu.cn/rust-static/rustup/rustup-init.sh | sh -s -- -y
+    - rustup component add llvm-tools
     - cargo install grcov
-    - rustup component add llvm-tools  # 关键修复：安装缺失的 LLVM 工具
-    - apt-get update -y && apt-get install -y lcov
-
-    # 设置环境变量以启用覆盖率数据收集
+    - source /usr/local/cargo/env
+    
+    # 创建并激活Python虚拟环境
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip install lcov-cobertura
+    
+    # 设置覆盖率收集环境
     - export RUSTFLAGS="-Cinstrument-coverage"
     - export LLVM_PROFILE_FILE="target/coverage/%p-%m.profraw"
-
-    # 重新运行测试以收集覆盖率数据
-    - cargo test --workspace
-
-    # 生成 lcov 格式的报告
-    - grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
-
-    # 转换为 cobertura 格式（供 GitLab 解析）
-    - lcov --list lcov.info  # 打印覆盖率摘要（调试用）
-    - pip install lcov-cobertura
-    - lcov_cobertura lcov.info --output coverage.xml
-
-    # 提取总覆盖率数值
-    - TOTAL_COVERAGE=$(grep -oP '^TOTAL.*?\s+\K\d+' lcov.info | head -1)
-    - echo "Total test cover
+    - export PATH="$(pwd)/venv/bin:$PATH"
+  script: |
+    cargo test --workspace
+    grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" --ignore "src/tests/*" --ignore "src/generated/*" --ignore "examples/*" --ignore "benches/*" -o lcov.info
+    lcov_cobertura lcov.info --output coverage.xml
+    TOTAL_COVERAGE=$(grep -oP '^TOTAL.*?\s+\K\d+' lcov.info | head -1)
+    echo "Total test coverage: ${TOTAL_COVERAGE}%"
+    if [ "$TOTAL_COVERAGE" -lt "$COVERAGE_THRESHOLD" ]; then echo "Coverage below threshold"; exit 1; fi

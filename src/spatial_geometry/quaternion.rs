@@ -26,6 +26,7 @@ impl Default for Quaternion {
 }
 
 impl Quaternion {
+
     //归一化，生成单位四元数
     pub fn normalize(&self) -> Self {
         let mut tmp_norm = f64::sqrt(

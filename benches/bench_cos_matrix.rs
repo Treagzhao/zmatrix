@@ -64,15 +64,23 @@ fn bench_cos_matrix_product(c: &mut Criterion) {
     });
 }
 
+
 fn bench_cos_matrix_add(c: &mut Criterion) {
+    let mut  cases: Vec<([[f64; 3]; 3], [[f64; 3];3])> = Vec::new();
+    for i in 0..10{
+        let matrix = random_3x3_array();
+        let matrix2 = random_3x3_array();
+        cases.push((matrix, matrix2));
+    }
     let mut group = c.benchmark_group("cos_matrix_add");
-    let arr = random_f64_array_9();
-    let cod = CosMatrix::new([
-        [arr[0], arr[1], arr[2]],
-        [arr[3], arr[4], arr[5]],
-        [arr[6], arr[7], arr[8]],
-    ]);
+    for (i, (matrix1, matrix2)) in cases.into_iter().enumerate() {
+        group.bench_with_input(format!("bench_cos_matrix_add {}", i), &(CosMatrix::new(matrix1), CosMatrix::new(matrix2)), |b, (cos1, cos2)| {
+            b.iter(|| *cos1 + *cos2);
+        });
+    }
 }
 
-criterion_group!(benches,bench_cos_matrix_product_vector, bench_cos_matrix_product);
+
+
+criterion_group!(benches,bench_cos_matrix_product_vector, bench_cos_matrix_product,bench_cos_matrix_add);
 criterion_main!(benches);

@@ -1,5 +1,4 @@
 use super::*;
-use crate::dense::Matrix;
 use crate::physics::basic::{Angular, Coef, PhysicalQuantity, Vector3};
 use crate::spatial_geometry::quaternion::Quaternion;
 use crate::utils::float::sgn2_64;
@@ -7,13 +6,13 @@ use std::ops::Mul;
 
 #[derive(Debug, Clone)]
 pub struct CosMatrix {
-    matrix: Matrix<f64>,
+    data: [f64; 9],
 }
 
 impl Default for CosMatrix {
     fn default() -> Self {
         CosMatrix {
-            matrix: Matrix::new_with_default(3, 3, 0.0).unwrap(),
+            data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
         }
     }
 }
@@ -21,77 +20,88 @@ impl Default for CosMatrix {
 impl CosMatrix {
     //返回单位方向余弦阵
     pub fn unit() -> Self {
-        let data: [[f64; 3]; 3] = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        let data = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
         CosMatrix::new(data)
     }
     pub fn new(data: [[f64; 3]; 3]) -> Self {
-        let mut vec: Vec<f64> = Vec::new();
-        for row in 0..3 {
-            for col in 0..3 {
-                vec.push(data[row][col]);
-            }
+        CosMatrix {
+            data: [
+                data[0][0], data[0][1], data[0][2],
+                data[1][0], data[1][1], data[1][2],
+                data[2][0], data[2][1], data[2][2]
+            ]
         }
-        let m = Matrix::new(3, 3, vec).unwrap();
-        CosMatrix { matrix: m }
     }
 
     pub fn get_x_vector(&self) -> Vector3<Coef> {
-        let to_x = Coef::new(self.matrix.get(0, 0).expect("get x vector failed"));
-        let to_y: Coef = Coef::new(self.matrix.get(1, 0).expect("get y vector failed"));
-        let to_z: Coef = Coef::new(self.matrix.get(2, 0).expect("get z vector failed"));
-        Vector3::new(to_x, to_y, to_z)
+        Vector3::new(
+            Coef::new(self.data[0]),
+            Coef::new(self.data[3]),
+            Coef::new(self.data[6])
+        )
     }
 
     pub fn get_y_vector(&self) -> Vector3<Coef> {
-        let to_x = Coef::new(self.matrix.get(0, 1).expect("get x vector failed"));
-        let to_y: Coef = Coef::new(self.matrix.get(1, 1).expect("get y vector failed"));
-        let to_z: Coef = Coef::new(self.matrix.get(2, 1).expect("get z vector failed"));
-        Vector3::new(to_x, to_y, to_z)
+        Vector3::new(
+            Coef::new(self.data[1]),
+            Coef::new(self.data[4]),
+            Coef::new(self.data[7])
+        )
     }
+
     pub fn get_z_vector(&self) -> Vector3<Coef> {
-        let to_x = Coef::new(self.matrix.get(0, 2).expect("get x vector failed"));
-        let to_y: Coef = Coef::new(self.matrix.get(1, 2).expect("get y vector failed"));
-        let to_z: Coef = Coef::new(self.matrix.get(2, 2).expect("get z vector failed"));
-        Vector3::new(to_x, to_y, to_z)
+        Vector3::new(
+            Coef::new(self.data[2]),
+            Coef::new(self.data[5]),
+            Coef::new(self.data[8])
+        )
     }
 
     pub fn get_x_col_vector(&self) -> Vector3<Coef> {
-        let to_x = Coef::new(self.matrix.get(0, 0).expect("get x vector failed"));
-        let to_y: Coef = Coef::new(self.matrix.get(0, 1).expect("get y vector failed"));
-        let to_z: Coef = Coef::new(self.matrix.get(0, 2).expect("get z vector failed"));
-        Vector3::new(to_x, to_y, to_z)
+        Vector3::new(
+            Coef::new(self.data[0]),
+            Coef::new(self.data[3]),
+            Coef::new(self.data[6])
+        )
     }
 
     pub fn get_y_col_vector(&self) -> Vector3<Coef> {
-        let to_x = Coef::new(self.matrix.get(1, 0).expect("get x vector failed"));
-        let to_y: Coef = Coef::new(self.matrix.get(1, 1).expect("get y vector failed"));
-        let to_z: Coef = Coef::new(self.matrix.get(1, 2).expect("get z vector failed"));
-        Vector3::new(to_x, to_y, to_z)
+        Vector3::new(
+            Coef::new(self.data[1]),
+            Coef::new(self.data[4]),
+            Coef::new(self.data[7])
+        )
     }
 
     pub fn get_z_col_vector(&self) -> Vector3<Coef> {
-        let to_x = Coef::new(self.matrix.get(2, 0).expect("get x vector failed"));
-        let to_y: Coef = Coef::new(self.matrix.get(2, 1).expect("get y vector failed"));
-        let to_z: Coef = Coef::new(self.matrix.get(2, 2).expect("get z vector failed"));
-        Vector3::new(to_x, to_y, to_z)
+        Vector3::new(
+            Coef::new(self.data[2]),
+            Coef::new(self.data[5]),
+            Coef::new(self.data[8])
+        )
     }
 
     // 矩阵转置
     pub fn transfer(&self) -> Self {
-        let m = self.matrix.T();
-        let mut cos = CosMatrix::default();
-        cos.matrix = m;
-        cos
+        let mut data = [0.0; 9];
+        data[0] = self.data[0];
+        data[1] = self.data[3];
+        data[2] = self.data[6];
+        data[3] = self.data[1];
+        data[4] = self.data[4];
+        data[5] = self.data[7];
+        data[6] = self.data[2];
+        data[7] = self.data[5];
+        data[8] = self.data[8];
+        CosMatrix { data }
     }
 
     pub fn to_array(&self) -> [[f64; 3]; 3] {
-        let mut arr: [[f64; 3]; 3] = [[0.0; 3]; 3];
-        for row in 0..3 {
-            for col in 0..3 {
-                arr[col][row] = self.matrix.get(row, col).expect("get matrix failed");
-            }
-        }
-        arr
+        [
+            [self.data[0], self.data[1], self.data[2]],
+            [self.data[3], self.data[4], self.data[5]],
+            [self.data[6], self.data[7], self.data[8]]
+        ]
     }
 
     //将方向余弦阵变成四元数
@@ -142,20 +152,42 @@ impl CosMatrix {
 
     // 与一个列向量进行矩阵乘法，得到一个列向量
     pub fn product_vector<T: PhysicalQuantity + Default>(&self, vec: &Vector3<T>) -> Vector3<T> {
+        let vec_arr = vec.to_array();
         let mut result: Vector3<T> = Vector3::default();
-        let m = vec.to_col_matrix();
-        let r = self.matrix.product(&m).unwrap();
-        result.x.set_value(r.get(0, 0).unwrap());
-        result.y.set_value(r.get(0, 1).unwrap());
-        result.z.set_value(r.get(0, 2).unwrap());
+        result.x.set_value(
+            self.data[0] * vec_arr[0] +
+            self.data[1] * vec_arr[1] +
+            self.data[2] * vec_arr[2]
+        );
+        result.y.set_value(
+            self.data[3] * vec_arr[0] +
+            self.data[4] * vec_arr[1] +
+            self.data[5] * vec_arr[2]
+        );
+        result.z.set_value(
+            self.data[6] * vec_arr[0] +
+            self.data[7] * vec_arr[1] +
+            self.data[8] * vec_arr[2]
+        );
         result
     }
 
+
     pub fn product(&self, other: &CosMatrix) -> CosMatrix {
-        let m = self.matrix.product(&other.matrix.clone()).unwrap();
-        let mut cos = CosMatrix::default();
-        cos.matrix = m;
-        cos
+        let mut data = [0.0; 9];
+        // Row 0
+        data[0] = self.data[0] * other.data[0] + self.data[1] * other.data[3] + self.data[2] * other.data[6];
+        data[1] = self.data[0] * other.data[1] + self.data[1] * other.data[4] + self.data[2] * other.data[7];
+        data[2] = self.data[0] * other.data[2] + self.data[1] * other.data[5] + self.data[2] * other.data[8];
+        // Row 1
+        data[3] = self.data[3] * other.data[0] + self.data[4] * other.data[3] + self.data[5] * other.data[6];
+        data[4] = self.data[3] * other.data[1] + self.data[4] * other.data[4] + self.data[5] * other.data[7];
+        data[5] = self.data[3] * other.data[2] + self.data[4] * other.data[5] + self.data[5] * other.data[8];
+        // Row 2
+        data[6] = self.data[6] * other.data[0] + self.data[7] * other.data[3] + self.data[8] * other.data[6];
+        data[7] = self.data[6] * other.data[1] + self.data[7] * other.data[4] + self.data[8] * other.data[7];
+        data[8] = self.data[6] * other.data[2] + self.data[7] * other.data[5] + self.data[8] * other.data[8];
+        CosMatrix { data }
     }
     // 将余弦阵转换到欧拉角，xzy 转序
     pub fn to_pry(&self) -> Vector3<Angular> {
@@ -194,66 +226,46 @@ mod tests {
     #[test]
     fn test_cos_matrix_new() {
         let cos = CosMatrix::new([[1.1, 1.2, 1.3], [1.4, 1.5, 1.6], [1.7, 1.8, 1.9]]);
-        assert_eq!(cos.matrix.size(), (3, 3));
-        assert_eq!(cos.matrix.get(0, 0).unwrap(), 1.1);
+        assert_eq!(cos.data[0], 1.1);
     }
     #[test]
     fn test_cos_matrix_default() {
         let cos = CosMatrix::default();
-        assert_eq!(cos.matrix.size(), (3, 3));
+        assert_eq!(cos.data, [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]);
         let cos = CosMatrix::unit();
-        for (row, line) in [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
-            .iter()
-            .enumerate()
-        {
-            for (col, expected) in line.iter().enumerate() {
-                let actual = cos.matrix.get(col, row).unwrap();
-                assert_relative_eq!(actual, *expected, epsilon = 1e-10);
-            }
-        }
+        assert_eq!(cos.data, [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]);
     }
 
     #[test]
     fn test_cos_matrix_get_x_vector() {
-        let mut cos = CosMatrix::default();
-        cos.matrix = Matrix::new(3, 3, vec![1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8]).unwrap();
+        let cos = CosMatrix::new([[1.0, 1.1, 1.2], [1.3, 1.4, 1.5], [1.6, 1.7, 1.8]]);
         let x = cos.get_x_vector();
         assert_relative_eq!(1.0, x.x.get_value());
-        assert_relative_eq!(1.1, x.y.get_value());
-        assert_relative_eq!(1.2, x.z.get_value());
+        assert_relative_eq!(1.3, x.y.get_value());
+        assert_relative_eq!(1.6, x.z.get_value());
 
         let y = cos.get_y_vector();
-        assert_relative_eq!(1.3, y.x.get_value());
+        assert_relative_eq!(1.1, y.x.get_value());
         assert_relative_eq!(1.4, y.y.get_value());
-        assert_relative_eq!(1.5, y.z.get_value());
+        assert_relative_eq!(1.7, y.z.get_value());
 
         let z = cos.get_z_vector();
-        assert_relative_eq!(1.6, z.x.get_value());
-        assert_relative_eq!(1.7, z.y.get_value());
+        assert_relative_eq!(1.2, z.x.get_value());
+        assert_relative_eq!(1.5, z.y.get_value());
         assert_relative_eq!(1.8, z.z.get_value());
     }
 
     #[test]
     fn test_cos_matrix_transfer() {
-        let mut cos = CosMatrix::default();
-        cos.matrix = Matrix::new(3, 3, vec![1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]).unwrap();
+        let cos = CosMatrix::new([[1.1, 1.2, 1.3], [1.4, 1.5, 1.6], [1.7, 1.8, 1.9]]);
         let cos_trans = cos.transfer();
-        let result = format!("{}", cos_trans.matrix);
         let expected = [1.1, 1.4, 1.7, 1.2, 1.5, 1.8, 1.3, 1.6, 1.9];
-        for row in 0..3 {
-            for col in 0..3 {
-                let v = cos_trans.matrix.get(col, row).unwrap();
-                let index = (row * 3 + col) as usize;
-                let exp = expected[index];
-                assert_relative_eq!(v, exp);
-            }
-        }
+        assert_eq!(cos_trans.data, expected);
     }
 
     #[test]
     fn test_cross_matrix_to_array() {
-        let mut cos = CosMatrix::default();
-        cos.matrix = Matrix::new(3, 3, vec![1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]).unwrap();
+        let cos = CosMatrix::new([[1.1, 1.2, 1.3], [1.4, 1.5, 1.6], [1.7, 1.8, 1.9]]);
         let array = cos.to_array();
         let expected = [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9];
         for row in 0..3 {
@@ -318,14 +330,8 @@ mod tests {
         let cos1 = CosMatrix::new([[1.0, 2.0, 3.0], [2.0, 3.0, 4.0], [5.0, 2.0, 1.0]]);
         let cos2 = CosMatrix::new([[2.0, 3.0, 4.0], [1.0, 2.0, 3.0], [5.0, 2.0, 1.0]]);
         let result = cos1.product(&cos2);
-        let r = [[19.0, 13.0, 13.0], [27.0, 20.0, 21.0], [17.0, 21.0, 27.0]];
-        for row in 0..3 {
-            for col in 0..3 {
-                let v = result.matrix.get(col, row).unwrap();
-                let exp = r[row as usize][col as usize];
-                assert_relative_eq!(v, exp);
-            }
-        }
+        let expected = [19.0, 13.0, 13.0, 27.0, 20.0, 21.0, 17.0, 21.0, 27.0];
+        assert_eq!(result.data, expected);
     }
 
     #[test]

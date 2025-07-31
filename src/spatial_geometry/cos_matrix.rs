@@ -21,7 +21,6 @@ impl Default for CosMatrix {
 
 impl Add<f64> for CosMatrix {
     type Output = CosMatrix;
-
     fn add(self, rhs: f64) -> Self::Output {
         CosMatrix {
             data: [
@@ -114,6 +113,34 @@ impl Div<CosMatrix> for f64 {
                 self / rhs.data[0], self / rhs.data[1], self / rhs.data[2],
                 self / rhs.data[3], self / rhs.data[4], self / rhs.data[5],
                 self / rhs.data[6], self / rhs.data[7], self / rhs.data[8],
+            ]
+        }
+    }
+}
+
+impl Add<CosMatrix> for CosMatrix {
+    type Output = CosMatrix;
+
+    fn add(self, rhs: CosMatrix) -> Self::Output {
+        CosMatrix {
+            data: [
+                self.data[0] + rhs.data[0], self.data[1] + rhs.data[1], self.data[2] + rhs.data[2],
+                self.data[3] + rhs.data[3], self.data[4] + rhs.data[4], self.data[5] + rhs.data[5],
+                self.data[6] + rhs.data[6], self.data[7] + rhs.data[7], self.data[8] + rhs.data[8],
+            ]
+        }
+    }
+}
+
+impl Sub<CosMatrix> for CosMatrix {
+    type Output = CosMatrix;
+
+    fn sub(self, rhs: CosMatrix) -> Self::Output {
+        CosMatrix {
+            data: [
+                self.data[0] - rhs.data[0], self.data[1] - rhs.data[1], self.data[2] - rhs.data[2],
+                self.data[3] - rhs.data[3], self.data[4] - rhs.data[4], self.data[5] - rhs.data[5],
+                self.data[6] - rhs.data[6], self.data[7] - rhs.data[7], self.data[8] - rhs.data[8],
             ]
         }
     }
@@ -534,6 +561,20 @@ mod tests {
         assert_relative_eq!(m_div.data[6], 10.0/7.0);
         assert_relative_eq!(m_div.data[7], 1.25);
         assert_relative_eq!(m_div.data[8], 10.0/9.0);
+    }
+
+    #[test]
+    fn test_cos_matrix_ops_matrix() {
+        let m1 = CosMatrix::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]);
+        let m2 = CosMatrix::new([[9.0, 8.0, 7.0], [6.0, 5.0, 4.0], [3.0, 2.0, 1.0]]);
+        
+        // Test Add
+        let m_add = m1 + m2;
+        assert_eq!(m_add.data, [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]);
+        
+        // Test Sub
+        let m_sub = m1 - m2;
+        assert_eq!(m_sub.data, [-8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0, 6.0, 8.0]);
     }
 
     #[test]

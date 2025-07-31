@@ -2,9 +2,11 @@ use super::*;
 use crate::physics::basic::{Angular, Coef, PhysicalQuantity, Vector3};
 use crate::spatial_geometry::quaternion::Quaternion;
 use crate::utils::float::sgn2_64;
-use std::ops::Mul;
+use std::ops::{Add, Sub, Mul, Div};
 
-#[derive(Debug, Clone)]
+
+
+#[derive(Debug, Clone,Copy)]
 pub struct CosMatrix {
     data: [f64; 9],
 }
@@ -17,6 +19,105 @@ impl Default for CosMatrix {
     }
 }
 
+impl Add<f64> for CosMatrix {
+    type Output = CosMatrix;
+
+    fn add(self, rhs: f64) -> Self::Output {
+        CosMatrix {
+            data: [
+                self.data[0] + rhs, self.data[1] + rhs, self.data[2] + rhs,
+                self.data[3] + rhs, self.data[4] + rhs, self.data[5] + rhs,
+                self.data[6] + rhs, self.data[7] + rhs, self.data[8] + rhs,
+            ]
+        }
+    }
+}
+
+impl Add<CosMatrix> for f64 {
+    type Output = CosMatrix;
+
+    fn add(self, rhs: CosMatrix) -> Self::Output {
+        rhs + self
+    }
+}
+
+impl Sub<f64> for CosMatrix {
+    type Output = CosMatrix;
+
+    fn sub(self, rhs: f64) -> Self::Output {
+        CosMatrix {
+            data: [
+                self.data[0] - rhs, self.data[1] - rhs, self.data[2] - rhs,
+                self.data[3] - rhs, self.data[4] - rhs, self.data[5] - rhs,
+                self.data[6] - rhs, self.data[7] - rhs, self.data[8] - rhs,
+            ]
+        }
+    }
+}
+
+impl Sub<CosMatrix> for f64 {
+    type Output = CosMatrix;
+
+    fn sub(self, rhs: CosMatrix) -> Self::Output {
+        CosMatrix {
+            data: [
+                self - rhs.data[0], self - rhs.data[1], self - rhs.data[2],
+                self - rhs.data[3], self - rhs.data[4], self - rhs.data[5],
+                self - rhs.data[6], self - rhs.data[7], self - rhs.data[8],
+            ]
+        }
+    }
+}
+
+impl Mul<f64> for CosMatrix {
+    type Output = CosMatrix;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        CosMatrix {
+            data: [
+                self.data[0] * rhs, self.data[1] * rhs, self.data[2] * rhs,
+                self.data[3] * rhs, self.data[4] * rhs, self.data[5] * rhs,
+                self.data[6] * rhs, self.data[7] * rhs, self.data[8] * rhs,
+            ]
+        }
+    }
+}
+
+impl Mul<CosMatrix> for f64 {
+    type Output = CosMatrix;
+
+    fn mul(self, rhs: CosMatrix) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<f64> for CosMatrix {
+    type Output = CosMatrix;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        CosMatrix {
+            data: [
+                self.data[0] / rhs, self.data[1] / rhs, self.data[2] / rhs,
+                self.data[3] / rhs, self.data[4] / rhs, self.data[5] / rhs,
+                self.data[6] / rhs, self.data[7] / rhs, self.data[8] / rhs,
+            ]
+        }
+    }
+}
+
+impl Div<CosMatrix> for f64 {
+    type Output = CosMatrix;
+
+    fn div(self, rhs: CosMatrix) -> Self::Output {
+        CosMatrix {
+            data: [
+                self / rhs.data[0], self / rhs.data[1], self / rhs.data[2],
+                self / rhs.data[3], self / rhs.data[4], self / rhs.data[5],
+                self / rhs.data[6], self / rhs.data[7], self / rhs.data[8],
+            ]
+        }
+    }
+}
 impl CosMatrix {
     //返回单位方向余弦阵
     pub fn unit() -> Self {
@@ -392,6 +493,47 @@ mod tests {
         assert_relative_eq!(tmp_a.x.as_rad(), result.x.as_rad());
         assert_relative_eq!(tmp_a.y.as_rad(), result.y.as_rad());
         assert_relative_eq!(tmp_a.z.as_rad(), result.z.as_rad());
+    }
+
+    #[test]
+    fn test_cos_matrix_ops_f64() {
+        let m = CosMatrix::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]);
+        
+        // Test Add
+        let m_add = m+ 2.0;
+        assert_eq!(m_add.data, [3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]);
+        
+        let m_add = 2.0 + m;
+        assert_eq!(m_add.data, [3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]);
+
+        // Test Sub
+        let m_sub = m - 1.0;
+        assert_eq!(m_sub.data, [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
+        
+        let m_sub = 10.0 - m;
+        assert_eq!(m_sub.data, [9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0]);
+
+        // Test Mul
+        let m_mul = m * 2.0;
+        assert_eq!(m_mul.data, [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0]);
+        
+        let m_mul = 2.0 * m;
+        assert_eq!(m_mul.data, [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0]);
+
+        // Test Div
+        let m_div = m / 2.0;
+        assert_eq!(m_div.data, [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]);
+        
+        let m_div = 10.0 / m;
+        assert_relative_eq!(m_div.data[0], 10.0);
+        assert_relative_eq!(m_div.data[1], 5.0);
+        assert_relative_eq!(m_div.data[2], 10.0/3.0);
+        assert_relative_eq!(m_div.data[3], 2.5);
+        assert_relative_eq!(m_div.data[4], 2.0);
+        assert_relative_eq!(m_div.data[5], 10.0/6.0);
+        assert_relative_eq!(m_div.data[6], 10.0/7.0);
+        assert_relative_eq!(m_div.data[7], 1.25);
+        assert_relative_eq!(m_div.data[8], 10.0/9.0);
     }
 
     #[test]

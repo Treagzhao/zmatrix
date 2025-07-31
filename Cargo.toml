@@ -25,3 +25,7 @@ harness = false
 [[bench]]
 name = "bench_scalar"
 harness = false
+
+[[bench]]
+name = "bench_cos_matrix"
+harness = false

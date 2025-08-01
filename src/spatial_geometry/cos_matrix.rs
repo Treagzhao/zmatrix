@@ -22,6 +22,13 @@ impl Default for CosMatrix {
 impl Add<f64> for CosMatrix {
     type Output = CosMatrix;
     fn add(self, rhs: f64) -> Self::Output {
+       &self + rhs
+    }
+}
+
+impl Add<f64> for &CosMatrix {
+    type Output = CosMatrix;
+    fn add(self, rhs: f64) -> Self::Output {
         CosMatrix {
             data: [
                 self.data[0] + rhs, self.data[1] + rhs, self.data[2] + rhs,
@@ -31,6 +38,8 @@ impl Add<f64> for CosMatrix {
         }
     }
 }
+
+
 
 impl Add<CosMatrix> for f64 {
     type Output = CosMatrix;
@@ -72,6 +81,15 @@ impl Mul<f64> for CosMatrix {
     type Output = CosMatrix;
 
     fn mul(self, rhs: f64) -> Self::Output {
+       &self * rhs
+    }
+}
+
+
+impl Mul<f64> for &CosMatrix {
+    type Output = CosMatrix;
+
+    fn mul(self, rhs: f64) -> Self::Output {
         CosMatrix {
             data: [
                 self.data[0] * rhs, self.data[1] * rhs, self.data[2] * rhs,
@@ -81,7 +99,6 @@ impl Mul<f64> for CosMatrix {
         }
     }
 }
-
 impl Mul<CosMatrix> for f64 {
     type Output = CosMatrix;
 
@@ -132,6 +149,20 @@ impl Add<CosMatrix> for CosMatrix {
     }
 }
 
+impl Add<CosMatrix> for &CosMatrix {
+    type Output = CosMatrix;
+
+    fn add(self, rhs: CosMatrix) -> Self::Output {
+        CosMatrix {
+            data: [
+                self.data[0] + rhs.data[0], self.data[1] + rhs.data[1], self.data[2] + rhs.data[2],
+                self.data[3] + rhs.data[3], self.data[4] + rhs.data[4], self.data[5] + rhs.data[5],
+                self.data[6] + rhs.data[6], self.data[7] + rhs.data[7], self.data[8] + rhs.data[8],
+            ]
+        }
+    }
+}
+
 impl Sub<CosMatrix> for CosMatrix {
     type Output = CosMatrix;
 
@@ -145,6 +176,55 @@ impl Sub<CosMatrix> for CosMatrix {
         }
     }
 }
+
+impl Sub<CosMatrix> for &CosMatrix {
+    type Output = CosMatrix;
+
+    fn sub(self, rhs: CosMatrix) -> Self::Output {
+        CosMatrix {
+            data: [
+                self.data[0] - rhs.data[0], self.data[1] - rhs.data[1], self.data[2] - rhs.data[2],
+                self.data[3] - rhs.data[3], self.data[4] - rhs.data[4], self.data[5] - rhs.data[5],
+                self.data[6] - rhs.data[6], self.data[7] - rhs.data[7], self.data[8] - rhs.data[8],
+            ]
+        }
+    }
+}
+impl Mul<CosMatrix> for &CosMatrix {
+    type Output = CosMatrix;
+
+    fn mul(self, rhs: CosMatrix) -> Self::Output {
+        let mut data = [0.0; 9];
+        // Row 0
+        data[0] = self.data[0] * rhs.data[0] + self.data[1] * rhs.data[3] + self.data[2] * rhs.data[6];
+        data[1] = self.data[0] * rhs.data[1] + self.data[1] * rhs.data[4] + self.data[2] * rhs.data[7];
+        data[2] = self.data[0] * rhs.data[2] + self.data[1] * rhs.data[5] + self.data[2] * rhs.data[8];
+        // Row 1
+        data[3] = self.data[3] * rhs.data[0] + self.data[4] * rhs.data[3] + self.data[5] * rhs.data[6];
+        data[4] = self.data[3] * rhs.data[1] + self.data[4] * rhs.data[4] + self.data[5] * rhs.data[7];
+        data[5] = self.data[3] * rhs.data[2] + self.data[4] * rhs.data[5] + self.data[5] * rhs.data[8];
+        // Row 2
+        data[6] = self.data[6] * rhs.data[0] + self.data[7] * rhs.data[3] + self.data[8] * rhs.data[6];
+        data[7] = self.data[6] * rhs.data[1] + self.data[7] * rhs.data[4] + self.data[8] * rhs.data[7];
+        data[8] = self.data[6] * rhs.data[2] + self.data[7] * rhs.data[5] + self.data[8] * rhs.data[8];
+        CosMatrix { data }
+    }
+}
+
+impl Div<CosMatrix> for &CosMatrix {
+    type Output = CosMatrix;
+
+    fn div(self, rhs: CosMatrix) -> Self::Output {
+        CosMatrix {
+            data: [
+                self.data[0] / rhs.data[0], self.data[1] / rhs.data[1], self.data[2] / rhs.data[2],
+                self.data[3] / rhs.data[3], self.data[4] / rhs.data[4], self.data[5] / rhs.data[5],
+                self.data[6] / rhs.data[6], self.data[7] / rhs.data[7], self.data[8] / rhs.data[8],
+            ]
+        }
+    }
+}
+
 impl CosMatrix {
     //返回单位方向余弦阵
     pub fn unit() -> Self {
@@ -525,32 +605,32 @@ mod tests {
     #[test]
     fn test_cos_matrix_ops_f64() {
         let m = CosMatrix::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]);
-        
+
         // Test Add
-        let m_add = m+ 2.0;
+        let m_add = &m+ 2.0;
         assert_eq!(m_add.data, [3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]);
-        
+
         let m_add = 2.0 + m;
         assert_eq!(m_add.data, [3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]);
 
         // Test Sub
         let m_sub = m - 1.0;
         assert_eq!(m_sub.data, [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
-        
+
         let m_sub = 10.0 - m;
         assert_eq!(m_sub.data, [9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0]);
 
         // Test Mul
         let m_mul = m * 2.0;
         assert_eq!(m_mul.data, [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0]);
-        
+
         let m_mul = 2.0 * m;
         assert_eq!(m_mul.data, [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0]);
 
         // Test Div
         let m_div = m / 2.0;
         assert_eq!(m_div.data, [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]);
-        
+
         let m_div = 10.0 / m;
         assert_relative_eq!(m_div.data[0], 10.0);
         assert_relative_eq!(m_div.data[1], 5.0);
@@ -567,11 +647,11 @@ mod tests {
     fn test_cos_matrix_ops_matrix() {
         let m1 = CosMatrix::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]);
         let m2 = CosMatrix::new([[9.0, 8.0, 7.0], [6.0, 5.0, 4.0], [3.0, 2.0, 1.0]]);
-        
+
         // Test Add
         let m_add = m1 + m2;
         assert_eq!(m_add.data, [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]);
-        
+
         // Test Sub
         let m_sub = m1 - m2;
         assert_eq!(m_sub.data, [-8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0, 6.0, 8.0]);

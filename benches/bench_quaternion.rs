@@ -73,6 +73,20 @@ fn bench_quaternion_to_cos(c: &mut Criterion) {
 }
 
 
+fn bench_quaternion_normalize(c: &mut Criterion) {
+    let mut group = c.benchmark_group("quaternion_normalize");
+    let mut cases: Vec<Quaternion> = Vec::new();
+    for i in 0..10 {
+        let q1 = create_random_quaternion();
+        cases.push(q1);
+    }
+    for (i,q1) in cases.iter().enumerate() {
+        group.bench_with_input(format!("case_{}", i), &q1, |b, q1| {
+            b.iter(|| q1.normalize() )
+        });
+    }
+}
 
-criterion_group!(benches,bench_quaternion_add,bench_quaternion_multi,bench_quaternion_div,bench_quaternion_to_cos);
+
+criterion_group!(benches,bench_quaternion_add,bench_quaternion_multi,bench_quaternion_div,bench_quaternion_to_cos,bench_quaternion_normalize);
 criterion_main!(benches);

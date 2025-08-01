@@ -154,6 +154,18 @@ impl Add for Quaternion {
     }
 }
 
+impl Add for &Quaternion {
+    type Output = Quaternion;
+    fn add(self, rhs: Self) -> Quaternion {
+        Quaternion {
+            q0: self.q0 + rhs.q0,
+            q1: self.q1 + rhs.q1,
+            q2: self.q2 + rhs.q2,
+            q3: self.q3 + rhs.q3,
+        }
+    }
+}
+
 
 impl Div for Quaternion {
     type Output = Quaternion;
@@ -171,8 +183,36 @@ impl Div for Quaternion {
     }
 }
 
+impl Div for &Quaternion {
+    type Output = Quaternion;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        let q3 =
+            -self.q3 * rhs.q0 - self.q2 * rhs.q1 + self.q1 * rhs.q2 + self.q0 * rhs.q3;
+        let q2 =
+            self.q3 * rhs.q1 - self.q2 * rhs.q0 - self.q1 * rhs.q3 + self.q0 * rhs.q2;
+        let q1 =
+            -self.q3 * rhs.q2 + self.q2 * rhs.q3 - self.q1 * rhs.q0 + self.q0 * rhs.q1;
+        let q0 =
+            self.q3 * rhs.q3 + self.q2 * rhs.q2 + self.q1 * rhs.q1 + self.q0 * rhs.q0;
+        Quaternion::new(q0, q1, q2, q3).normalize()
+    }
+}
+
 impl Mul for Quaternion {
     type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let q0 = (self.q0 * rhs.q0 - self.q1 * rhs.q1 - self.q2 * rhs.q2 - self.q3 * rhs.q3);
+        let q1 = (self.q0 * rhs.q1 + self.q1 * rhs.q0 + self.q2 * rhs.q3 - self.q3 * rhs.q2);
+        let q2 = (self.q0 * rhs.q2 - self.q1 * rhs.q3 + self.q2 * rhs.q0 + self.q3 * rhs.q1);
+        let q3 = (self.q0 * rhs.q3 + self.q1 * rhs.q2 - self.q2 * rhs.q1 + self.q3 * rhs.q0);
+        Quaternion::new(q0, q1, q2, q3)
+    }
+}
+
+impl Mul for &Quaternion {
+    type Output = Quaternion;
 
     fn mul(self, rhs: Self) -> Self::Output {
         let q0 = (self.q0 * rhs.q0 - self.q1 * rhs.q1 - self.q2 * rhs.q2 - self.q3 * rhs.q3);
@@ -308,6 +348,14 @@ mod tests {
         assert_relative_eq!(q3.q1, 16.1913);
         assert_relative_eq!(q3.q2,  35.5701);
         assert_relative_eq!(q3.q3, 33.3057);
+
+        let q1_1 = &q1.clone();
+        let q2_2 = &q2.clone();
+        let q3 = q1_1 * q2_2;
+        assert_relative_eq!(q3.q0,-206.6322);
+        assert_relative_eq!(q3.q1, 16.1913);
+        assert_relative_eq!(q3.q2,  35.5701);
+        assert_relative_eq!(q3.q3, 33.3057);
     }
 
     #[test]
@@ -323,6 +371,14 @@ mod tests {
         let q1 = Quaternion::new(1.0, 2.0, 3.0, 4.0);
         let q2 = Quaternion::new(1.0, 2.0, 3.0, 4.0);
         let q3 = q1 / q2;
+        assert_relative_eq!(q3.q0,1.0);
+        assert_relative_eq!(q3.q1,0.0);
+        assert_relative_eq!(q3.q2,0.0);
+        assert_relative_eq!(q3.q3,0.0);
+
+        let q1_1 = &q1.clone();
+        let q2_2 = &q2.clone();
+        let q3 = q1_1 / q2_2;
         assert_relative_eq!(q3.q0,1.0);
         assert_relative_eq!(q3.q1,0.0);
         assert_relative_eq!(q3.q2,0.0);
@@ -397,5 +453,23 @@ mod tests {
         assert_relative_eq!(q3.q1,8.0);
         assert_relative_eq!(q3.q2,10.0);
         assert_relative_eq!(q3.q3,12.0);
+
+        let q1_1 = &q1.clone();
+        let q2_1 = &q2.clone();
+        let q3_1 = q1_1 + q2_1;
+        assert_relative_eq!(q3_1.q0,6.0);
+        assert_relative_eq!(q3_1.q1,8.0);
+        assert_relative_eq!(q3_1.q2,10.0);
+        assert_relative_eq!(q3_1.q3,12.0);
+    }
+
+    #[test]
+    fn test_get_value(){
+        let q = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+        let (q0, q1, q2, q3) = q.get_value();
+        assert_relative_eq!(q0,1.0);
+        assert_relative_eq!(q1,2.0);
+        assert_relative_eq!(q2,3.0);
+        assert_relative_eq!(q3,4.0);
     }
 }

@@ -49,34 +49,34 @@ where
         }
         Ok(Matrix::new(new_data))
     }
-
-    pub fn hstack<const RHS_COLS: usize>(&self, rhs: &Matrix<ROWS, RHS_COLS, T>) -> Result<Matrix<ROWS, {COLS + RHS_COLS}, T>, OperationError> {
-        let mut data = [[T::default(); COLS + RHS_COLS]; ROWS];
-        for row in 0..ROWS {
-            for col in 0..COLS {
-                data[row][col] = self.data[row][col];
-            }
-            for col in 0..RHS_COLS {
-                data[row][COLS + col] = rhs.data[row][col];
-            }
-        }
-        Ok(Matrix::new(data))
-    }
-
-    pub fn vstack<const RHS_ROWS: usize>(&self, rhs: &Matrix<RHS_ROWS, COLS, T>) -> Result<Matrix<{ROWS + RHS_ROWS}, COLS, T>, OperationError> {
-        let mut data: [[T; COLS]; ROWS + RHS_ROWS] = vec![vec![T::default(); COLS].try_into().unwrap(); ROWS + RHS_ROWS].try_into().unwrap();
-        for row in 0..ROWS {
-            for col in 0..COLS {
-                data[row][col] = self.data[row][col];
-            }
-        }
-        for row in 0..RHS_ROWS {
-            for col in 0..COLS {
-                data[ROWS + row][col] = rhs.data[row][col];
-            }
-        }
-        Ok(Matrix::new(data))
-    }
+    //
+    // pub fn hstack<const RHS_COLS: usize>(&self, rhs: &Matrix<ROWS, RHS_COLS, T>) -> Result<Matrix<ROWS, {COLS + RHS_COLS}, T>, OperationError> {
+    //     let mut data = [[T::default(); COLS + RHS_COLS]; ROWS];
+    //     for row in 0..ROWS {
+    //         for col in 0..COLS {
+    //             data[row][col] = self.data[row][col];
+    //         }
+    //         for col in 0..RHS_COLS {
+    //             data[row][COLS + col] = rhs.data[row][col];
+    //         }
+    //     }
+    //     Ok(Matrix::new(data))
+    // }
+    //
+    // pub fn vstack<const RHS_ROWS: usize>(&self, rhs: &Matrix<RHS_ROWS, COLS, T>) -> Result<Matrix<{ROWS + RHS_ROWS}, COLS, T>, OperationError> {
+    //     let mut data: [[T; COLS]; ROWS + RHS_ROWS] = vec![vec![T::default(); COLS].try_into().unwrap(); ROWS + RHS_ROWS].try_into().unwrap();
+    //     for row in 0..ROWS {
+    //         for col in 0..COLS {
+    //             data[row][col] = self.data[row][col];
+    //         }
+    //     }
+    //     for row in 0..RHS_ROWS {
+    //         for col in 0..COLS {
+    //             data[ROWS + row][col] = rhs.data[row][col];
+    //         }
+    //     }
+    //     Ok(Matrix::new(data))
+    // }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
@@ -138,23 +138,23 @@ mod tests {
         assert_eq!(m1.data, [[1, 2], [3, 4], [5, 6]]);
     }
 
-    #[test]
-    fn test_hstack() {
-        let m = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
-        let m1 = Matrix::<2, 4, i32>::new([[1, 2, 3, 4], [5, 6, 7, 8]]);
-        let mr = m.hstack(&m1).unwrap();
-        assert_eq!(mr.size(), (2, 7));
-        assert_eq!(mr.data, [[1, 2, 3, 1, 2, 3, 4], [4, 5, 6, 5, 6, 7, 8]]);
-    }
-
-    #[test]
-    fn test_vstack() {
-        let m = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
-        let m1 = Matrix::<3, 3, i32>::new([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
-        let mr = m.vstack(&m1).unwrap();
-        assert_eq!(mr.size(), (5, 3));
-        assert_eq!(mr.data, [[1, 2, 3], [4, 5, 6], [1, 2, 3], [4, 5, 6], [7, 8, 9]]);
-    }
+    // #[test]
+    // fn test_hstack() {
+    //     let m = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
+    //     let m1 = Matrix::<2, 4, i32>::new([[1, 2, 3, 4], [5, 6, 7, 8]]);
+    //     let mr = m.hstack(&m1).unwrap();
+    //     assert_eq!(mr.size(), (2, 7));
+    //     assert_eq!(mr.data, [[1, 2, 3, 1, 2, 3, 4], [4, 5, 6, 5, 6, 7, 8]]);
+    // }
+    //
+    // #[test]
+    // fn test_vstack() {
+    //     let m = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
+    //     let m1 = Matrix::<3, 3, i32>::new([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+    //     let mr = m.vstack(&m1).unwrap();
+    //     assert_eq!(mr.size(), (5, 3));
+    //     assert_eq!(mr.data, [[1, 2, 3], [4, 5, 6], [1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+    // }
 
     #[test]
     fn test_sum_vertical_basic() {

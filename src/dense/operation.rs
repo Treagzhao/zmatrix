@@ -307,7 +307,7 @@ mod test {
         let m1 = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
         let m2 = Matrix::<2, 3, i32>::new([[12, 22, 33], [44, 51, 56]]);
         let m3 = m1 + m2;
-        assert_eq!([[13, 24, 36], [48, 56, 62]], m3.data);
+        assert_eq!(m3.data, [[13, 24, 36], [48, 56, 62]]);
     }
 
     #[test]
@@ -315,7 +315,7 @@ mod test {
         let m1 = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
         let m2 = Matrix::<2, 3, i32>::new([[12, 22, 33], [44, 51, 56]]);
         let m3 = m2 - m1;
-        assert_eq!([[11, 20, 30], [40, 46, 50]], m3.data);
+        assert_eq!(m3.data,[[11, 20, 30], [40, 46, 50]]);
     }
 
     #[test]
@@ -323,7 +323,7 @@ mod test {
         let m1 = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
         let m2 = Matrix::<2, 3, i32>::new([[2, 3, 4], [5, 6, 7]]);
         let m3 = m1 * m2;
-        assert_eq!([[2, 6, 12], [20, 30, 42]], m3.data);
+        assert_eq!(m3.data, [[2, 6, 12], [20, 30, 42]]);
     }
 
     #[test]
@@ -341,7 +341,7 @@ mod test {
         let m2 = -m1;
         assert_eq!(2, m2.height());
         assert_eq!(3, m2.width());
-        assert_eq!([[-1, -2, -3], [-4, -5, -6]], m2.data);
+        assert_eq!(m2.data, [[-1, -2, -3], [-4, -5, -6]]);
     }
 
     #[test]
@@ -357,14 +357,6 @@ mod test {
         assert_relative_eq!(result.data[1][1], 3.0f64.exp(), epsilon = 1e-10);
     }
 
-    #[test]
-    fn test_div_zero() {
-        // Test division by zero
-        let m = Matrix::<1, 2, f64>::new([[1.0, 2.0]]);
-        let result = m / 0.0;
-        assert!(result.data[0][0].is_infinite());
-        assert!(result.data[0][1].is_infinite());
-    }
 
     #[test]
     fn test_scalar_sub_matrix() {
@@ -516,27 +508,15 @@ mod test {
         assert!(result.data[0][1].is_infinite());
     }
 
-    #[test]
-    fn test_scalar_sub_matrix() {
-        // Test scalar minus matrix
-        let m = Matrix::<2, 2, i32>::new([[1, 2], [3, 4]]);
-        let result = Scalar::new(10) - m;
-        assert_eq!(result.data, [[9, 8], [7, 6]]);
 
-        // Test with floating point
-        let m = Matrix::<1, 3, f64>::new([[1.5, 2.5, 3.5]]);
-        let result = Scalar::new(10.0) - m;
-        assert_relative_eq!(result.data[0][0], 8.5, epsilon = 1e-10);
-        assert_relative_eq!(result.data[0][1], 7.5, epsilon = 1e-10);
-        assert_relative_eq!(result.data[0][2], 6.5, epsilon = 1e-10);
-    }
 
     #[test]
     fn test_edge_cases() {
         // Test empty matrix
         let m = Matrix::<0, 0, i32>::new([]);
         let result = m + 10;
-        assert_eq!(result.data, []);
+        let expected: [i32; 0] = [];
+        assert_eq!(result.data.len(), 0);
 
         // Test single element matrix
         let m = Matrix::<1, 1, i32>::new([[5]]);
@@ -550,7 +530,7 @@ mod test {
         let m1 = m.scale(2);
         assert_eq!(2, m1.height());
         assert_eq!(3, m1.width());
-        assert_eq!([[2, 4, 6], [8, 10, 12]], m1.data);
+        assert_eq!(m1.data, [[2, 4, 6], [8, 10, 12]]);
     }
 
     #[test]
@@ -573,7 +553,7 @@ mod test {
         let m1 = Scalar::new(2) / m;
         assert_eq!(2, m1.height());
         assert_eq!(3, m1.width());
-        assert_eq!([[2, 1, 0], [0, 0, 0]], m1.data);
+        assert_eq!(m1.data, [[2, 1, 0], [0, 0, 0]]);
 
         let m = Matrix::<2, 3, f64>::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
         let m1 = Scalar::new(2.0) / m;
@@ -608,9 +588,9 @@ mod test {
 
         assert_eq!(result.height(), 1);
         assert_eq!(result.width(), 3);
-        assert_relative_eq!(result.data[0], 0.5f64.ln(), epsilon = 1e-10);
-        assert_relative_eq!(result.data[1], 0.25f64.ln(), epsilon = 1e-10);
-        assert_relative_eq!(result.data[2], 0.125f64.ln(), epsilon = 1e-10);
+        assert_relative_eq!(result.data[0][0], 0.5f64.ln(), epsilon = 1e-10);
+        assert_relative_eq!(result.data[0][1], 0.25f64.ln(), epsilon = 1e-10);
+        assert_relative_eq!(result.data[0][2], 0.125f64.ln(), epsilon = 1e-10);
     }
 
     #[test]
@@ -648,7 +628,7 @@ mod test {
 
         assert_eq!(result.height(), 1);
         assert_eq!(result.width(), 1);
-        assert_relative_eq!(result.data[0], 1.0, epsilon = 1e-10); // ln(e) = 1
+        assert_relative_eq!(result.data[0][0], 1.0, epsilon = 1e-10); // ln(e) = 1
     }
 
     #[test]

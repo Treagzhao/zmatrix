@@ -48,13 +48,13 @@ impl<T: PhysicalQuantity + Default> Vector3<T> {
     }
     // 3*3 的反对称矩阵
     pub fn skew_symmetric_matrix(&self) -> Matrix<f64> {
-        let p_out_ma: [[f64; 3]; 3] =
-            [
-                [0.0, -self.z.default_unit_value(), self.y.default_unit_value()],
-                [self.z.default_unit_value(), 0.0, -self.x.default_unit_value()],
-                [-self.y.default_unit_value(), self.x.default_unit_value(), 0.0],
+        let p_out_ma:Vec<f64> =
+            vec![
+                0.0, -self.z.default_unit_value(), self.y.default_unit_value(),
+                self.z.default_unit_value(), 0.0, -self.x.default_unit_value(),
+                -self.y.default_unit_value(), self.x.default_unit_value(), 0.0,
             ];
-        let m = Matrix::new(3, 3, p_out_ma.concat()).unwrap();
+        let m = Matrix::new(3, 3, p_out_ma).unwrap();
         m
     }
 

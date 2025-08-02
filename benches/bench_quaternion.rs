@@ -88,5 +88,5 @@ fn bench_quaternion_normalize(c: &mut Criterion) {
 }
 
 
-criterion_group!(benches,bench_quaternion_add,bench_quaternion_multi,bench_quaternion_div,bench_quaternion_to_cos,bench_quaternion_normalize);
+criterion_group!(benches,bench_quaternion_normalize,bench_quaternion_add,bench_quaternion_multi,bench_quaternion_div,bench_quaternion_to_cos,bench_quaternion_normalize);
 criterion_main!(benches);

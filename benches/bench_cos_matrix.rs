@@ -119,5 +119,5 @@ fn bench_cos_matrix_multi_f64(c: &mut Criterion) {
 
 
 
-criterion_group!(benches,bench_cos_matrix_product_vector, bench_cos_matrix_product,bench_cos_matrix_add,bench_cos_matrix_transfer);
+criterion_group!(benches,bench_cos_matrix_product_vector, bench_cos_matrix_product,bench_cos_matrix_add,bench_cos_matrix_transfer,bench_cos_matrix_multi_f64);
 criterion_main!(benches);

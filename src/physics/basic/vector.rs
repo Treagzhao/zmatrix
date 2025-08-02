@@ -38,8 +38,8 @@ impl<T: PhysicalQuantity + Default> Vector3<T> {
     pub fn from_col_matrix(m: &Matrix<3, 1, f64>) -> Self {
         let mut result = Self::default();
         result.x.set_value(m.get(0, 0).unwrap());
-        result.y.set_value(m.get(1, 0).unwrap());
-        result.z.set_value(m.get(2, 0).unwrap());
+        result.y.set_value(m.get(0, 1).unwrap());
+        result.z.set_value(m.get(0, 2).unwrap());
         result
     }
     // 3*3 的反对称矩阵

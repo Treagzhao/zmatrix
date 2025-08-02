@@ -618,8 +618,8 @@ mod test {
 
         assert_eq!(result.height(), 3);
         assert_eq!(result.width(), 4);
-        assert_eq!(result.data.len(), 12);
     }
+
 
     #[test]
     fn test_log_single_element_matrix() {
@@ -652,12 +652,12 @@ mod test {
         let result = matrix.ln();
 
         assert_relative_eq!(
-            result.data[0],
+            result.data[0][0],
             50.0 * std::f64::consts::LN_10,
             epsilon = 1e-10
         );
         assert_relative_eq!(
-            result.data[1],
+            result.data[0][1],
             100.0 * std::f64::consts::LN_10,
             epsilon = 1e-10
         );
@@ -669,12 +669,12 @@ mod test {
         let result = matrix.ln();
 
         assert_relative_eq!(
-            result.data[0],
+            result.data[0][0],
             -50.0 * std::f64::consts::LN_10,
             epsilon = 1e-10
         );
         assert_relative_eq!(
-            result.data[1],
+            result.data[0][1],
             -100.0 * std::f64::consts::LN_10,
             epsilon = 1e-10
         );
@@ -686,8 +686,8 @@ mod test {
         let result = matrix.ln();
 
         // Test values very close to 1.0
-        assert_relative_eq!(result.data[0], (1.0 - 1e-10f64).ln(), epsilon = 1e-6); // More tolerant epsilon
-        assert_relative_eq!(result.data[1], (1.0 + 1e-10f64).ln(), epsilon = 1e-6);
+        assert_relative_eq!(result.data[0][0], (1.0 - 1e-10f64).ln(), epsilon = 1e-6); // More tolerant epsilon
+        assert_relative_eq!(result.data[0][1], (1.0 + 1e-10f64).ln(), epsilon = 1e-6);
     }
 
     #[test]
@@ -819,10 +819,10 @@ mod test {
         let result = matrix.clamp(2.0, 4.0);
         assert_eq!(result.height(), 2);
         assert_eq!(result.width(), 2);
-        assert_relative_eq!(result.data[0], 2.0, epsilon = 1e-10); // 1.0 clamped to 2.0
-        assert_relative_eq!(result.data[1], 2.5, epsilon = 1e-10); // unchanged
-        assert_relative_eq!(result.data[2], 3.0, epsilon = 1e-10); // unchanged
-        assert_relative_eq!(result.data[3], 4.0, epsilon = 1e-10); // 4.5 clamped to 4.0
+        assert_relative_eq!(result.data[0][0], 2.0, epsilon = 1e-10); // 1.0 clamped to 2.0
+        assert_relative_eq!(result.data[0][1], 2.5, epsilon = 1e-10); // unchanged
+        assert_relative_eq!(result.data[1][0], 3.0, epsilon = 1e-10); // unchanged
+        assert_relative_eq!(result.data[1][1], 4.0, epsilon = 1e-10); // 4.5 clamped to 4.0
     }
 
     #[test]
@@ -830,10 +830,10 @@ mod test {
         // Test all values below minimum
         let matrix = Matrix::<1, 3, f64>::new([[0.5, 1.0, 1.5]]);
         let result = matrix.clamp(2.0, 4.0);
-        assert_eq!(result.data.len(), 3);
-        assert_relative_eq!(result.data[0], 2.0, epsilon = 1e-10);
-        assert_relative_eq!(result.data[1], 2.0, epsilon = 1e-10);
-        assert_relative_eq!(result.data[2], 2.0, epsilon = 1e-10);
+        assert_eq!(result.size(), (1, 3));
+        assert_relative_eq!(result.data[0][0], 2.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[0][1], 2.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[0][2], 2.0, epsilon = 1e-10);
     }
 
     #[test]
@@ -841,10 +841,10 @@ mod test {
         // Test all values above maximum
         let matrix = Matrix::<1, 3, f64>::new([[5.0, 6.0, 7.0]]);
         let result = matrix.clamp(2.0, 4.0);
-        assert_eq!(result.data.len(), 3);
-        assert_relative_eq!(result.data[0], 4.0, epsilon = 1e-10);
-        assert_relative_eq!(result.data[1], 4.0, epsilon = 1e-10);
-        assert_relative_eq!(result.data[2], 4.0, epsilon = 1e-10);
+        assert_eq!(result.size(), (1, 3));
+        assert_relative_eq!(result.data[0][0], 4.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[0][1], 4.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[0][2], 4.0, epsilon = 1e-10);
     }
 
     #[test]
@@ -852,12 +852,15 @@ mod test {
         // Test with min == max
         let matrix = Matrix::<2, 2, f64>::new([[1.0, 2.0], [3.0, 4.0]]);
         let result = matrix.clamp(3.0, 3.0);
-        assert_eq!(result.data.len(), 4);
-        assert_relative_eq!(result.data[0], 3.0, epsilon = 1e-10); // clamped
-        assert_relative_eq!(result.data[1], 3.0, epsilon = 1e-10); // clamped
-        assert_relative_eq!(result.data[2], 3.0, epsilon = 1e-10); // unchanged
-        assert_relative_eq!(result.data[3], 3.0, epsilon = 1e-10); // clamped
+        assert_eq!(result.data.len(), 2);
+        assert_relative_eq!(result.data[0][0], 3.0, epsilon = 1e-10); // clamped
+        assert_relative_eq!(result.data[0][1], 3.0, epsilon = 1e-10); // clamped
+        assert_relative_eq!(result.data[1][0], 3.0, epsilon = 1e-10); // unchanged
+        assert_relative_eq!(result.data[1][1], 3.0, epsilon = 1e-10); // clamped
     }
+
+
+
 
     #[test]
     #[should_panic]
@@ -873,19 +876,20 @@ mod test {
         let matrix =
             Matrix::<1, 4, f64>::new([[f64::MIN, f64::MAX, f64::NEG_INFINITY, f64::INFINITY]]);
         let result = matrix.clamp(-1e100, 1e100);
-        assert_eq!(result.data.len(), 4);
-        assert_relative_eq!(result.data[0], -1e100, epsilon = 1e10); // MIN clamped to -1e100
-        assert_relative_eq!(result.data[1], 1e100, epsilon = 1e10); // MAX clamped to 1e100
-        assert_relative_eq!(result.data[2], -1e100, epsilon = 1e10); // -INF clamped
-        assert_relative_eq!(result.data[3], 1e100, epsilon = 1e10); // INF clamped
+        assert_eq!(result.data[0].len(), 4);
+        assert_relative_eq!(result.data[0][0], -1e100, epsilon = 1e10); // MIN clamped to -1e100
+        assert_relative_eq!(result.data[0][1], 1e100, epsilon = 1e10); // MAX clamped to 1e100
+        assert_relative_eq!(result.data[0][2], -1e100, epsilon = 1e10); // -INF clamped
+        assert_relative_eq!(result.data[0][3], 1e100, epsilon = 1e10); // INF clamped
     }
+
 
     #[test]
     fn test_clamp_with_nan_values() {
         // Test with NaN values (should propagate NaN)
         let matrix = Matrix::<1, 2, f64>::new([[1.0, f64::NAN]]);
         let result = matrix.clamp(0.0, 2.0);
-        assert_eq!(result.data.len(), 2);
+        assert_eq!(result.size(), (1, 2));
         assert_relative_eq!(result.data[0][0], 1.0, epsilon = 1e-10);
         assert!(result.data[0][1].is_nan());
     }
@@ -907,7 +911,7 @@ mod test {
         let result = matrix.clamp(-1.0, 1.0);
         assert_eq!(result.height(), 3);
         assert_eq!(result.width(), 5);
-        assert_eq!(result.data.len(), 15);
+        assert_eq!(result.size(), (3,5)); // Changed from 15 to 1 since we have 1 row
     }
 
     #[test]
@@ -915,12 +919,13 @@ mod test {
         // Test with integer matrix (should convert to f64)
         let matrix = Matrix::<1, 4, i32>::new([[0, 1, 2, 3]]);
         let result = matrix.clamp(1, 2);
-        assert_eq!(result.data.len(), 4);
-        assert_relative_eq!(result.data[0], 1.0, epsilon = 1e-10);
-        assert_relative_eq!(result.data[1], 1.0, epsilon = 1e-10);
-        assert_relative_eq!(result.data[2], 2.0, epsilon = 1e-10);
-        assert_relative_eq!(result.data[3], 2.0, epsilon = 1e-10);
+        assert_eq!(result.data.len(), 1); // Changed from 4 to 1 since we have 1 row
+        assert_relative_eq!(result.data[0][0], 1.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[0][1], 1.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[0][2], 2.0, epsilon = 1e-10);
+        assert_relative_eq!(result.data[0][3], 2.0, epsilon = 1e-10);
     }
+
 
     #[test]
     fn test_mean_basic_values() {

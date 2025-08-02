@@ -30,19 +30,19 @@ where
         width: usize,
         vec: Vec<T>,
     ) -> Result<Matrix<T>, error::OperationError> {
-        if height * width != vec.len().try_into().unwrap() {
+        if height * width != vec.len() {
             return Result::Err(error::OperationError {
                 message: format!("vec length {} does not match height {} & width {}", vec.len(), height, width),
             });
         }
         let mut digits: u8 = 0;
-        for value in vec.iter() {
-            let f = *value;
-            let d = f.to_string().len() as u8;
-            if d > digits {
-                digits = d
-            }
-        }
+        // for value in vec.iter() {
+        //     let f = *value;
+        //     let d = f.to_string().len() as u8;
+        //     if d > digits {
+        //         digits = d
+        //     }
+        // }
         Result::Ok(Matrix {
             height,
             width,

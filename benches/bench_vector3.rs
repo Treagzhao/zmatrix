@@ -70,5 +70,5 @@ fn bench_vector_skew_4x4(c: &mut criterion::Criterion) {
     }
 }
 
-criterion_group!(benches, bench_vector_cross,bench_vector_cross_unit,bench_vector_dot,bench_vector_skew,bench_vector_skew_4x4);
+criterion_group!(benches,bench_vector_skew,bench_vector_skew_4x4);
 criterion_main!(benches);

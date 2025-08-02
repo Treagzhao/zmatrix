@@ -32,10 +32,20 @@ where
     T: Display + Copy + Send + Sync,
 {
     fn display(&self) -> String {
+        let mut digits: u8 = 0;
+        for value in self.data.iter() {
+            let list = *value;
+            for f in list.iter() {
+                let d = f.to_string().len() as u8;
+                if d > digits {
+                    digits = d
+                }
+            }
+        }
         if ROWS == 0 || COLS == 0 {
             return "┌┐\n└┘\n".to_string();
         } else if ROWS == 1 {
-            let line = util::print_single_line(&self.data, self.digits);
+            let line = util::print_single_line(&self.data, digits);
             return line;
         }
         let mut result = String::new();
@@ -47,7 +57,7 @@ where
             let end = (row + 1) * COLS;
             for i in start..end {
                 let value = self.data[row][i - start];
-                let str = format!("{:<digit$}", value, digit = (self.digits + 2) as usize);
+                let str = format!("{:<digit$}", value, digit = (digits + 2) as usize);
                 line.push_str(&str);
             }
             line.push_str(&end_char);

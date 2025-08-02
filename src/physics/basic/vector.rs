@@ -35,53 +35,33 @@ impl<T: PhysicalQuantity + Default> Vector3<T> {
         v
     }
 
-    pub fn from_col_matrix(m: &Matrix<f64>) -> Self {
-        let (height, width) = m.size();
-        if !(height == 3 && width == 1) {
-            panic!("matrix should be a 3*1 matrix");
-        }
+    pub fn from_col_matrix(m: &Matrix<3, 1, f64>) -> Self {
         let mut result = Self::default();
         result.x.set_value(m.get(0, 0).unwrap());
-        result.y.set_value(m.get(0, 1).unwrap());
-        result.z.set_value(m.get(0, 2).unwrap());
+        result.y.set_value(m.get(1, 0).unwrap());
+        result.z.set_value(m.get(2, 0).unwrap());
         result
     }
     // 3*3 的反对称矩阵
-    pub fn skew_symmetric_matrix(&self) -> Matrix<f64> {
-        let p_out_ma:Vec<f64> =
-            vec![
-                0.0, -self.z.default_unit_value(), self.y.default_unit_value(),
-                self.z.default_unit_value(), 0.0, -self.x.default_unit_value(),
-                -self.y.default_unit_value(), self.x.default_unit_value(), 0.0,
-            ];
-        let m = Matrix::new(3, 3, p_out_ma).unwrap();
-        m
+    pub fn skew_symmetric_matrix(&self) -> Matrix<3, 3, f64> {
+        let data = [
+            0.0, -self.z.default_unit_value(), self.y.default_unit_value(),
+            self.z.default_unit_value(), 0.0, -self.x.default_unit_value(),
+            -self.y.default_unit_value(), self.x.default_unit_value(), 0.0,
+        ];
+        Matrix::new(data)
     }
 
     //获取4*4的反对称矩阵
-    pub fn skew_symmetric_matrix_4(&self) -> Matrix<f64> {
-        let mut p_out_ma: [[f64; 4]; 4] = [[0.0; 4]; 4];
+    pub fn skew_symmetric_matrix_4(&self) -> Matrix<4, 4, f64> {
         let pw = self.to_array();
-        p_out_ma[0][0] = 0.0;
-        p_out_ma[0][1] = pw[2];
-        p_out_ma[0][2] = -pw[1];
-        p_out_ma[0][3] = pw[0];
-
-        p_out_ma[1][0] = -pw[2];
-        p_out_ma[1][1] = 0.0;
-        p_out_ma[1][2] = pw[0];
-        p_out_ma[1][3] = pw[1];
-
-        p_out_ma[2][0] = pw[1];
-        p_out_ma[2][1] = -pw[0];
-        p_out_ma[2][2] = 0.0;
-        p_out_ma[2][3] = pw[2];
-
-        p_out_ma[3][0] = -pw[0];
-        p_out_ma[3][1] = -pw[1];
-        p_out_ma[3][2] = -pw[2];
-        p_out_ma[3][3] = 0.0;
-        Matrix::new(4, 4, p_out_ma.concat()).unwrap()
+        let data = [
+            0.0, pw[2], -pw[1], pw[0],
+            -pw[2], 0.0, pw[0], pw[1],
+            pw[1], -pw[0], 0.0, pw[2],
+            -pw[0], -pw[1], -pw[2], 0.0
+        ];
+        Matrix::new(data)
     }
     // 通过两个向量叉乘返回与平面垂直的单位向量
     pub fn cross_unit(&self, rhs: &Vector3<T>) -> Vector3<T> {
@@ -115,8 +95,8 @@ impl<T: PhysicalQuantity + Default> Vector3<T> {
 
 
 impl<T: PhysicalQuantity + Default> Vector3<T> {
-    pub fn to_col_matrix(&self) -> Matrix<f64> {
-        Matrix::new(3, 1, vec![self.x.default_unit_value(), self.y.default_unit_value(), self.z.default_unit_value()]).unwrap()
+    pub fn to_col_matrix(&self) -> Matrix<3,1,f64> {
+        Matrix::new([self.x.default_unit_value(), self.y.default_unit_value(), self.z.default_unit_value()])
     }
 
     pub fn norm(&self) -> T {
@@ -373,17 +353,7 @@ mod tests {
 
     #[test]
     fn test_from_col_matrix() {
-        let m = Matrix::new(3, 1, vec![1.0, 2.0, 3.0]).unwrap();
-        let result: Vector3<Coef> = Vector3::from_col_matrix(&m);
-        assert_relative_eq!(result.x.get_value(), 1.0, epsilon = 1e-6);
-        assert_relative_eq!(result.y.get_value(), 2.0, epsilon = 1e-6);
-        assert_relative_eq!(result.z.get_value(), 3.0, epsilon = 1e-6);
-    }
-
-    #[test]
-    #[should_panic(expected = "matrix should be a 3*1 matrix")]
-    fn test_from_col_matrix_panic() {
-        let m = Matrix::new(1, 3, vec![1.0, 2.0, 3.0]).unwrap();
+        let m = Matrix::<3, 1, f64>::new([1.0, 2.0, 3.0]);
         let result: Vector3<Coef> = Vector3::from_col_matrix(&m);
         assert_relative_eq!(result.x.get_value(), 1.0, epsilon = 1e-6);
         assert_relative_eq!(result.y.get_value(), 2.0, epsilon = 1e-6);

@@ -178,8 +178,36 @@ mod test {
 
     #[test]
     fn test_print_multi_line_matrix() {
-        let m = Matrix::<2, 2, i32>::new([[1, 2], [3, 4]]);
-        assert_eq!(format!("{}", m), "┌1   2   ┐\n└3   4   ┘\n");
+        let vec = [[1, 2, 3], [4, 5, 6], [7, 8, 90]];
+        let m = Matrix::<3,3,i32>::new(vec);
+        let result = format!("{}", m);
+        println!("{}", result.clone());
+        assert_eq!("┌1   2   3   ┐\n|4   5   6   |\n└7   8   90  ┘\n", result);
+        let result = format!("{:?}", m);
+        println!("{}", result.clone());
+        assert_eq!("┌1   2   3   ┐\n|4   5   6   |\n└7   8   90  ┘\n", result);
+
+        let vec = [
+            [1.12,
+            2.231,
+            3.1],
+            [4.123123,
+            5.123123,
+            6.43422342323],
+            [7.121,
+            8.1,
+            90.0],
+        ];
+        let m = Matrix::<3,3,f64>::new( vec);
+        let result = format!("{}", m);
+        println!("{}", result.clone());
+        assert_eq!(
+            r#"┌1.12           2.231          3.1            ┐
+|4.123123       5.123123       6.43422342323  |
+└7.121          8.1            90             ┘
+"#,
+            result
+        );
     }
 
     #[test]

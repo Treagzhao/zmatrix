@@ -139,20 +139,14 @@ impl Add<CosMatrix> for CosMatrix {
     type Output = CosMatrix;
 
     fn add(self, rhs: CosMatrix) -> Self::Output {
-        CosMatrix {
-            data: [
-                self.data[0] + rhs.data[0], self.data[1] + rhs.data[1], self.data[2] + rhs.data[2],
-                self.data[3] + rhs.data[3], self.data[4] + rhs.data[4], self.data[5] + rhs.data[5],
-                self.data[6] + rhs.data[6], self.data[7] + rhs.data[7], self.data[8] + rhs.data[8],
-            ]
-        }
+        &self + &rhs
     }
 }
 
-impl Add<CosMatrix> for &CosMatrix {
+impl Add<&CosMatrix> for &CosMatrix {
     type Output = CosMatrix;
 
-    fn add(self, rhs: CosMatrix) -> Self::Output {
+    fn add(self, rhs: &CosMatrix) -> Self::Output {
         CosMatrix {
             data: [
                 self.data[0] + rhs.data[0], self.data[1] + rhs.data[1], self.data[2] + rhs.data[2],
@@ -167,6 +161,14 @@ impl Sub<CosMatrix> for CosMatrix {
     type Output = CosMatrix;
 
     fn sub(self, rhs: CosMatrix) -> Self::Output {
+        &self - &rhs
+    }
+}
+
+impl Sub<&CosMatrix> for &CosMatrix {
+    type Output = CosMatrix;
+
+    fn sub(self, rhs: &CosMatrix) -> Self::Output {
         CosMatrix {
             data: [
                 self.data[0] - rhs.data[0], self.data[1] - rhs.data[1], self.data[2] - rhs.data[2],
@@ -176,40 +178,26 @@ impl Sub<CosMatrix> for CosMatrix {
         }
     }
 }
-
-impl Sub<CosMatrix> for &CosMatrix {
+impl Mul<&CosMatrix> for &CosMatrix {
     type Output = CosMatrix;
 
-    fn sub(self, rhs: CosMatrix) -> Self::Output {
+    fn mul(self, rhs: &CosMatrix) -> Self::Output {
         CosMatrix {
             data: [
-                self.data[0] - rhs.data[0], self.data[1] - rhs.data[1], self.data[2] - rhs.data[2],
-                self.data[3] - rhs.data[3], self.data[4] - rhs.data[4], self.data[5] - rhs.data[5],
-                self.data[6] - rhs.data[6], self.data[7] - rhs.data[7], self.data[8] - rhs.data[8],
+                self.data[0] * rhs.data[0],
+                self.data[1] * rhs.data[1],
+                self.data[2] * rhs.data[2],
+                self.data[3] * rhs.data[3],
+                self.data[4] * rhs.data[4],
+                self.data[5] * rhs.data[5],
+                self.data[6] * rhs.data[6],
+                self.data[7] * rhs.data[7],
+                self.data[8] * rhs.data[8],
             ]
         }
     }
 }
-impl Mul<CosMatrix> for &CosMatrix {
-    type Output = CosMatrix;
 
-    fn mul(self, rhs: CosMatrix) -> Self::Output {
-        let mut data = [0.0; 9];
-        // Row 0
-        data[0] = self.data[0] * rhs.data[0] + self.data[1] * rhs.data[3] + self.data[2] * rhs.data[6];
-        data[1] = self.data[0] * rhs.data[1] + self.data[1] * rhs.data[4] + self.data[2] * rhs.data[7];
-        data[2] = self.data[0] * rhs.data[2] + self.data[1] * rhs.data[5] + self.data[2] * rhs.data[8];
-        // Row 1
-        data[3] = self.data[3] * rhs.data[0] + self.data[4] * rhs.data[3] + self.data[5] * rhs.data[6];
-        data[4] = self.data[3] * rhs.data[1] + self.data[4] * rhs.data[4] + self.data[5] * rhs.data[7];
-        data[5] = self.data[3] * rhs.data[2] + self.data[4] * rhs.data[5] + self.data[5] * rhs.data[8];
-        // Row 2
-        data[6] = self.data[6] * rhs.data[0] + self.data[7] * rhs.data[3] + self.data[8] * rhs.data[6];
-        data[7] = self.data[6] * rhs.data[1] + self.data[7] * rhs.data[4] + self.data[8] * rhs.data[7];
-        data[8] = self.data[6] * rhs.data[2] + self.data[7] * rhs.data[5] + self.data[8] * rhs.data[8];
-        CosMatrix { data }
-    }
-}
 
 impl Div<CosMatrix> for &CosMatrix {
     type Output = CosMatrix;
@@ -655,7 +643,16 @@ mod tests {
         // Test Sub
         let m_sub = m1 - m2;
         assert_eq!(m_sub.data, [-8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0, 6.0, 8.0]);
+
+        // Test Mul
+        let m_mul = &m1 * &m2;
+        assert_eq!(m_mul.data, [9.0, 16.0, 21.0, 24.0, 25.0, 24.0, 21.0, 16.0, 9.0]);
+
+        // Test Div
+        let m_div = &m1 / m2;
+        assert_eq!(m_div.data, [1.0/9.0, 2.0/8.0, 3.0/7.0, 4.0/6.0, 5.0/5.0, 6.0/4.0, 7.0/3.0, 8.0/2.0, 9.0/1.0]);
     }
+
 
     #[test]
     fn test_get_col_vector() {

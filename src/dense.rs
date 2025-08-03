@@ -8,7 +8,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, Mul, Not, Sub};
 use std::sync::{mpsc, Arc};
 use std::thread;
-#[derive(Clone)]
+#[derive(Clone,Copy)]
 pub struct Matrix<const ROWS: usize, const COLS: usize, T>
 where
     T: Copy + Send + Sync + Copy,

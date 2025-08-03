@@ -277,6 +277,16 @@ impl CosMatrix {
         }
     }
 
+    pub fn from_matrix(m: &Matrix<3, 3, f64>) -> Self {
+        let mut data: [f64; 9] = [0.0; 9];
+        for row in 0..3 {
+            for col in 0..3 {
+                data[row * 3 + col] = m.get(col, row).unwrap();
+            }
+        }
+        CosMatrix { data }
+    }
+
     pub fn get_x_vector(&self) -> Vector3<Coef> {
         Vector3::new(
             Coef::new(self.data[0]),
@@ -783,11 +793,7 @@ mod tests {
     #[test]
     fn test_to_matrix_with_random_values() {
         // Test with arbitrary values
-        let test_data = [
-            [1.1, 2.2, 3.3],
-            [4.4, 5.5, 6.6],
-            [7.7, 8.8, 9.9]
-        ];
+        let test_data = [[1.1, 2.2, 3.3], [4.4, 5.5, 6.6], [7.7, 8.8, 9.9]];
         let cos = CosMatrix::new(test_data);
         let matrix = cos.to_matrix();
 
@@ -802,11 +808,7 @@ mod tests {
     #[test]
     fn test_to_matrix_preserves_transpose_relationship() {
         // Test that matrix conversion preserves transpose relationship
-        let test_data = [
-            [0.1, -0.2, 0.3],
-            [-0.4, 0.5, -0.6],
-            [0.7, -0.8, 0.9]
-        ];
+        let test_data = [[0.1, -0.2, 0.3], [-0.4, 0.5, -0.6], [0.7, -0.8, 0.9]];
         let cos = CosMatrix::new(test_data);
         let original_matrix = cos.to_matrix();
         let transposed_matrix = cos.transfer().to_matrix();
@@ -814,7 +816,10 @@ mod tests {
         // Verify original_matrix^T equals transposed_matrix
         for i in 0..3 {
             for j in 0..3 {
-                assert_relative_eq!(original_matrix.get(i, j).unwrap(), transposed_matrix.get(j, i).unwrap());
+                assert_relative_eq!(
+                    original_matrix.get(i, j).unwrap(),
+                    transposed_matrix.get(j, i).unwrap()
+                );
             }
         }
     }
@@ -825,7 +830,7 @@ mod tests {
         let test_data = [
             [f64::MAX, f64::MIN, 0.0],
             [0.0, f64::MAX, f64::MIN],
-            [f64::MIN, 0.0, f64::MAX]
+            [f64::MIN, 0.0, f64::MAX],
         ];
         let cos = CosMatrix::new(test_data);
         let matrix = cos.to_matrix();
@@ -833,7 +838,7 @@ mod tests {
         // Verify all elements match exactly
         for i in 0..3 {
             for j in 0..3 {
-                assert_eq!(matrix.get(j,i).unwrap(), test_data[i][j]);
+                assert_eq!(matrix.get(j, i).unwrap(), test_data[i][j]);
             }
         }
     }
@@ -841,11 +846,7 @@ mod tests {
     #[test]
     fn test_to_matrix_with_nan_values() {
         // Test with NaN values (should propagate NaN)
-        let test_data = [
-            [1.0, f64::NAN, 3.0],
-            [4.0, 5.0, 6.0],
-            [7.0, 8.0, 9.0]
-        ];
+        let test_data = [[1.0, f64::NAN, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]];
         let cos = CosMatrix::new(test_data);
         let matrix = cos.to_matrix();
 
@@ -854,5 +855,20 @@ mod tests {
         assert!(!matrix.get(0, 0).unwrap().is_nan());
     }
 
-
+    #[test]
+    fn test_from_matrix_with_values() {
+        // Test with arbitrary values
+        let test_data = [[1.1, 2.2, 3.3], [4.4, 5.5, 6.6], [7.7, 8.8, 9.9]];
+        let matrix = Matrix::new(test_data);
+        let cos_matrix = CosMatrix::from_matrix(&matrix);
+        // Verify values are correctly transposed and stored
+        for row in 0..3 {
+            for col in 0..3 {
+                assert_relative_eq!(
+                    cos_matrix.data[row * 3 + col],
+                    test_data[row][col]
+                );
+            }
+        }
+    }
 }

@@ -1,12 +1,11 @@
 use super::*;
+use crate::dense::Matrix;
 use crate::physics::basic::{Angular, Coef, PhysicalQuantity, Vector3};
 use crate::spatial_geometry::quaternion::Quaternion;
 use crate::utils::float::sgn2_64;
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Div, Mul, Sub};
 
-
-
-#[derive(Debug, Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct CosMatrix {
     data: [f64; 9],
 }
@@ -22,7 +21,7 @@ impl Default for CosMatrix {
 impl Add<f64> for CosMatrix {
     type Output = CosMatrix;
     fn add(self, rhs: f64) -> Self::Output {
-       &self + rhs
+        &self + rhs
     }
 }
 
@@ -31,15 +30,19 @@ impl Add<f64> for &CosMatrix {
     fn add(self, rhs: f64) -> Self::Output {
         CosMatrix {
             data: [
-                self.data[0] + rhs, self.data[1] + rhs, self.data[2] + rhs,
-                self.data[3] + rhs, self.data[4] + rhs, self.data[5] + rhs,
-                self.data[6] + rhs, self.data[7] + rhs, self.data[8] + rhs,
-            ]
+                self.data[0] + rhs,
+                self.data[1] + rhs,
+                self.data[2] + rhs,
+                self.data[3] + rhs,
+                self.data[4] + rhs,
+                self.data[5] + rhs,
+                self.data[6] + rhs,
+                self.data[7] + rhs,
+                self.data[8] + rhs,
+            ],
         }
     }
 }
-
-
 
 impl Add<CosMatrix> for f64 {
     type Output = CosMatrix;
@@ -55,10 +58,16 @@ impl Sub<f64> for CosMatrix {
     fn sub(self, rhs: f64) -> Self::Output {
         CosMatrix {
             data: [
-                self.data[0] - rhs, self.data[1] - rhs, self.data[2] - rhs,
-                self.data[3] - rhs, self.data[4] - rhs, self.data[5] - rhs,
-                self.data[6] - rhs, self.data[7] - rhs, self.data[8] - rhs,
-            ]
+                self.data[0] - rhs,
+                self.data[1] - rhs,
+                self.data[2] - rhs,
+                self.data[3] - rhs,
+                self.data[4] - rhs,
+                self.data[5] - rhs,
+                self.data[6] - rhs,
+                self.data[7] - rhs,
+                self.data[8] - rhs,
+            ],
         }
     }
 }
@@ -69,10 +78,16 @@ impl Sub<CosMatrix> for f64 {
     fn sub(self, rhs: CosMatrix) -> Self::Output {
         CosMatrix {
             data: [
-                self - rhs.data[0], self - rhs.data[1], self - rhs.data[2],
-                self - rhs.data[3], self - rhs.data[4], self - rhs.data[5],
-                self - rhs.data[6], self - rhs.data[7], self - rhs.data[8],
-            ]
+                self - rhs.data[0],
+                self - rhs.data[1],
+                self - rhs.data[2],
+                self - rhs.data[3],
+                self - rhs.data[4],
+                self - rhs.data[5],
+                self - rhs.data[6],
+                self - rhs.data[7],
+                self - rhs.data[8],
+            ],
         }
     }
 }
@@ -81,10 +96,9 @@ impl Mul<f64> for CosMatrix {
     type Output = CosMatrix;
 
     fn mul(self, rhs: f64) -> Self::Output {
-       &self * rhs
+        &self * rhs
     }
 }
-
 
 impl Mul<f64> for &CosMatrix {
     type Output = CosMatrix;
@@ -92,10 +106,16 @@ impl Mul<f64> for &CosMatrix {
     fn mul(self, rhs: f64) -> Self::Output {
         CosMatrix {
             data: [
-                self.data[0] * rhs, self.data[1] * rhs, self.data[2] * rhs,
-                self.data[3] * rhs, self.data[4] * rhs, self.data[5] * rhs,
-                self.data[6] * rhs, self.data[7] * rhs, self.data[8] * rhs,
-            ]
+                self.data[0] * rhs,
+                self.data[1] * rhs,
+                self.data[2] * rhs,
+                self.data[3] * rhs,
+                self.data[4] * rhs,
+                self.data[5] * rhs,
+                self.data[6] * rhs,
+                self.data[7] * rhs,
+                self.data[8] * rhs,
+            ],
         }
     }
 }
@@ -113,10 +133,16 @@ impl Div<f64> for CosMatrix {
     fn div(self, rhs: f64) -> Self::Output {
         CosMatrix {
             data: [
-                self.data[0] / rhs, self.data[1] / rhs, self.data[2] / rhs,
-                self.data[3] / rhs, self.data[4] / rhs, self.data[5] / rhs,
-                self.data[6] / rhs, self.data[7] / rhs, self.data[8] / rhs,
-            ]
+                self.data[0] / rhs,
+                self.data[1] / rhs,
+                self.data[2] / rhs,
+                self.data[3] / rhs,
+                self.data[4] / rhs,
+                self.data[5] / rhs,
+                self.data[6] / rhs,
+                self.data[7] / rhs,
+                self.data[8] / rhs,
+            ],
         }
     }
 }
@@ -127,10 +153,16 @@ impl Div<CosMatrix> for f64 {
     fn div(self, rhs: CosMatrix) -> Self::Output {
         CosMatrix {
             data: [
-                self / rhs.data[0], self / rhs.data[1], self / rhs.data[2],
-                self / rhs.data[3], self / rhs.data[4], self / rhs.data[5],
-                self / rhs.data[6], self / rhs.data[7], self / rhs.data[8],
-            ]
+                self / rhs.data[0],
+                self / rhs.data[1],
+                self / rhs.data[2],
+                self / rhs.data[3],
+                self / rhs.data[4],
+                self / rhs.data[5],
+                self / rhs.data[6],
+                self / rhs.data[7],
+                self / rhs.data[8],
+            ],
         }
     }
 }
@@ -149,10 +181,16 @@ impl Add<&CosMatrix> for &CosMatrix {
     fn add(self, rhs: &CosMatrix) -> Self::Output {
         CosMatrix {
             data: [
-                self.data[0] + rhs.data[0], self.data[1] + rhs.data[1], self.data[2] + rhs.data[2],
-                self.data[3] + rhs.data[3], self.data[4] + rhs.data[4], self.data[5] + rhs.data[5],
-                self.data[6] + rhs.data[6], self.data[7] + rhs.data[7], self.data[8] + rhs.data[8],
-            ]
+                self.data[0] + rhs.data[0],
+                self.data[1] + rhs.data[1],
+                self.data[2] + rhs.data[2],
+                self.data[3] + rhs.data[3],
+                self.data[4] + rhs.data[4],
+                self.data[5] + rhs.data[5],
+                self.data[6] + rhs.data[6],
+                self.data[7] + rhs.data[7],
+                self.data[8] + rhs.data[8],
+            ],
         }
     }
 }
@@ -171,10 +209,16 @@ impl Sub<&CosMatrix> for &CosMatrix {
     fn sub(self, rhs: &CosMatrix) -> Self::Output {
         CosMatrix {
             data: [
-                self.data[0] - rhs.data[0], self.data[1] - rhs.data[1], self.data[2] - rhs.data[2],
-                self.data[3] - rhs.data[3], self.data[4] - rhs.data[4], self.data[5] - rhs.data[5],
-                self.data[6] - rhs.data[6], self.data[7] - rhs.data[7], self.data[8] - rhs.data[8],
-            ]
+                self.data[0] - rhs.data[0],
+                self.data[1] - rhs.data[1],
+                self.data[2] - rhs.data[2],
+                self.data[3] - rhs.data[3],
+                self.data[4] - rhs.data[4],
+                self.data[5] - rhs.data[5],
+                self.data[6] - rhs.data[6],
+                self.data[7] - rhs.data[7],
+                self.data[8] - rhs.data[8],
+            ],
         }
     }
 }
@@ -193,11 +237,10 @@ impl Mul<&CosMatrix> for &CosMatrix {
                 self.data[6] * rhs.data[6],
                 self.data[7] * rhs.data[7],
                 self.data[8] * rhs.data[8],
-            ]
+            ],
         }
     }
 }
-
 
 impl Div<CosMatrix> for &CosMatrix {
     type Output = CosMatrix;
@@ -205,10 +248,16 @@ impl Div<CosMatrix> for &CosMatrix {
     fn div(self, rhs: CosMatrix) -> Self::Output {
         CosMatrix {
             data: [
-                self.data[0] / rhs.data[0], self.data[1] / rhs.data[1], self.data[2] / rhs.data[2],
-                self.data[3] / rhs.data[3], self.data[4] / rhs.data[4], self.data[5] / rhs.data[5],
-                self.data[6] / rhs.data[6], self.data[7] / rhs.data[7], self.data[8] / rhs.data[8],
-            ]
+                self.data[0] / rhs.data[0],
+                self.data[1] / rhs.data[1],
+                self.data[2] / rhs.data[2],
+                self.data[3] / rhs.data[3],
+                self.data[4] / rhs.data[4],
+                self.data[5] / rhs.data[5],
+                self.data[6] / rhs.data[6],
+                self.data[7] / rhs.data[7],
+                self.data[8] / rhs.data[8],
+            ],
         }
     }
 }
@@ -222,10 +271,9 @@ impl CosMatrix {
     pub fn new(data: [[f64; 3]; 3]) -> Self {
         CosMatrix {
             data: [
-                data[0][0], data[0][1], data[0][2],
-                data[1][0], data[1][1], data[1][2],
-                data[2][0], data[2][1], data[2][2]
-            ]
+                data[0][0], data[0][1], data[0][2], data[1][0], data[1][1], data[1][2], data[2][0],
+                data[2][1], data[2][2],
+            ],
         }
     }
 
@@ -233,7 +281,7 @@ impl CosMatrix {
         Vector3::new(
             Coef::new(self.data[0]),
             Coef::new(self.data[3]),
-            Coef::new(self.data[6])
+            Coef::new(self.data[6]),
         )
     }
 
@@ -241,7 +289,7 @@ impl CosMatrix {
         Vector3::new(
             Coef::new(self.data[1]),
             Coef::new(self.data[4]),
-            Coef::new(self.data[7])
+            Coef::new(self.data[7]),
         )
     }
 
@@ -249,7 +297,7 @@ impl CosMatrix {
         Vector3::new(
             Coef::new(self.data[2]),
             Coef::new(self.data[5]),
-            Coef::new(self.data[8])
+            Coef::new(self.data[8]),
         )
     }
 
@@ -257,7 +305,7 @@ impl CosMatrix {
         Vector3::new(
             Coef::new(self.data[0]),
             Coef::new(self.data[3]),
-            Coef::new(self.data[6])
+            Coef::new(self.data[6]),
         )
     }
 
@@ -265,7 +313,7 @@ impl CosMatrix {
         Vector3::new(
             Coef::new(self.data[1]),
             Coef::new(self.data[4]),
-            Coef::new(self.data[7])
+            Coef::new(self.data[7]),
         )
     }
 
@@ -273,7 +321,7 @@ impl CosMatrix {
         Vector3::new(
             Coef::new(self.data[2]),
             Coef::new(self.data[5]),
-            Coef::new(self.data[8])
+            Coef::new(self.data[8]),
         )
     }
 
@@ -296,7 +344,7 @@ impl CosMatrix {
         [
             [self.data[0], self.data[1], self.data[2]],
             [self.data[3], self.data[4], self.data[5]],
-            [self.data[6], self.data[7], self.data[8]]
+            [self.data[6], self.data[7], self.data[8]],
         ]
     }
 
@@ -351,38 +399,49 @@ impl CosMatrix {
         let vec_arr = vec.to_array();
         let mut result: Vector3<T> = Vector3::default();
         result.x.set_value(
-            self.data[0] * vec_arr[0] +
-            self.data[1] * vec_arr[1] +
-            self.data[2] * vec_arr[2]
+            self.data[0] * vec_arr[0] + self.data[1] * vec_arr[1] + self.data[2] * vec_arr[2],
         );
         result.y.set_value(
-            self.data[3] * vec_arr[0] +
-            self.data[4] * vec_arr[1] +
-            self.data[5] * vec_arr[2]
+            self.data[3] * vec_arr[0] + self.data[4] * vec_arr[1] + self.data[5] * vec_arr[2],
         );
         result.z.set_value(
-            self.data[6] * vec_arr[0] +
-            self.data[7] * vec_arr[1] +
-            self.data[8] * vec_arr[2]
+            self.data[6] * vec_arr[0] + self.data[7] * vec_arr[1] + self.data[8] * vec_arr[2],
         );
         result
     }
 
-
     pub fn product(&self, other: &CosMatrix) -> CosMatrix {
         let mut data = [0.0; 9];
         // Row 0
-        data[0] = self.data[0] * other.data[0] + self.data[1] * other.data[3] + self.data[2] * other.data[6];
-        data[1] = self.data[0] * other.data[1] + self.data[1] * other.data[4] + self.data[2] * other.data[7];
-        data[2] = self.data[0] * other.data[2] + self.data[1] * other.data[5] + self.data[2] * other.data[8];
+        data[0] = self.data[0] * other.data[0]
+            + self.data[1] * other.data[3]
+            + self.data[2] * other.data[6];
+        data[1] = self.data[0] * other.data[1]
+            + self.data[1] * other.data[4]
+            + self.data[2] * other.data[7];
+        data[2] = self.data[0] * other.data[2]
+            + self.data[1] * other.data[5]
+            + self.data[2] * other.data[8];
         // Row 1
-        data[3] = self.data[3] * other.data[0] + self.data[4] * other.data[3] + self.data[5] * other.data[6];
-        data[4] = self.data[3] * other.data[1] + self.data[4] * other.data[4] + self.data[5] * other.data[7];
-        data[5] = self.data[3] * other.data[2] + self.data[4] * other.data[5] + self.data[5] * other.data[8];
+        data[3] = self.data[3] * other.data[0]
+            + self.data[4] * other.data[3]
+            + self.data[5] * other.data[6];
+        data[4] = self.data[3] * other.data[1]
+            + self.data[4] * other.data[4]
+            + self.data[5] * other.data[7];
+        data[5] = self.data[3] * other.data[2]
+            + self.data[4] * other.data[5]
+            + self.data[5] * other.data[8];
         // Row 2
-        data[6] = self.data[6] * other.data[0] + self.data[7] * other.data[3] + self.data[8] * other.data[6];
-        data[7] = self.data[6] * other.data[1] + self.data[7] * other.data[4] + self.data[8] * other.data[7];
-        data[8] = self.data[6] * other.data[2] + self.data[7] * other.data[5] + self.data[8] * other.data[8];
+        data[6] = self.data[6] * other.data[0]
+            + self.data[7] * other.data[3]
+            + self.data[8] * other.data[6];
+        data[7] = self.data[6] * other.data[1]
+            + self.data[7] * other.data[4]
+            + self.data[8] * other.data[7];
+        data[8] = self.data[6] * other.data[2]
+            + self.data[7] * other.data[5]
+            + self.data[8] * other.data[8];
         CosMatrix { data }
     }
     // 将余弦阵转换到欧拉角，xzy 转序
@@ -412,6 +471,11 @@ impl CosMatrix {
         };
         result.z = Angular::atan2(-aa[1][0], aa[0][0]);
         result
+    }
+
+    pub fn to_matrix(&self) -> Matrix<3, 3, f64> {
+        let data: [[f64; 3]; 3] = self.to_array();
+        Matrix::new(data)
     }
 }
 
@@ -595,7 +659,7 @@ mod tests {
         let m = CosMatrix::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]);
 
         // Test Add
-        let m_add = &m+ 2.0;
+        let m_add = &m + 2.0;
         assert_eq!(m_add.data, [3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]);
 
         let m_add = 2.0 + m;
@@ -610,10 +674,16 @@ mod tests {
 
         // Test Mul
         let m_mul = m * 2.0;
-        assert_eq!(m_mul.data, [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0]);
+        assert_eq!(
+            m_mul.data,
+            [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0]
+        );
 
         let m_mul = 2.0 * m;
-        assert_eq!(m_mul.data, [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0]);
+        assert_eq!(
+            m_mul.data,
+            [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0]
+        );
 
         // Test Div
         let m_div = m / 2.0;
@@ -622,13 +692,13 @@ mod tests {
         let m_div = 10.0 / m;
         assert_relative_eq!(m_div.data[0], 10.0);
         assert_relative_eq!(m_div.data[1], 5.0);
-        assert_relative_eq!(m_div.data[2], 10.0/3.0);
+        assert_relative_eq!(m_div.data[2], 10.0 / 3.0);
         assert_relative_eq!(m_div.data[3], 2.5);
         assert_relative_eq!(m_div.data[4], 2.0);
-        assert_relative_eq!(m_div.data[5], 10.0/6.0);
-        assert_relative_eq!(m_div.data[6], 10.0/7.0);
+        assert_relative_eq!(m_div.data[5], 10.0 / 6.0);
+        assert_relative_eq!(m_div.data[6], 10.0 / 7.0);
         assert_relative_eq!(m_div.data[7], 1.25);
-        assert_relative_eq!(m_div.data[8], 10.0/9.0);
+        assert_relative_eq!(m_div.data[8], 10.0 / 9.0);
     }
 
     #[test]
@@ -638,21 +708,42 @@ mod tests {
 
         // Test Add
         let m_add = m1 + m2;
-        assert_eq!(m_add.data, [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]);
+        assert_eq!(
+            m_add.data,
+            [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+        );
 
         // Test Sub
         let m_sub = m1 - m2;
-        assert_eq!(m_sub.data, [-8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0, 6.0, 8.0]);
+        assert_eq!(
+            m_sub.data,
+            [-8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0, 6.0, 8.0]
+        );
 
         // Test Mul
         let m_mul = &m1 * &m2;
-        assert_eq!(m_mul.data, [9.0, 16.0, 21.0, 24.0, 25.0, 24.0, 21.0, 16.0, 9.0]);
+        assert_eq!(
+            m_mul.data,
+            [9.0, 16.0, 21.0, 24.0, 25.0, 24.0, 21.0, 16.0, 9.0]
+        );
 
         // Test Div
         let m_div = &m1 / m2;
-        assert_eq!(m_div.data, [1.0/9.0, 2.0/8.0, 3.0/7.0, 4.0/6.0, 5.0/5.0, 6.0/4.0, 7.0/3.0, 8.0/2.0, 9.0/1.0]);
+        assert_eq!(
+            m_div.data,
+            [
+                1.0 / 9.0,
+                2.0 / 8.0,
+                3.0 / 7.0,
+                4.0 / 6.0,
+                5.0 / 5.0,
+                6.0 / 4.0,
+                7.0 / 3.0,
+                8.0 / 2.0,
+                9.0 / 1.0
+            ]
+        );
     }
-
 
     #[test]
     fn test_get_col_vector() {
@@ -670,4 +761,98 @@ mod tests {
         assert_relative_eq!(z.y.get_value(), 6.0);
         assert_relative_eq!(z.z.get_value(), 9.0);
     }
+
+    #[test]
+    fn test_to_matrix_with_identity_matrix() {
+        // Test with identity matrix
+        let cos = CosMatrix::unit();
+        let matrix = cos.to_matrix();
+
+        // Verify all diagonal elements are 1.0 and others are 0.0
+        for i in 0..3 {
+            for j in 0..3 {
+                if i == j {
+                    assert_relative_eq!(matrix.get(i, j).unwrap(), 1.0);
+                } else {
+                    assert_relative_eq!(matrix.get(i, j).unwrap(), 0.0);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_to_matrix_with_random_values() {
+        // Test with arbitrary values
+        let test_data = [
+            [1.1, 2.2, 3.3],
+            [4.4, 5.5, 6.6],
+            [7.7, 8.8, 9.9]
+        ];
+        let cos = CosMatrix::new(test_data);
+        let matrix = cos.to_matrix();
+
+        // Verify all elements match exactly
+        for i in 0..3 {
+            for j in 0..3 {
+                assert_relative_eq!(matrix.get(j, i).unwrap(), test_data[i][j]);
+            }
+        }
+    }
+
+    #[test]
+    fn test_to_matrix_preserves_transpose_relationship() {
+        // Test that matrix conversion preserves transpose relationship
+        let test_data = [
+            [0.1, -0.2, 0.3],
+            [-0.4, 0.5, -0.6],
+            [0.7, -0.8, 0.9]
+        ];
+        let cos = CosMatrix::new(test_data);
+        let original_matrix = cos.to_matrix();
+        let transposed_matrix = cos.transfer().to_matrix();
+
+        // Verify original_matrix^T equals transposed_matrix
+        for i in 0..3 {
+            for j in 0..3 {
+                assert_relative_eq!(original_matrix.get(i, j).unwrap(), transposed_matrix.get(j, i).unwrap());
+            }
+        }
+    }
+
+    #[test]
+    fn test_to_matrix_with_extreme_values() {
+        // Test with extreme values (very large and small numbers)
+        let test_data = [
+            [f64::MAX, f64::MIN, 0.0],
+            [0.0, f64::MAX, f64::MIN],
+            [f64::MIN, 0.0, f64::MAX]
+        ];
+        let cos = CosMatrix::new(test_data);
+        let matrix = cos.to_matrix();
+
+        // Verify all elements match exactly
+        for i in 0..3 {
+            for j in 0..3 {
+                assert_eq!(matrix.get(j,i).unwrap(), test_data[i][j]);
+            }
+        }
+    }
+
+    #[test]
+    fn test_to_matrix_with_nan_values() {
+        // Test with NaN values (should propagate NaN)
+        let test_data = [
+            [1.0, f64::NAN, 3.0],
+            [4.0, 5.0, 6.0],
+            [7.0, 8.0, 9.0]
+        ];
+        let cos = CosMatrix::new(test_data);
+        let matrix = cos.to_matrix();
+
+        // Verify NaN propagates correctly
+        assert!(matrix.get(1, 0).unwrap().is_nan());
+        assert!(!matrix.get(0, 0).unwrap().is_nan());
+    }
+
+
 }

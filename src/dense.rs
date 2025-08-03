@@ -109,29 +109,17 @@ where
 {
     pub fn det(&self) -> Result<T, error::OperationError> {
         let mut sum = T::default();
-        let mut err: Option<error::OperationError> = None;
         let permutation = util::permutation(N)?;
-        thread::scope(|scope| {
-            let data_arc = Arc::new(self.data);
-            let (sender, receiver) = mpsc::channel::<Result<T, error::OperationError>>();
-            for perm in permutation {
-                let data = data_arc.clone();
-                let s = sender.clone();
-                scope.spawn(move || {
-                    let res = util::determinant_in_one_permutation(&data, &perm);
-                    s.send(res).unwrap();
-                });
+        for perm in permutation {
+            let res = util::determinant_in_one_permutation(&self.data, &perm);
+            match res {
+                Ok(x) => sum = sum + x,
+                Err(e) => return Err(e),
             }
-            drop(sender);
-            for res in receiver {
-                match res {
-                    Ok(x) => sum = sum + x,
-                    Err(e) => err = Some(e),
-                }
-            }
-        });
-        err.map_or(Ok(sum), Err)
+        }
+        Ok(sum)
     }
+
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Debug for Matrix<ROWS, COLS, T>

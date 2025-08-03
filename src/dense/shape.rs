@@ -7,8 +7,9 @@ use std::ops::{Add, Mul, Sub};
 use std::sync::{Arc, Mutex, RwLock};
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::thread;
+use array_init::array_init;
 
-impl<T> Matrix<T>
+impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
     T: Copy
         + Add<Output = T>
@@ -22,89 +23,82 @@ where
         + From<i8>,
     f64: From<T>,
 {
-    pub fn T(&self) -> Matrix<T> {
-        let mut vec: Vec<T> = vec![T::default(); (self.height * self.width) as usize];
-        for row in 0..self.height {
-            for col in 0..self.width {
-                let index: usize = (row * self.width + col) as usize;
-                let target_index: usize = (col * self.height + row) as usize;
-                vec[target_index] = self.data[index];
+    pub fn T(&self) -> Matrix<COLS, ROWS, T> {
+        let mut data = [[T::default(); ROWS]; COLS];
+        for row in 0..ROWS {
+            for col in 0..COLS {
+                data[col][row] = self.data[row][col];
             }
         }
-        //这里宽和高参数换位置了
-        let m = Matrix::new(self.width, self.height, vec).unwrap();
-        m
+        Matrix::new(data)
     }
 
-    pub fn reshape(&self, height: usize, width: usize) -> Result<Matrix<T>, OperationError> {
-        if self.height * self.width != height * width {
+    pub fn reshape<const NEW_ROWS: usize, const NEW_COLS: usize>(&self) -> Result<Matrix<NEW_ROWS, NEW_COLS, T>, OperationError> {
+        if ROWS * COLS != NEW_ROWS * NEW_COLS {
             return Err(OperationError {
                 message: "shape size does not match".to_string(),
             });
         }
-        let data = self.data.clone();
-        Matrix::new(height, width, data)
-    }
-    // 矩阵的水平拼接
-    pub fn hstack(&self, rhs: &Matrix<T>) -> Result<Matrix<T>, OperationError> {
-        if self.height != rhs.height {
-            return Err(OperationError {
-                message: "shape size does not match".to_string(),
-            });
+        let mut new_data = [[T::default(); NEW_COLS]; NEW_ROWS];
+        for i in 0..(ROWS * COLS) {
+            let old_row = i / COLS;
+            let old_col = i % COLS;
+            let new_row = i / NEW_COLS;
+            let new_col = i % NEW_COLS;
+            new_data[new_row][new_col] = self.data[old_row][old_col];
         }
-        let mut data: Vec<T> = Vec::new();
-        for i in 0..self.height {
-            for j in 0..self.width {
-                data.push(self.data[(i * self.width + j) as usize]);
-            }
-            for j in 0..rhs.width {
-                data.push(rhs.data[(i * rhs.width + j) as usize]);
-            }
-        }
-        Matrix::new(self.height, self.width + rhs.width, data)
+        Ok(Matrix::new(new_data))
     }
-
-    //矩阵的垂直拼接
-    pub fn vstack(&self, rhs: &Matrix<T>) -> Result<Matrix<T>, OperationError> {
-        if self.width != rhs.width {
-            return Err(OperationError {
-                message: "shape size does not match".to_string(),
-            });
-        }
-        let mut data: Vec<T> = self.data.clone();
-        data.extend(rhs.data.clone());
-        Matrix::new(self.height + rhs.height, self.width, data)
-    }
+    //
+    // pub fn hstack<const RHS_COLS: usize>(&self, rhs: &Matrix<ROWS, RHS_COLS, T>) -> Result<Matrix<ROWS, {COLS + RHS_COLS}, T>, OperationError> {
+    //     let mut data = [[T::default(); COLS + RHS_COLS]; ROWS];
+    //     for row in 0..ROWS {
+    //         for col in 0..COLS {
+    //             data[row][col] = self.data[row][col];
+    //         }
+    //         for col in 0..RHS_COLS {
+    //             data[row][COLS + col] = rhs.data[row][col];
+    //         }
+    //     }
+    //     Ok(Matrix::new(data))
+    // }
+    //
+    // pub fn vstack<const RHS_ROWS: usize>(&self, rhs: &Matrix<RHS_ROWS, COLS, T>) -> Result<Matrix<{ROWS + RHS_ROWS}, COLS, T>, OperationError> {
+    //     let mut data: [[T; COLS]; ROWS + RHS_ROWS] = vec![vec![T::default(); COLS].try_into().unwrap(); ROWS + RHS_ROWS].try_into().unwrap();
+    //     for row in 0..ROWS {
+    //         for col in 0..COLS {
+    //             data[row][col] = self.data[row][col];
+    //         }
+    //     }
+    //     for row in 0..RHS_ROWS {
+    //         for col in 0..COLS {
+    //             data[ROWS + row][col] = rhs.data[row][col];
+    //         }
+    //     }
+    //     Ok(Matrix::new(data))
+    // }
 }
 
-impl<T> Matrix<T>
+impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
     T: Send + Copy + Sync + Display + std::iter::Sum + Default + Debug + Add<Output = T>,
 {
     // 计算矩阵的行和，返回一个列向量
-    pub fn sum_row(&self) -> Matrix<T> {
-        let result_vec: Vec<T> = (0..self.height)
-            .into_par_iter()
-            .map(|i| {
-                self.data[i * self.width..(i + 1) * self.width]
-                    .iter()
-                    .cloned()
-                    .sum()
-            })
-            .collect();
-        Matrix::new(self.height, 1, result_vec).unwrap()
+    pub fn sum_row(&self) -> Matrix<ROWS, 1, T> {
+        let mut data = [[T::default(); 1]; ROWS];
+        for row in 0..ROWS {
+            data[row][0] = self.data[row].iter().cloned().sum();
+        }
+        Matrix::new(data)
     }
-    // 计算矩阵的列和，返回一个行向量
-    pub fn sum_column(&self) -> Matrix<T> {
-        let result = (0..self.width).into_par_iter().map(|i|{
-            let mut sum: T = self.data[i];
-            for j in 1..self.height {
-                sum = sum + self.data[j * self.width + i];
-            }
-            return sum;
-        }).collect();
 
-        Matrix::new(1, self.width, result).unwrap()
+    // 计算矩阵的列和，返回一个行向量
+    pub fn sum_column(&self) -> Matrix<1, COLS, T> {
+        let mut data = [[T::default(); COLS]; 1];
+        for col in 0..COLS {
+            data[0][col] = (0..ROWS).map(|row| self.data[row][col]).sum();
+        }
+        Matrix::new(data)
     }
 }
 
@@ -114,194 +108,162 @@ mod tests {
 
     #[test]
     fn test_T() {
-        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
         let m1 = m.T();
-        assert_eq!(3, m1.height);
-        assert_eq!(2, m1.width);
+        assert_eq!(m1.size(), (3, 2));
         println!("{}", m1);
-        assert_eq!(vec![1, 4, 2, 5, 3, 6], m1.data);
-        let vec: Vec<i32> = vec![];
-        let m = Matrix::new(0, 0, vec).unwrap();
+        assert_eq!(m1.data, [[1, 4], [2, 5], [3, 6]]);
+
+        let m = Matrix::<0, 0, i32>::new([[]; 0]);
         let m1 = m.T();
-        assert_eq!(0, m1.height);
-        assert_eq!(0, m1.width);
+        assert_eq!(m1.size(), (0, 0));
         println!("{}", m1);
 
-        let m = Matrix::new(1, 3, vec![1, 2, 3]).unwrap();
+        let m = Matrix::<1, 3, i32>::new([[1, 2, 3]]);
         let m1 = m.T();
         println!("{}", m1);
-        assert_eq!(3, m1.height);
-        assert_eq!(1, m1.width);
+        assert_eq!(m1.size(), (3, 1));
 
-        let m = Matrix::new(3, 1, vec![1, 2, 3]).unwrap();
+        let m = Matrix::<3, 1, i32>::new([[1], [2], [3]]);
         let m1 = m.T();
         println!("{}", m1);
-        assert_eq!(1, m1.height);
-        assert_eq!(3, m1.width);
+        assert_eq!(m1.size(), (1, 3));
     }
 
-    #[test]
-    #[should_panic("shape size does not match")]
-    fn test_reshape_panic() {
-        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m1 = m.reshape(4, 2).unwrap();
-    }
     #[test]
     fn test_reshape() {
-        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m1 = m.reshape(3, 2).unwrap();
+        let m = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
+        let m1 = m.reshape::<3, 2>().unwrap();
         assert_eq!(m1.size(), (3, 2));
-        assert_eq!(m1.data, vec![1, 2, 3, 4, 5, 6]);
+        assert_eq!(m1.data, [[1, 2], [3, 4], [5, 6]]);
     }
 
-    #[test]
-    #[should_panic("shape size does not match")]
-    fn test_hstack_panic() {
-        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
-        let r = m.hstack(&m1).unwrap();
-    }
-    #[test]
-    fn test_hstack() {
-        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m1 = Matrix::new(2, 4, vec![1, 2, 3, 4, 5, 6, 7, 8]).unwrap();
-        let mr = m.hstack(&m1).unwrap();
-        assert_eq!(mr.size(), (2, 7));
-        assert_eq!(mr.data, vec![1, 2, 3, 1, 2, 3, 4, 4, 5, 6, 5, 6, 7, 8]);
-    }
-
-    #[test]
-    #[should_panic("shape size does not match")]
-    fn test_vstack_panic() {
-        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m1 = Matrix::new(2, 2, vec![1, 2, 3, 4]).unwrap();
-        let r = m.vstack(&m1).unwrap();
-    }
-
-    #[test]
-    fn test_vstack() {
-        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-        let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
-        let mr = m.vstack(&m1).unwrap();
-        assert_eq!(mr.size(), (5, 3));
-        assert_eq!(mr.data, vec![1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    }
+    // #[test]
+    // fn test_hstack() {
+    //     let m = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
+    //     let m1 = Matrix::<2, 4, i32>::new([[1, 2, 3, 4], [5, 6, 7, 8]]);
+    //     let mr = m.hstack(&m1).unwrap();
+    //     assert_eq!(mr.size(), (2, 7));
+    //     assert_eq!(mr.data, [[1, 2, 3, 1, 2, 3, 4], [4, 5, 6, 5, 6, 7, 8]]);
+    // }
+    //
+    // #[test]
+    // fn test_vstack() {
+    //     let m = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
+    //     let m1 = Matrix::<3, 3, i32>::new([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+    //     let mr = m.vstack(&m1).unwrap();
+    //     assert_eq!(mr.size(), (5, 3));
+    //     assert_eq!(mr.data, [[1, 2, 3], [4, 5, 6], [1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+    // }
 
     #[test]
     fn test_sum_vertical_basic() {
-        // 测试基本的垂直求和功能
-        let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
         let result = m.sum_row();
-        assert_eq!(result.height, 2);
-        assert_eq!(result.width, 1);
-        assert_eq!(result.data, vec![6, 15]); // 1+2+3=6, 4+5+6=15
+        assert_eq!(result.size(), (2, 1));
+        assert_eq!(result.data, [[6], [15]]);
     }
 
     #[test]
     fn test_sum_vertical_single_row() {
-        // 测试单行矩阵
-        let m = Matrix::new(1, 4, vec![1, 2, 3, 4]).unwrap();
+        let m = Matrix::<1, 4, i32>::new([[1, 2, 3, 4]]);
         let result = m.sum_row();
-        assert_eq!(result.height, 1);
-        assert_eq!(result.width, 1);
-        assert_eq!(result.data, vec![10]); // 1+2+3+4=10
+        assert_eq!(result.size(), (1, 1));
+        assert_eq!(result.data, [[10]]);
     }
 
     #[test]
     fn test_sum_vertical_single_column() {
-        // 测试已经是单列的矩阵
-        let m = Matrix::new(3, 1, vec![1, 2, 3]).unwrap();
+        let m = Matrix::<3, 1, i32>::new([[1], [2], [3]]);
         let result = m.sum_row();
-        assert_eq!(result.height, 3);
-        assert_eq!(result.width, 1);
-        assert_eq!(result.data, vec![1, 2, 3]); // 每行只有一个元素
+        assert_eq!(result.size(), (3, 1));
+        assert_eq!(result.data, [[1], [2], [3]]);
     }
 
     #[test]
     fn test_sum_vertical_large_matrix() {
-        // 测试大矩阵
-        let data = (1..=100).collect::<Vec<i32>>();
-        let m = Matrix::new(10, 10, data).unwrap();
+        let data = (1..=100).collect::<Vec<_>>();
+        let m = Matrix::<10, 10, i32>::new([
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+            [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+            [31, 32, 33, 34, 35, 36, 37, 38, 39, 40],
+            [41, 42, 43, 44, 45, 46, 47, 48, 49, 50],
+            [51, 52, 53, 54, 55, 56, 57, 58, 59, 60],
+            [61, 62, 63, 64, 65, 66, 67, 68, 69, 70],
+            [71, 72, 73, 74, 75, 76, 77, 78, 79, 80],
+            [81, 82, 83, 84, 85, 86, 87, 88, 89, 90],
+            [91, 92, 93, 94, 95, 96, 97, 98, 99, 100],
+        ]);
         let result = m.sum_row();
-        assert_eq!(result.height, 10);
-        assert_eq!(result.width, 1);
-        assert_eq!(
-            result.data,
-            vec![55, 155, 255, 355, 455, 555, 655, 755, 855, 955]
-        );
+        assert_eq!(result.size(), (10, 1));
+        assert_eq!(result.data, [[55], [155], [255], [355], [455], [555], [655], [755], [855], [955]]);
     }
 
     #[test]
     fn test_sum_vertical_float_values() {
-        // 测试浮点数矩阵
-        let m = Matrix::new(2, 2, vec![1.5, 2.5, 3.5, 4.5]).unwrap();
+        let m = Matrix::<2, 2, f64>::new([[1.5, 2.5], [3.5, 4.5]]);
         let result = m.sum_row();
-        assert_eq!(result.height, 2);
-        assert_eq!(result.width, 1);
-        assert_eq!(result.data, vec![4.0, 8.0]); // 1.5+2.5=4.0, 3.5+4.5=8.0
+        assert_eq!(result.size(), (2, 1));
+        assert_eq!(result.data, [[4.0], [8.0]]);
     }
 
     #[test]
     fn test_sum_column_basic() {
-        // 测试基本的列求和功能
-        let m = Matrix::new(3, 2, vec![1, 2, 3, 4, 5, 6]).unwrap();
+        let m = Matrix::<3, 2, i32>::new([[1, 2], [3, 4], [5, 6]]);
         let result = m.sum_column();
-        assert_eq!(result.height, 1);
-        assert_eq!(result.width, 2);
-        assert_eq!(result.data, vec![9, 12]); // 1+3+5=9, 2+4+6=12
+        assert_eq!(result.size(), (1, 2));
+        assert_eq!(result.data, [[9, 12]]);
     }
 
     #[test]
     fn test_sum_column_single_column() {
-        // 测试单列矩阵
-        let m = Matrix::new(3, 1, vec![1, 2, 3]).unwrap();
+        let m = Matrix::<3, 1, i32>::new([[1], [2], [3]]);
         let result = m.sum_column();
-        assert_eq!(result.height, 1);
-        assert_eq!(result.width, 1);
-        assert_eq!(result.data, vec![6]); // 1+2+3=6
+        assert_eq!(result.size(), (1, 1));
+        assert_eq!(result.data, [[6]]);
     }
 
     #[test]
     fn test_sum_column_single_row() {
-        // 测试单行矩阵
-        let m = Matrix::new(1, 4, vec![1, 2, 3, 4]).unwrap();
+        let m = Matrix::<1, 4, i32>::new([[1, 2, 3, 4]]);
         let result = m.sum_column();
-        assert_eq!(result.height, 1);
-        assert_eq!(result.width, 4);
-        assert_eq!(result.data, vec![1, 2, 3, 4]); // 每列只有一个元素
+        assert_eq!(result.size(), (1, 4));
+        assert_eq!(result.data, [[1, 2, 3, 4]]);
     }
 
     #[test]
     fn test_sum_column_empty_matrix() {
-        // 测试空矩阵
-        let m: Matrix<f64> = Matrix::new(0, 0, vec![]).unwrap();
+        let m = Matrix::<0, 0, f64>::new([[]; 0]);
         let result = m.sum_column();
-        assert_eq!(result.height, 1);
-        assert_eq!(result.width, 0);
-        assert_eq!(result.data, vec![]);
+        assert_eq!(result.size(), (1, 0));
+        assert_eq!(result.data, [[]]);
     }
 
     #[test]
     fn test_sum_column_large_matrix() {
-        // 测试大矩阵
-        let data = (1..=100).collect::<Vec<i32>>();
-        let m = Matrix::new(10, 10, data).unwrap();
+        let m = Matrix::<10, 10, i32>::new([
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+            [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+            [31, 32, 33, 34, 35, 36, 37, 38, 39, 40],
+            [41, 42, 43, 44, 45, 46, 47, 48, 49, 50],
+            [51, 52, 53, 54, 55, 56, 57, 58, 59, 60],
+            [61, 62, 63, 64, 65, 66, 67, 68, 69, 70],
+            [71, 72, 73, 74, 75, 76, 77, 78, 79, 80],
+            [81, 82, 83, 84, 85, 86, 87, 88, 89, 90],
+            [91, 92, 93, 94, 95, 96, 97, 98, 99, 100],
+        ]);
         let result = m.sum_column();
-        assert_eq!(result.height, 1);
-        assert_eq!(result.width, 10);
-        assert_eq!(
-            result.data,
-            vec![460, 470, 480, 490, 500, 510, 520, 530, 540, 550]
-        );
+        assert_eq!(result.size(), (1, 10));
+        assert_eq!(result.data, [[460, 470, 480, 490, 500, 510, 520, 530, 540, 550]]);
     }
 
     #[test]
     fn test_sum_column_float_values() {
-        // 测试浮点数矩阵
-        let m = Matrix::new(2, 2, vec![1.5, 2.5, 3.5, 4.5]).unwrap();
+        let m = Matrix::<2, 2, f64>::new([[1.5, 2.5], [3.5, 4.5]]);
         let result = m.sum_column();
-        assert_eq!(result.height, 1);
-        assert_eq!(result.width, 2);
-        assert_eq!(result.data, vec![5.0, 7.0]); // 1.5+3.5=5.0, 2.5+4.5=7.0
+        assert_eq!(result.size(), (1, 2));
+        assert_eq!(result.data, [[5.0, 7.0]]);
     }
 }

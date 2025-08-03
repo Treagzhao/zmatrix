@@ -30,15 +30,17 @@ where
     }
 }
 
-pub fn print_single_line<T>(data: &Vec<T>, digits: u8) -> String
+pub fn print_single_line<const ROWS: usize, const COLS: usize, T>(data: &[[T;COLS];ROWS], digits: u8) -> String
 where
     T: Display,
 {
     let mut line = String::from("[");
-    data.iter().for_each(|item| {
-        let str = format!("{:<digit$}", *item, digit = (digits + 2) as usize);
-        line.push_str(&str);
-    });
+    for row in 0..ROWS {
+        for col in 0..COLS {
+            let str = format!("{:<digit$}", data[row][col], digit = (digits + 2) as usize);
+            line.push_str(&str);
+        }
+    }
     line.push_str("]\n");
     line.to_string()
 }
@@ -55,82 +57,51 @@ pub fn get_boundary_char(row: usize, height: usize) -> (String, String) {
     }
 }
 
-pub fn calculate_in_threads<'a, T, F>(
-    a_data: &'a Vec<T>,
-    b_data: &'a Vec<T>,
-    height: usize,
-    width: usize,
+pub fn calculate_in_threads<'a, const ROWS: usize, const COLS: usize, T, F>(
+    a_data: &'a [[T;COLS];ROWS],
+    b_data: &'a [[T;COLS];ROWS],
     func: F,
-) -> Result<Vec<T>, error::OperationError>
+) -> Result<[[T;COLS];ROWS], error::OperationError>
 where
     T: Copy + Send + Sync + Default,
     F: Fn(T, T) -> T + Send + Sync + Copy,
 {
-    if a_data.len() != b_data.len() {
-        return Result::Err(error::OperationError {
-            message: "the length of two data should be equal".to_string(),
-        });
-    }
-    if a_data.len() != (height * width) as usize {
-        return Result::Err(error::OperationError {
-            message: "the length of data should be equal with height times width".to_string(),
-        });
-    }
-    let length = a_data.len();
-    let mut vec: Vec<T> = vec![T::default(); length];
+    let mut result = [[T::default(); COLS]; ROWS];
     thread::scope(|scope| {
-        let a_vec: Arc<&'a Vec<T>> = Arc::new(a_data);
-        let b_vec: Arc<&'a Vec<T>> = Arc::new(b_data);
+        let a_vec: Arc<&'a [[T;COLS];ROWS]> = Arc::new(a_data);
+        let b_vec: Arc<&'a [[T;COLS];ROWS]> = Arc::new(b_data);
         let (sender, receiver) = mpsc::channel::<CalculateResult<T>>();
-        for row in 0..height {
-            for col in 0..width {
+        for row in 0..ROWS {
+            for col in 0..COLS {
                 let self_data = a_vec.clone();
                 let other_data = b_vec.clone();
-                let w = width;
                 let s = sender.clone();
                 scope.spawn(move || {
-                    let index = (row * w + col) as usize;
-                    let value = func(self_data[index], other_data[index]);
-                    s.send(CalculateResult {
-                        x: col,
-                        y: row,
-                        value,
-                    })
+                    let value = func(self_data[row][col], other_data[row][col]);
+                    s.send(CalculateResult { x: col, y: row, value })
                 });
             }
         }
         drop(sender);
         for rv in receiver {
-            let index = (rv.y * width + rv.x) as usize;
-            vec[index] = rv.value;
+            result[rv.y][rv.x] = rv.value;
         }
     });
-    Result::Ok(vec)
+    Result::Ok(result)
 }
 
-pub fn calculate_multi<T>(
-    a: &Vec<T>,
-    b: &Vec<T>,
-    _a_height: usize,
-    b_width: usize,
+pub fn calculate_multi<const A_ROWS: usize, const A_COLS: usize, const B_COLS: usize, T>(
+    a: &[[T;A_COLS];A_ROWS],
+    b: &[[T;B_COLS];A_COLS],  // Assuming matrix multiplication dimensions
     cur_row: usize,
     cur_col: usize,
-    count: usize,
 ) -> Result<CalculateResult<T>, error::OperationError>
 where
     T: Copy + Display + Default + Send + Sync + Mul<Output = T> + Add<Output = T>,
 {
     let mut sum: T = T::default();
-    let start_a: usize = (cur_row * count) as usize;
-    for i in 0..count {
-        let index_a = start_a + i as usize;
-        let index_b = (i * b_width + cur_col) as usize;
-        if index_a >= a.len() || index_b >= b.len() {
-            return Result::Err(error::OperationError {
-                message: "index error".to_string(),
-            });
-        }
-        let value = a[index_a] * b[index_b];
+    for i in 0..A_COLS {
+        let value = a[cur_row][i] * b[i][cur_col];
         sum = sum + value;
     }
     Result::Ok(CalculateResult {
@@ -140,8 +111,8 @@ where
     })
 }
 
-pub fn determinant_in_one_permutation<T>(
-    data: &Vec<T>,
+pub fn determinant_in_one_permutation<const N: usize, T>(
+    data: &[[T;N];N],
     permutation: &Vec<u64>,
 ) -> Result<T, error::OperationError>
 where
@@ -158,14 +129,8 @@ where
     let mut sum = T::default() + T::from(1i8);
     for (i, item) in permutation.iter().enumerate() {
         let y = i;
-        let x = *item;
-        let index: usize = y * permutation.len() + x as usize;
-        if index >= data.len() {
-            return Result::Err(error::OperationError {
-                message: "index error".to_string(),
-            });
-        }
-        sum = sum * data[index];
+        let x = *item as usize;
+        sum = sum * data[y][x];
     }
     Result::Ok(sum * ceof.into())
 }
@@ -262,7 +227,7 @@ mod test {
 
     #[test]
     fn test_print_single_line() {
-        let a: Vec<i32> = vec![1, 2, 3, 4, 15];
+        let a: [[i32;5];1] = [[1, 2, 3, 4, 15]];
         let result = print_single_line(&a, 1);
         println!("{}", result.clone());
         assert_eq!("[1  2  3  4  15 ]\n", result);
@@ -286,48 +251,28 @@ mod test {
 
     #[test]
     fn test_calculate_in_threads() {
-        let a: Vec<i32> = vec![1, 2, 3, 4, 15, 18];
-        let b: Vec<i32> = vec![2, 4, 6, 8, 10, 22];
-        let result = calculate_in_threads(&a, &b, 2, 3, |a, b| -> i32 {
+        let a: [[i32;3];2] = [[1, 2, 3], [4, 15, 18]];
+        let b: [[i32;3];2] = [[2, 4, 6], [8, 10, 22]];
+        let result = calculate_in_threads(&a, &b, |a, b| -> i32 {
             return a + b;
         });
         assert!(result.is_ok());
-        if let Ok(vec) = result {
-            assert_eq!(vec, vec![3, 6, 9, 12, 25, 40]);
+        if let Ok(arr) = result {
+            assert_eq!(arr, [[3, 6, 9], [12, 25, 40]]);
         }
-        let a: Vec<i32> = vec![1, 2, 3, 4, 15];
-        let b: Vec<i32> = vec![2, 4, 6, 8, 10, 22];
-        let result = calculate_in_threads(&a, &b, 2, 3, |a, b| -> i32 {
-            return a + b;
-        });
-        assert_eq!(
-            "the length of two data should be equal",
-            result.err().unwrap().message
-        );
-        let a: Vec<i32> = vec![1, 2, 3, 4, 1, 33];
-        let b: Vec<i32> = vec![2, 4, 6, 8, 10, 22];
-        let result = calculate_in_threads(&a, &b, 4, 3, |a, b| -> i32 {
-            return a + b;
-        });
-        assert_eq!(
-            "the length of data should be equal with height times width",
-            result.err().unwrap().message
-        );
     }
 
     #[test]
     fn test_calculate_multi() {
-        let a: Vec<i32> = vec![1, 2, 3, 4, 5, 6];
-        let b: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-        let result = calculate_multi(&a, &b, 2, 4, 0, 1, 3);
+        let a: [[i32;3];2] = [[1, 2, 3], [4, 5, 6]];
+        let b: [[i32;4];3] = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]];
+        let result = calculate_multi(&a, &b, 0, 1);
         assert!(result.is_ok());
         if let Ok(res) = result {
             assert_eq!(res.x, 1);
             assert_eq!(res.y, 0);
             assert_eq!(res.value, 44);
         }
-        let result = calculate_multi(&a, &b, 2, 4, 0, 11, 3);
-        assert_eq!("index error", result.err().unwrap().message);
     }
 
     #[test]
@@ -425,7 +370,7 @@ mod test {
 
     #[test]
     fn test_determinant_in_one_permutation() {
-        let data: Vec<i32> = vec![1, 2, 3, 4];
+        let data: [[i32;2];2] = [[1, 2], [3, 4]];
         let permutation: Vec<u64> = vec![0, 1];
         let result = determinant_in_one_permutation(&data, &permutation);
         assert!(result.is_ok());

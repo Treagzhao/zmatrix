@@ -36,6 +36,25 @@ fn bench_cos_matrix_product_vector(c: &mut Criterion) {
     }
 }
 
+fn bench_cos_matrix_transfer(c: &mut Criterion) {
+    let mut cases: Vec<([[f64; 3]; 3], [f64; 3])> = Vec::new();
+    for i in 0..10 {
+        let matrix = random_3x3_array();
+        let vector = random_3d_array();
+        cases.push((matrix, vector));
+    }
+    let mut group = c.benchmark_group("bench_cos_matrix_transfer");
+    for (i, (matrix, vector)) in cases.into_iter().enumerate() {
+        group.bench_with_input(
+            format!("bench_cos_matrix_transfer {}", i),
+            &(CosMatrix::new(matrix), Vector3::<Coef>::from_array(vector)),
+            |b, (matrix, vector)| {
+                b.iter(|| matrix.transfer())
+            },
+        );
+    }
+}
+
 
 pub fn random_f64_array_9() -> [f64; 9] {
     let mut rng = rand::thread_rng();
@@ -80,7 +99,25 @@ fn bench_cos_matrix_add(c: &mut Criterion) {
     }
 }
 
+fn bench_cos_matrix_multi_f64(c: &mut Criterion) {
+    let mut  cases: Vec<[[f64; 3]; 3]> = Vec::new();
+    for i in 0..10{
+        let matrix = random_3x3_array();
+        cases.push(matrix);
+    }
+    let mut group = c.benchmark_group("cos_matrix_multi_f64");
+    for (i, matrix) in cases.into_iter().enumerate() {
+        group.bench_with_input(format!("bench_cos_matrix_add {}", i), &CosMatrix::new(matrix), |b, cos| {
+            b.iter(|| cos * 2.0);
+        });
+    }
+}
 
 
-criterion_group!(benches,bench_cos_matrix_product_vector, bench_cos_matrix_product,bench_cos_matrix_add);
+
+
+
+
+
+criterion_group!(benches,bench_cos_matrix_product_vector, bench_cos_matrix_product,bench_cos_matrix_add,bench_cos_matrix_transfer,bench_cos_matrix_multi_f64);
 criterion_main!(benches);

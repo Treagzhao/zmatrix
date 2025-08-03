@@ -116,29 +116,30 @@ impl Quaternion {
     }
 
     //对四元数执行线性变换
-    pub fn linear_transform(&self, m: Matrix<f64>) -> Quaternion {
-        let vec: Vec<f64> = vec![self.q1, self.q2, self.q3, self.q0];
-        let col_vec = Matrix::new(4, 1, vec).unwrap();
+    pub fn linear_transform(&self, m: Matrix<4, 4, f64>) -> Quaternion {
+        let col_vec = Matrix::<4, 1, f64>::new([
+            [self.q1],
+            [self.q2],
+            [self.q3],
+            [self.q0]
+        ]);
         let result = m.product(&col_vec).unwrap();
-        Quaternion::new(result.get(0, 3).unwrap(), result.get(0, 0).unwrap(), result.get(0, 1).unwrap(), result.get(0, 2).unwrap())
+        Quaternion::new(
+            result.get(0, 3).unwrap(),
+            result.get(0, 0).unwrap(),
+            result.get(0, 1).unwrap(),
+            result.get(0, 2).unwrap()
+        )
     }
 
     //这个函数的运算意义不明
-    pub fn ksi_matrix(&self) -> Matrix<f64> {
-        let mut p_out_ksi = [0.0; 12];
-        p_out_ksi[0] = self.q0;
-        p_out_ksi[1] = 0.0 - self.q3;
-        p_out_ksi[2] = self.q2;
-        p_out_ksi[3] = self.q3;
-        p_out_ksi[4] = self.q0;
-        p_out_ksi[5] = 0.0 - self.q1;
-        p_out_ksi[6] = 0.0 - self.q2;
-        p_out_ksi[7] = self.q1;
-        p_out_ksi[8] = self.q0;
-        p_out_ksi[9] = 0.0 - self.q1;
-        p_out_ksi[10] = 0.0 - self.q2;
-        p_out_ksi[11] = 0.0 - self.q3;
-        Matrix::new(4, 3, p_out_ksi.to_vec()).unwrap()
+    pub fn ksi_matrix(&self) -> Matrix<4, 3, f64> {
+        Matrix::<4, 3, f64>::new([
+            [self.q0, -self.q3, self.q2],
+            [self.q3, self.q0, -self.q1],
+            [-self.q2, self.q1, self.q0],
+            [-self.q1, -self.q2, -self.q3]
+        ])
     }
 }
 
@@ -414,12 +415,12 @@ mod tests {
     #[test]
     fn test_linear_transform() {
         let q = Quaternion::new(0.0791359246, -0.641401172, 0.746174634, 0.159892201);
-        let m = Matrix::new(4, 4, vec![
-            0.9999949337802935, -0.0029879893040530093, 0.0010973906667888372, -8.209128966888257e-6,
-            0.0029879893040530093, 0.9999949337802935, -8.209128966888257e-6, -0.0010973906667888372,
-            -0.0010973906667888372, 8.209128966888257e-6, 0.9999949337802935, -0.0029879893040530093,
-            8.209128966888257e-6, 0.0010973906667888372, 0.0029879893040530093, 0.9999949337802935,
-        ]).unwrap();
+        let m = Matrix::<4, 4, f64>::new([
+            [0.9999949337802935, -0.0029879893040530093, 0.0010973906667888372, -8.209128966888257e-6],
+            [0.0029879893040530093, 0.9999949337802935, -8.209128966888257e-6, -0.0010973906667888372],
+            [-0.0010973906667888372, 8.209128966888257e-6, 0.9999949337802935, -0.0029879893040530093],
+            [8.209128966888257e-6, 0.0010973906667888372, 0.0029879893040530093, 0.9999949337802935]
+        ]);
         let result = q.linear_transform(m);
         let expected = Quaternion::new(0.08042685960061452, -0.6434526697740315, 0.744166198273059, 0.16036492675833178);
         assert_relative_eq!(result.q0,expected.q0,epsilon = 1e-7);
@@ -436,7 +437,8 @@ mod tests {
             [0.081541, -0.15994, 0.743605],
             [0.15994, 0.081541, 0.644067],
             [-0.743605, -0.644067, 0.081541],
-            [0.644067, -0.743605, -0.15994]];
+            [0.644067, -0.743605, -0.15994]
+        ];
         for (row, list) in expected.iter().enumerate() {
             for (col, exp) in list.iter().enumerate() {
                 assert_relative_eq!(*exp,result.get(col,row).unwrap(),epsilon = 1e-7);

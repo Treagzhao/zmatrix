@@ -4,24 +4,24 @@
 #### 创建一个矩阵
  create a new matrix
 ``` rust
-let m1 = Matrix::new(2,3,vec![1,2,3,4,5,6]);
+let m1 = Matrix::<2,3,i32>::new([[1,2,3],[4,5,6]]);
 println!("{}",m1);
 ```
 
 生成一个全0/全1矩阵
  create a new matrix with all 0
 ``` rust
-    let m1 = Matrix::zeros(3, 3);
+    let m1 = Matrix::<3,3,i32>::zeros();
     println!("{}", m1);   
     
-    let m1 = Matrix::ones(3, 3);
+    let m1 = Matrix::<3,3,i32>::ones();
     println!("{}", m1);   
  ```
 
 生成一个随机矩阵(只有f64类型)
  create a new matrix with random values
 ``` rust
-    let m1 = Matrix::random(3, 3);
+    let m1 = Matrix::<3,3,f64>::random();
     println!("{}", m1);  
  ```
 
@@ -30,7 +30,7 @@ println!("{}",m1);
 #### 获取值以及设置值
  get value & set value
 ``` rust
-  let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
+  let m1 = Matrix::<3,3,i32>::new([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
   let value = m1.get(1, 1);
   if let Some(x) = value {
      println!("get value:{}", x); // 5
@@ -46,26 +46,26 @@ println!("{}",m1);
  Matrix addition, subtraction, and multiplication operations
 ``` rust
     // 加法运算 add
-    let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
-    let m2 = Matrix::new(3, 3, vec![4, 5, 6, 7, 8, 9, 10, 11, 12]).unwrap();
+    let m1 = Matrix::<3,3,i32>::new([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+    let m2 = Matrix::<3,3,i32>::new([[4, 5, 6], [7, 8, 9], [10, 11, 12]]);
     let m3 = m1 + m2;
     println!("add result:\n{}", m3);
     //减法运算 sub
-     let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
-    let m2 = Matrix::new(3, 3, vec![4, 5, 6, 7, 8, 9, 10, 11, 12]).unwrap();
+     let m1 = Matrix::<3,3,i32>::new([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+    let m2 = Matrix::<3,3,i32>::new([[4, 5, 6], [7, 8, 9], [10, 11, 12]]);
     let m3 = m2 - m1;
     println!("sub result:\n{}", m3);
     //乘法运算 multiple
-    let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
-    let m2 = Matrix::new(3, 3, vec![4, 5, 6, 7, 8, 9, 10, 11, 12]).unwrap();
+    let m1 = Matrix::<3,3,i32>::new([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+    let m2 = Matrix::<3,3,i32>::new([[4, 5, 6], [7, 8, 9], [10, 11, 12]]);
     let m3 = m2 * m1;
     println!("multi result:\n{}", m3);
 ```
 #### 矩阵乘法
  Matrix product
 ``` rust
-    let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-    let m2 = Matrix::new(3, 4, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).unwrap();
+    let m1 = Matrix::<2,3,i32>::new([[1, 2, 3], [4, 5, 6]]);
+    let m2 = Matrix::<3,4,i32>::new([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]);
     let result = m1.product(m2).unwrap();
     println!("matrix product:\n{}", result);
 ```
@@ -73,7 +73,7 @@ println!("{}",m1);
 #### 矩阵的数乘
  Scalar multiplication of a matrix
 ``` rust
-    let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
+    let m1 = Matrix::<3,3,i32>::new([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
     let m2 = m1.scale(3);
     println!("\nscale result:\n{}", m2);
 ```
@@ -81,30 +81,20 @@ println!("{}",m1);
 #### 矩阵的操作
  矩阵转置 Matrix transpose
 ``` rust
-    let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
+    let m1 = Matrix::<2,3,i32>::new([[1, 2, 3], [4, 5, 6]]);
     let m2 = !m1; 
     println!("\ntransform:\n{}", m2);
     
     let m2 = m1.T();
     println!("\ntransform:\n{}", m2);   
 ```
-矩阵的水平拼接和垂直拼接
- Matrix horizontal concatenation
-``` rust
-     let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-     let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
-     println!("\nconcat:\n{}", m.hstack(m1));
-     
-     let m = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-     let m1 = Matrix::new(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
-     println!("\nconcat:\n{}", m.vstack(m1));    
- ```
+
 
 #### 矩阵的行列式
  matrix determinant
 ``` rust
-    let m1 = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]).unwrap();
-    let m2 = !m1;
+    let m1 = Matrix::<2,3,i32>::new([[1, 2, 3], [4, 5, 6]]);
+    let m2 = m1.det();
     println!("\ntransform:\n{}", m2);
 ```
 
@@ -458,4 +448,3 @@ println!("{:?}",cos);
  let q_div = q1 / q2 ;
  println!("{:?}",q_div);             
   ```
-

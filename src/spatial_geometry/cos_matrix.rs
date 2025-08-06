@@ -308,27 +308,27 @@ impl CosMatrix {
         self.data[col + 6] = data[2];
     }
 
-    pub fn get_x_vector(&self) -> Vector3<Coef> {
+    pub fn get_x_row_vector(&self) -> Vector3<Coef> {
         Vector3::new(
-            Coef::new(self.data[0]),
-            Coef::new(self.data[3]),
-            Coef::new(self.data[6]),
+            Coef::new(self.data[0]), // data[0][0] = 第0行第0列
+            Coef::new(self.data[1]), // data[0][1] = 第0行第1列
+            Coef::new(self.data[2]), // data[0][2] = 第0行第2列
         )
     }
 
-    pub fn get_y_vector(&self) -> Vector3<Coef> {
+    pub fn get_y_row_vector(&self) -> Vector3<Coef> {
         Vector3::new(
-            Coef::new(self.data[1]),
-            Coef::new(self.data[4]),
-            Coef::new(self.data[7]),
+            Coef::new(self.data[3]), // data[1][0] = 第1行第0列
+            Coef::new(self.data[4]), // data[1][1] = 第1行第1列
+            Coef::new(self.data[5]), // data[1][2] = 第1行第2列
         )
     }
 
-    pub fn get_z_vector(&self) -> Vector3<Coef> {
+    pub fn get_z_row_vector(&self) -> Vector3<Coef> {
         Vector3::new(
-            Coef::new(self.data[2]),
-            Coef::new(self.data[5]),
-            Coef::new(self.data[8]),
+            Coef::new(self.data[6]), // data[2][0] = 第2行第0列
+            Coef::new(self.data[7]), // data[2][1] = 第2行第1列
+            Coef::new(self.data[8]), // data[2][2] = 第2行第2列
         )
     }
 
@@ -528,21 +528,21 @@ mod tests {
     }
 
     #[test]
-    fn test_cos_matrix_get_x_vector() {
+    fn test_cos_matrix_get_x_row_vector() {
         let cos = CosMatrix::new([[1.0, 1.1, 1.2], [1.3, 1.4, 1.5], [1.6, 1.7, 1.8]]);
-        let x = cos.get_x_vector();
+        let x = cos.get_x_row_vector();
         assert_relative_eq!(1.0, x.x.get_value());
-        assert_relative_eq!(1.3, x.y.get_value());
-        assert_relative_eq!(1.6, x.z.get_value());
+        assert_relative_eq!(1.1, x.y.get_value());
+        assert_relative_eq!(1.2, x.z.get_value());
 
-        let y = cos.get_y_vector();
-        assert_relative_eq!(1.1, y.x.get_value());
+        let y = cos.get_y_row_vector();
+        assert_relative_eq!(1.3, y.x.get_value());
         assert_relative_eq!(1.4, y.y.get_value());
-        assert_relative_eq!(1.7, y.z.get_value());
+        assert_relative_eq!(1.5, y.z.get_value());
 
-        let z = cos.get_z_vector();
-        assert_relative_eq!(1.2, z.x.get_value());
-        assert_relative_eq!(1.5, z.y.get_value());
+        let z = cos.get_z_row_vector();
+        assert_relative_eq!(1.6, z.x.get_value());
+        assert_relative_eq!(1.7, z.y.get_value());
         assert_relative_eq!(1.8, z.z.get_value());
     }
 

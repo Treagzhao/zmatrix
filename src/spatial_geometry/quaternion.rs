@@ -42,10 +42,10 @@ impl Quaternion {
             result.q2 = self.q2 / tmp_norm;
             result.q3 = self.q3 / tmp_norm;
         } else {
-            result.q0 = 0.0;
+            result.q0 = 1.0;
             result.q1 = 0.0;
             result.q2 = 0.0;
-            result.q3 = 1.0;
+            result.q3 = 0.0;
         }
         result
     }
@@ -282,10 +282,10 @@ mod tests {
             q3: 0.0,
         };
         let unit = q.normalize();
-        assert_relative_eq!(unit.q0,0.0);
+        assert_relative_eq!(unit.q0,1.0);
         assert_relative_eq!(unit.q1,0.0);
         assert_relative_eq!(unit.q2,0.0);
-        assert_relative_eq!(unit.q3,1.0);
+        assert_relative_eq!(unit.q3,0.0);
     }
 
     #[test]

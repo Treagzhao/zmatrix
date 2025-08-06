@@ -69,6 +69,11 @@ impl Angular {
         let rad = f64::asin(v);
         Self::from_rad(rad)
     }
+
+    pub fn acos(v:f64) ->   Self{
+        let rad = f64::acos(v);
+        Self::from_rad(rad)
+    }
 }
 
 impl From<Coef> for Angular {
@@ -330,5 +335,55 @@ mod tests {
         let value = 0.5f64;
         let theta = Angular::asin(value);
         assert_relative_eq!(theta.as_deg(), 30.0,epsilon = 1e-8);
+    }
+
+    #[test]
+    fn test_acos() {
+        // Test normal cases
+        let cases = vec![
+            (1.0, 0.0),   // acos(1) = 0 radians
+            (0.5, PI/3.0), // acos(0.5) = π/3 radians (60 degrees)
+            (0.0, PI/2.0), // acos(0) = π/2 radians (90 degrees)
+            (-0.5, 2.0*PI/3.0), // acos(-0.5) = 2π/3 radians (120 degrees)
+            (-1.0, PI),    // acos(-1) = π radians (180 degrees)
+        ];
+
+        for (input, expected_rad) in cases {
+            let angle = Angular::acos(input);
+            assert_relative_eq!(angle.as_rad(), expected_rad, epsilon = 1e-8);
+            // Verify the conversion to degrees works as expected
+            assert_relative_eq!(angle.as_deg(), expected_rad * 180.0 / PI, epsilon = 1e-8);
+        }
+
+        // Test edge cases
+        {
+            // Test input exactly at 1.0
+            let angle = Angular::acos(1.0);
+            assert_relative_eq!(angle.as_rad(), 0.0, epsilon = 1e-8);
+        }
+        {
+            // Test input exactly at -1.0
+            let angle = Angular::acos(-1.0);
+            assert_relative_eq!(angle.as_rad(), PI, epsilon = 1e-8);
+        }
+
+        // Test invalid inputs (should panic as per f64::acos behavior)
+        let invalid_cases = vec![1.00001, -1.00001, 2.0, -2.0, f64::NAN, f64::INFINITY];
+        for invalid_input in invalid_cases {
+            println!("{:?}",invalid_input);
+            let angle = Angular::acos(invalid_input);
+            assert_eq!(true,angle.v.is_nan());
+        }
+
+        // Test precision cases (values very close to boundaries)
+        let epsilon = 1e-10;
+        {
+            let angle = Angular::acos(1.0 - epsilon);
+            assert!(angle.as_rad() > 0.0 && angle.as_rad() < 1.5e-5);
+        }
+        {
+            let angle = Angular::acos(-1.0 + epsilon);
+            assert!(angle.as_rad() > PI - 1.5e-5 && angle.as_rad() < PI);
+        }
     }
 }

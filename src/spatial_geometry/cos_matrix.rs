@@ -287,6 +287,27 @@ impl CosMatrix {
         CosMatrix { data }
     }
 
+    /// 设置指定行的向量值
+    /// # Panics
+    /// 如果行索引不在0-2范围内会panic
+    pub fn set_row_vector_by_array(&mut self, row: usize, data: [f64; 3]) {
+        assert!(row < 3, "Row index out of bounds");
+        let start = row * 3;
+        self.data[start] = data[0];
+        self.data[start + 1] = data[1];
+        self.data[start + 2] = data[2];
+    }
+
+    /// 设置指定列的向量值
+    /// # Panics
+    /// 如果列索引不在0-2范围内会panic
+    pub fn set_col_vector_by_array(&mut self, col: usize, data: [f64; 3]) {
+        assert!(col < 3, "Column index out of bounds");
+        self.data[col] = data[0];
+        self.data[col + 3] = data[1];
+        self.data[col + 6] = data[2];
+    }
+
     pub fn get_x_vector(&self) -> Vector3<Coef> {
         Vector3::new(
             Coef::new(self.data[0]),
@@ -870,5 +891,65 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_set_row_vector_by_array() {
+        let mut cos = CosMatrix::unit();
+        // Set first row
+        cos.set_row_vector_by_array(0, [1.1, 2.2, 3.3]);
+        assert_relative_eq!(cos.data[0], 1.1);
+        assert_relative_eq!(cos.data[1], 2.2);
+        assert_relative_eq!(cos.data[2], 3.3);
+        // Other rows should remain unchanged
+        assert_relative_eq!(cos.data[3], 0.0);
+        assert_relative_eq!(cos.data[4], 1.0);
+        assert_relative_eq!(cos.data[5], 0.0);
+        assert_relative_eq!(cos.data[6], 0.0);
+        assert_relative_eq!(cos.data[7], 0.0);
+        assert_relative_eq!(cos.data[8], 1.0);
+
+        // Set last row
+        cos.set_row_vector_by_array(2, [4.4, 5.5, 6.6]);
+        assert_relative_eq!(cos.data[6], 4.4);
+        assert_relative_eq!(cos.data[7], 5.5);
+        assert_relative_eq!(cos.data[8], 6.6);
+    }
+
+    #[test]
+    #[should_panic(expected = "Row index out of bounds")]
+    fn test_set_row_vector_by_array_out_of_bounds() {
+        let mut cos = CosMatrix::unit();
+        cos.set_row_vector_by_array(3, [1.0, 2.0, 3.0]);
+    }
+
+    #[test]
+    fn test_set_col_vector_by_array() {
+        let mut cos = CosMatrix::unit();
+        // Set first column
+        cos.set_col_vector_by_array(0, [1.1, 2.2, 3.3]);
+        assert_relative_eq!(cos.data[0], 1.1);
+        assert_relative_eq!(cos.data[3], 2.2);
+        assert_relative_eq!(cos.data[6], 3.3);
+        // Other columns should remain unchanged
+        assert_relative_eq!(cos.data[1], 0.0);
+        assert_relative_eq!(cos.data[2], 0.0);
+        assert_relative_eq!(cos.data[4], 1.0);
+        assert_relative_eq!(cos.data[5], 0.0);
+        assert_relative_eq!(cos.data[7], 0.0);
+        assert_relative_eq!(cos.data[8], 1.0);
+
+        // Set last column
+        cos.set_col_vector_by_array(2, [4.4, 5.5, 6.6]);
+        assert_relative_eq!(cos.data[2], 4.4);
+        assert_relative_eq!(cos.data[5], 5.5);
+        assert_relative_eq!(cos.data[8], 6.6);
+    }
+
+    #[test]
+    #[should_panic(expected = "Column index out of bounds")]
+    fn test_set_col_vector_by_array_out_of_bounds() {
+        let mut cos = CosMatrix::unit();
+        cos.set_col_vector_by_array(3, [1.0, 2.0, 3.0]);
     }
 }

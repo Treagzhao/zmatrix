@@ -145,6 +145,21 @@ impl Div<f64> for AngularAcceleration {
     }
 }
 
+impl Mul<AngularAcceleration> for f64 {
+    type Output = AngularAcceleration;
+    fn mul(self, rhs: AngularAcceleration) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<AngularAcceleration> for f64 {
+    type Output = AngularAcceleration;
+    fn div(self, rhs: AngularAcceleration) -> Self::Output {
+        let v = self / rhs.as_rad_per_second2();
+        AngularAcceleration::from_rad_per_second2(v)
+    }
+}
+
 impl Mul<Coef> for AngularAcceleration {
     type Output = Self;
     fn mul(self, rhs: Coef) -> Self::Output {
@@ -318,5 +333,29 @@ mod tests {
         let mut d1 = AngularAcceleration::from_rad_per_second2(PI);
         d1.set_value(1000.0);
         assert_eq!(d1.default_unit_value(),1000.0);
+    }
+
+    #[test]
+    fn test_f64_mul_angular_acceleration() {
+        // f64 * AngularAcceleration 测试
+        let a = AngularAcceleration::from_rad_per_second2(PI);
+        let result = 2.0 * a;
+        assert_relative_eq!(result.as_rad_per_second2(), 2.0 * PI);
+
+        let a = AngularAcceleration::from_deg_per_second2(90.0);
+        let result = 2.0 * a;
+        assert_relative_eq!(result.as_deg_per_second2(), 180.0);
+    }
+
+    #[test]
+    fn test_f64_div_angular_acceleration() {
+        // f64 / AngularAcceleration 测试
+        let a = AngularAcceleration::from_rad_per_second2(PI);
+        let result = 2.0 * PI / a;
+        assert_relative_eq!(result.as_rad_per_second2(), 2.0);
+
+        let a = AngularAcceleration::from_deg_per_second2(180.0);
+        let result = 180.0 / a;
+        assert_relative_eq!(result.as_deg_per_second2(), 1.0);
     }
 }

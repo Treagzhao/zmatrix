@@ -106,6 +106,21 @@ impl Div<f64> for Momentum {
     }
 }
 
+impl Mul<Momentum> for f64 {
+    type Output = Momentum;
+    fn mul(self, rhs: Momentum) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<Momentum> for f64 {
+    type Output = Momentum;
+    fn div(self, rhs: Momentum) -> Self::Output {
+        let v = self / rhs.as_kg_m_s();
+        Momentum::from_kg_m_s(v)
+    }
+}
+
 impl Mul<Coef> for Momentum {
     type Output = Self;
     fn mul(self, rhs: Coef) -> Self::Output {
@@ -256,5 +271,29 @@ mod tests {
         let d1 = Distance::from_m(1000.0);
         let m2 = m1 * d1;
         assert_eq!(m2.as_kg_m2_per_second(), 1000.0 * 1000.0);
+    }
+
+    #[test]
+    fn test_f64_mul_momentum() {
+        // f64 * Momentum 测试
+        let m = Momentum::from_kg_m_s(2.0);
+        let result = 3.0 * m;
+        assert_relative_eq!(result.as_kg_m_s(), 6.0);
+
+        let m = Momentum::from_kg_km_s(1.0);
+        let result = 2.0 * m;
+        assert_relative_eq!(result.as_kg_km_s(), 2.0);
+    }
+
+    #[test]
+    fn test_f64_div_momentum() {
+        // f64 / Momentum 测试
+        let m = Momentum::from_kg_m_s(2.0);
+        let result = 6.0 / m;
+        assert_relative_eq!(result.as_kg_m_s(), 3.0);
+
+        let m = Momentum::from_kg_km_s(1.0);
+        let result = 2.0 / m;
+        assert_relative_eq!(result.as_kg_km_s(), 2.0);
     }
 }

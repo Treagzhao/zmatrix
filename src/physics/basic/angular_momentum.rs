@@ -114,6 +114,21 @@ impl Div<f64> for AngularMomentum {
     }
 }
 
+impl Mul<AngularMomentum> for f64 {
+    type Output = AngularMomentum;
+    fn mul(self, rhs: AngularMomentum) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<AngularMomentum> for f64 {
+    type Output = AngularMomentum;
+    fn div(self, rhs: AngularMomentum) -> Self::Output {
+        let v = self / rhs.as_kg_m2_per_second();
+        AngularMomentum::from_kg_m2_per_second(v)
+    }
+}
+
 impl Mul<Coef> for AngularMomentum {
     type Output = Self;
     fn mul(self, rhs: Coef) -> Self::Output {
@@ -261,5 +276,29 @@ mod tests {
         let m2 = AngularMomentum::from_kg_m2_per_second(500.0);
         let m3 = m1 / m2;
         assert_eq!(m3.get_value(), 2.0);
+    }
+
+    #[test]
+    fn test_f64_mul_angular_momentum() {
+        // f64 * AngularMomentum 测试
+        let m = AngularMomentum::from_kg_m2_per_second(2.0);
+        let result = 3.0 * m;
+        assert_relative_eq!(result.as_kg_m2_per_second(), 6.0);
+
+        let m = AngularMomentum::from_kg_km2_per_second(1.0);
+        let result = 2.0 * m;
+        assert_relative_eq!(result.as_kg_km2_per_second(), 2.0);
+    }
+
+    #[test]
+    fn test_f64_div_angular_momentum() {
+        // f64 / AngularMomentum 测试
+        let m = AngularMomentum::from_kg_m2_per_second(2.0);
+        let result = 6.0 / m;
+        assert_relative_eq!(result.as_kg_m2_per_second(), 3.0);
+
+        let m = AngularMomentum::from_kg_km2_per_second(1.0);
+        let result = 2.0 / m;
+        assert_relative_eq!(result.as_kg_km2_per_second(), 2.0);
     }
 }

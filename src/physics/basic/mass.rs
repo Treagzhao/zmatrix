@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Sub};
 use crate::physics::basic::{Coef, Mass, MassType, Momentum, PhysicalQuantity, Velocity};
+use approx::assert_relative_eq;
 
 impl Default for Mass {
     fn default() -> Self {
@@ -119,6 +120,24 @@ impl Div<f64> for Mass {
     fn div(self, rhs: f64) -> Self::Output {
         let v = self.as_kg() / rhs;
         Self::from_kg(v)
+    }
+}
+
+impl Mul<Mass> for f64 {
+    type Output = Mass;
+    fn mul(self, rhs: Mass) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<Mass> for f64 {
+    type Output = Mass;
+    fn div(self, rhs: Mass) -> Self::Output {
+        let v = self / rhs.v;
+        Mass {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 
@@ -299,5 +318,29 @@ mod tests {
         let v1 = Velocity::from_m_per_sec(1000.0);
         let m2 = m1 * v1;
         assert_eq!(m2.as_kg_m_s(), 1000.0 * 1000.0);
+    }
+
+    #[test]
+    fn test_f64_mul_mass() {
+        // f64 * Mass 测试
+        let m = Mass::from_kg(2.0);
+        let result = 3.0 * m;
+        assert_relative_eq!(result.as_kg(), 6.0);
+
+        let m = Mass::from_g(1000.0);
+        let result = 2.0 * m;
+        assert_relative_eq!(result.as_g(), 2000.0);
+    }
+
+    #[test]
+    fn test_f64_div_mass() {
+        // f64 / Mass 测试
+        let m = Mass::from_kg(2.0);
+        let result = 6.0 / m;
+        assert_relative_eq!(result.as_kg(), 3.0);
+
+        let m = Mass::from_g(1000.0);
+        let result = 2000.0 / m;
+        assert_relative_eq!(result.as_g(), 2.0);
     }
 }

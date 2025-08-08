@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::ops::{Add, Sub};
+use std::ops::{Add, Sub, Mul, Div};
 use lazy_static::lazy_static;
 use crate::physics::basic::{MagneticInduction, MagneticInductionType, PhysicalQuantity};
 lazy_static! {
@@ -280,6 +280,37 @@ impl Sub<f64> for MagneticInduction {
                 Self::from_kilo_gauss(v)
             }
         };
+    }
+}
+
+impl Mul<f64> for MagneticInduction {
+    type Output = Self;
+    fn mul(self, rhs: f64) -> Self::Output {
+        let v = self.as_tesla() * rhs;
+        Self::from_tesla(v)
+    }
+}
+
+impl Div<f64> for MagneticInduction {
+    type Output = Self;
+    fn div(self, rhs: f64) -> Self::Output {
+        let v = self.as_tesla() / rhs;
+        Self::from_tesla(v)
+    }
+}
+
+impl Mul<MagneticInduction> for f64 {
+    type Output = MagneticInduction;
+    fn mul(self, rhs: MagneticInduction) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<MagneticInduction> for f64 {
+    type Output = MagneticInduction;
+    fn div(self, rhs: MagneticInduction) -> Self::Output {
+        let v = self / rhs.as_tesla();
+        MagneticInduction::from_tesla(v)
     }
 }
 
@@ -760,5 +791,133 @@ mod tests {
             let m2 = m1 - 1.0;
             assert_relative_eq!(m2.as_gauss(), 2000.0);
         }
+    }
+
+    #[test]
+    fn test_magnetic_induction_mul() {
+        // 标量乘法测试
+        let m = MagneticInduction::from_tesla(2.0);
+        let result = m * 3.0;
+        assert_relative_eq!(result.as_tesla(), 6.0);
+
+        let m = MagneticInduction::from_gauss(1000.0);
+        let result = m * 2.0;
+        assert_relative_eq!(result.as_tesla(), 0.2);
+
+        let m = MagneticInduction::from_mill_tesla(500.0);
+        let result = m * 2.0;
+        assert_relative_eq!(result.as_tesla(), 1.0);
+
+        let m = MagneticInduction::from_micro_tesla(1000000.0);
+        let result = m * 2.0;
+        assert_relative_eq!(result.as_tesla(), 2.0);
+
+        let m = MagneticInduction::from_nano_tesla(1000000000.0);
+        let result = m * 2.0;
+        assert_relative_eq!(result.as_tesla(), 2.0);
+
+        let m = MagneticInduction::from_mill_gauss(10000000.0);
+        let result = m * 2.0;
+        assert_relative_eq!(result.as_tesla(), 2.0);
+
+        let m = MagneticInduction::from_kilo_gauss(1.0);
+        let result = m * 2.0;
+        assert_relative_eq!(result.as_tesla(), 0.2);
+    }
+
+    #[test]
+    fn test_magnetic_induction_div() {
+        // 标量除法测试
+        let m = MagneticInduction::from_tesla(6.0);
+        let result = m / 2.0;
+        assert_relative_eq!(result.as_tesla(), 3.0);
+
+        let m = MagneticInduction::from_gauss(2000.0);
+        let result = m / 2.0;
+        assert_relative_eq!(result.as_tesla(), 0.1);
+
+        let m = MagneticInduction::from_mill_tesla(1000.0);
+        let result = m / 2.0;
+        assert_relative_eq!(result.as_tesla(), 0.5);
+
+        let m = MagneticInduction::from_micro_tesla(2000000.0);
+        let result = m / 2.0;
+        assert_relative_eq!(result.as_tesla(), 1.0);
+
+        let m = MagneticInduction::from_nano_tesla(2000000000.0);
+        let result = m / 2.0;
+        assert_relative_eq!(result.as_tesla(), 1.0);
+
+        let m = MagneticInduction::from_mill_gauss(20000000.0);
+        let result = m / 2.0;
+        assert_relative_eq!(result.as_tesla(), 1.0);
+
+        let m = MagneticInduction::from_kilo_gauss(2.0);
+        let result = m / 2.0;
+        assert_relative_eq!(result.as_tesla(), 0.1);
+    }
+
+    #[test]
+    fn test_f64_mul_magnetic_induction() {
+        // f64 * MagneticInduction 测试
+        let m = MagneticInduction::from_tesla(2.0);
+        let result = 3.0 * m;
+        assert_relative_eq!(result.as_tesla(), 6.0);
+
+        let m = MagneticInduction::from_gauss(1000.0);
+        let result = 2.0 * m;
+        assert_relative_eq!(result.as_tesla(), 0.2);
+
+        let m = MagneticInduction::from_mill_tesla(500.0);
+        let result = 2.0 * m;
+        assert_relative_eq!(result.as_tesla(), 1.0);
+
+        let m = MagneticInduction::from_micro_tesla(1000000.0);
+        let result = 2.0 * m;
+        assert_relative_eq!(result.as_tesla(), 2.0);
+
+        let m = MagneticInduction::from_nano_tesla(1000000000.0);
+        let result = 2.0 * m;
+        assert_relative_eq!(result.as_tesla(), 2.0);
+
+        let m = MagneticInduction::from_mill_gauss(10000000.0);
+        let result = 2.0 * m;
+        assert_relative_eq!(result.as_tesla(), 2.0);
+
+        let m = MagneticInduction::from_kilo_gauss(1.0);
+        let result = 2.0 * m;
+        assert_relative_eq!(result.as_tesla(), 0.2);
+    }
+
+    #[test]
+    fn test_f64_div_magnetic_induction() {
+        // f64 / MagneticInduction 测试
+        let m = MagneticInduction::from_tesla(2.0);
+        let result = 6.0 / m;
+        assert_relative_eq!(result.as_tesla(), 3.0);
+
+        let m = MagneticInduction::from_gauss(2000.0);
+        let result = 0.2 / m;
+        assert_relative_eq!(result.as_tesla(), 1.0);
+
+        let m = MagneticInduction::from_mill_tesla(1000.0);
+        let result = 0.5 / m;
+        assert_relative_eq!(result.as_tesla(), 0.5);
+
+        let m = MagneticInduction::from_micro_tesla(2000000.0);
+        let result = 1.0 / m;
+        assert_relative_eq!(result.as_tesla(), 0.5);
+
+        let m = MagneticInduction::from_nano_tesla(2000000000.0);
+        let result = 1.0 / m;
+        assert_relative_eq!(result.as_tesla(), 0.5);
+
+        let m = MagneticInduction::from_mill_gauss(20000000.0);
+        let result = 1.0 / m;
+        assert_relative_eq!(result.as_tesla(), 0.5);
+
+        let m = MagneticInduction::from_kilo_gauss(2.0);
+        let result = 0.1 / m;
+        assert_relative_eq!(result.as_tesla(), 0.5);
     }
 }

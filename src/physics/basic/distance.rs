@@ -147,6 +147,21 @@ impl Div<f64> for Distance {
     }
 }
 
+impl Mul<Distance> for f64 {
+    type Output = Distance;
+    fn mul(self, rhs: Distance) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<Distance> for f64 {
+    type Output = Distance;
+    fn div(self, rhs: Distance) -> Self::Output {
+        let v = self / rhs.as_m();
+        Distance::from_m(v)
+    }
+}
+
 impl Mul<Coef> for Distance {
     type Output = Self;
     fn mul(self, rhs: Coef) -> Self::Output {
@@ -342,5 +357,37 @@ mod tests {
         let d2 = Distance::from_m(200.0);
         let c = d1 / d2;
         assert_eq!(c.get_value(), 5.0);
+    }
+
+    #[test]
+    fn test_f64_mul_distance() {
+        // f64 * Distance 测试
+        let d = Distance::from_m(2.0);
+        let result = 3.0 * d;
+        assert_relative_eq!(result.as_m(), 6.0);
+
+        let d = Distance::from_km(1.0);
+        let result = 2.0 * d;
+        assert_relative_eq!(result.as_km(), 2.0);
+
+        let d = Distance::from_light_year(0.5);
+        let result = 2.0 * d;
+        assert_relative_eq!(result.as_light_year(), 1.0);
+    }
+
+    #[test]
+    fn test_f64_div_distance() {
+        // f64 / Distance 测试
+        let d = Distance::from_m(2.0);
+        let result = 6.0 / d;
+        assert_relative_eq!(result.as_m(), 3.0);
+
+        let d = Distance::from_km(1.0);
+        let result = 2.0 / d;
+        assert_relative_eq!(result.as_km(), 2.0);
+
+        let d = Distance::from_light_year(0.5);
+        let result = 1.0 / d;
+        assert_relative_eq!(result.as_light_year(), 2.0);
     }
 }

@@ -204,6 +204,21 @@ impl Div<f64> for Velocity {
     }
 }
 
+impl Mul<Velocity> for f64 {
+    type Output = Velocity;
+    fn mul(self, rhs: Velocity) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<Velocity> for f64 {
+    type Output = Velocity;
+    fn div(self, rhs: Velocity) -> Self::Output {
+        let v = self / rhs.as_m_per_sec();
+        Velocity::from_m_per_sec(v)
+    }
+}
+
 impl Mul<Coef> for Velocity {
     type Output = Self;
     fn mul(self, rhs: Coef) -> Self::Output {
@@ -441,5 +456,37 @@ mod tests {
         let d1 = Distance::from_m(2.0);
         let omg1 = v1 / d1;
         assert_relative_eq!(omg1.as_rad_per_second(),2.5);
+    }
+
+    #[test]
+    fn test_f64_mul_velocity() {
+        // f64 * Velocity 测试
+        let v = Velocity::from_m_per_sec(2.0);
+        let result = 3.0 * v;
+        assert_relative_eq!(result.as_m_per_sec(), 6.0);
+
+        let v = Velocity::from_km_per_h(100.0);
+        let result = 2.0 * v;
+        assert_relative_eq!(result.as_km_per_h(), 200.0);
+
+        let v = Velocity::from_light_speed(0.5);
+        let result = 2.0 * v;
+        assert_relative_eq!(result.as_light_speed(), 1.0);
+    }
+
+    #[test]
+    fn test_f64_div_velocity() {
+        // f64 / Velocity 测试
+        let v = Velocity::from_m_per_sec(2.0);
+        let result = 6.0 / v;
+        assert_relative_eq!(result.as_m_per_sec(), 3.0);
+
+        let v = Velocity::from_km_per_h(100.0);
+        let result = 200.0 / v;
+        assert_relative_eq!(result.as_km_per_h(), 2.0);
+
+        let v = Velocity::from_light_speed(0.5);
+        let result = 1.0 / v;
+        assert_relative_eq!(result.as_light_speed(), 2.0);
     }
 }

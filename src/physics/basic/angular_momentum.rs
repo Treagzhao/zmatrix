@@ -124,8 +124,11 @@ impl Mul<AngularMomentum> for f64 {
 impl Div<AngularMomentum> for f64 {
     type Output = AngularMomentum;
     fn div(self, rhs: AngularMomentum) -> Self::Output {
-        let v = self / rhs.as_kg_m2_per_second();
-        AngularMomentum::from_kg_m2_per_second(v)
+        let v = self / rhs.v;
+        AngularMomentum {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 

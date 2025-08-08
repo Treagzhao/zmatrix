@@ -147,8 +147,11 @@ impl Mul<Volume> for f64 {
 impl Div<Volume> for f64 {
     type Output = Volume;
     fn div(self, rhs: Volume) -> Self::Output {
-        let v = self / rhs.as_m3();
-        Volume::from_m3(v)
+        let v = self / rhs.v;
+        Volume {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 

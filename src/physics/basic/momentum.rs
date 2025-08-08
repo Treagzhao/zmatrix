@@ -116,8 +116,11 @@ impl Mul<Momentum> for f64 {
 impl Div<Momentum> for f64 {
     type Output = Momentum;
     fn div(self, rhs: Momentum) -> Self::Output {
-        let v = self / rhs.as_kg_m_s();
-        Momentum::from_kg_m_s(v)
+        let v = self / rhs.v;
+        Momentum {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 

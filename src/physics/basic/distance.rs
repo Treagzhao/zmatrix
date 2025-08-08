@@ -157,8 +157,11 @@ impl Mul<Distance> for f64 {
 impl Div<Distance> for f64 {
     type Output = Distance;
     fn div(self, rhs: Distance) -> Self::Output {
-        let v = self / rhs.as_m();
-        Distance::from_m(v)
+        let v = self / rhs.v;
+        Distance {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 

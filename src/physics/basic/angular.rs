@@ -153,8 +153,11 @@ impl Mul<Angular> for f64 {
 impl Div<Angular> for f64 {
     type Output = Angular;
     fn div(self, rhs: Angular) -> Self::Output {
-        let v = self / rhs.as_rad();
-        Angular::from_rad(v)
+        let v = self / rhs.v;
+        Angular {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 

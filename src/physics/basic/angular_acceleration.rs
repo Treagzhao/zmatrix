@@ -155,8 +155,11 @@ impl Mul<AngularAcceleration> for f64 {
 impl Div<AngularAcceleration> for f64 {
     type Output = AngularAcceleration;
     fn div(self, rhs: AngularAcceleration) -> Self::Output {
-        let v = self / rhs.as_rad_per_second2();
-        AngularAcceleration::from_rad_per_second2(v)
+        let v = self / rhs.v;
+        AngularAcceleration {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 

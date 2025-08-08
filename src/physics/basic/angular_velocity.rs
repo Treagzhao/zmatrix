@@ -203,8 +203,11 @@ impl Mul<AngularVelocity> for f64 {
 impl Div<AngularVelocity> for f64 {
     type Output = AngularVelocity;
     fn div(self, rhs: AngularVelocity) -> Self::Output {
-        let v = self / rhs.as_rad_per_second();
-        AngularVelocity::from_rad_per_second(v)
+        let v = self / rhs.v;
+        AngularVelocity {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 
@@ -479,7 +482,7 @@ mod tests {
         assert_relative_eq!(result.as_rad_per_second(), 3.0);
 
         let a = AngularVelocity::from_deg_per_second(180.0);
-        let result = PI / a;
+        let result = 180.0 / a;
         assert_relative_eq!(result.as_deg_per_second(), 1.0);
 
         let a = AngularVelocity::from_rad_per_hour(PI);

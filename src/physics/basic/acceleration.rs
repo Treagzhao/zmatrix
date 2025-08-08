@@ -163,8 +163,11 @@ impl Mul<Acceleration> for f64 {
 impl Div<Acceleration> for f64 {
     type Output = Acceleration;
     fn div(self, rhs: Acceleration) -> Self::Output {
-        let v = self / rhs.as_m_per_s2();
-        Acceleration::from_m_per_s2(v)
+        let v = self / rhs.v;
+        Acceleration {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 

@@ -142,8 +142,11 @@ impl Mul<Area> for f64 {
 impl Div<Area> for f64 {
     type Output = Area;
     fn div(self, rhs: Area) -> Self::Output {
-        let v = self / rhs.as_m2();
-        Area::from_m2(v)
+        let v = self / rhs.v;
+        Area {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 

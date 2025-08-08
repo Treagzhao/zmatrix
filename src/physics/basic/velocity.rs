@@ -214,8 +214,11 @@ impl Mul<Velocity> for f64 {
 impl Div<Velocity> for f64 {
     type Output = Velocity;
     fn div(self, rhs: Velocity) -> Self::Output {
-        let v = self / rhs.as_m_per_sec();
-        Velocity::from_m_per_sec(v)
+        let v = self / rhs.v;
+        Velocity {
+            default_type: rhs.default_type,
+            v: v,
+        }
     }
 }
 

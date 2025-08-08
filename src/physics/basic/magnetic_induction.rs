@@ -433,6 +433,39 @@ mod tests {
     }
 
     #[test]
+    fn test_default_unit_value(){
+        // Tesla 系列单位测试
+        let m = MagneticInduction::from_tesla(1.0);
+        assert_relative_eq!(m.default_unit_value(), 1.0);
+        
+        let m = MagneticInduction::from_mill_tesla(1.0);
+        assert_relative_eq!(m.default_unit_value(), 1e-3);
+        
+        let m = MagneticInduction::from_micro_tesla(1.0);
+        assert_relative_eq!(m.default_unit_value(), 1e-6);
+        
+        let m = MagneticInduction::from_nano_tesla(1.0);
+        assert_relative_eq!(m.default_unit_value(), 1e-9);
+
+        // Gauss 系列单位测试
+        let m = MagneticInduction::from_gauss(1.0);
+        assert_relative_eq!(m.default_unit_value(), 1e-4);
+        
+        let m = MagneticInduction::from_mill_gauss(1.0);
+        assert_relative_eq!(m.default_unit_value(), 1e-7);
+        
+        let m = MagneticInduction::from_kilo_gauss(1.0);
+        assert_relative_eq!(m.default_unit_value(), 1e-1);
+
+        // 边界值测试
+        let zero_case = MagneticInduction {
+            v: 0.0,
+            default_type: MagneticInductionType::Tesla,
+        };
+        assert_eq!(zero_case.default_unit_value(), 0.0);
+    }
+
+    #[test]
     fn test_as_gauss(){
         let magnetic_induction = MagneticInduction::from_gauss(1.0);
         assert_relative_eq!(magnetic_induction.as_gauss(), 1.0);
@@ -507,6 +540,90 @@ mod tests {
             default_type: MagneticInductionType::Gauss,
         };
         assert_eq!(zero_case.as_micro_tesla(), 0.0);
+    }
+
+    #[test]
+    fn test_as_nano_tesla() {
+        // Tesla 系列单位测试
+        let m = MagneticInduction::from_nano_tesla(1.0);
+        assert_relative_eq!(m.as_nano_tesla(), 1.0);
+        let m = MagneticInduction::from_micro_tesla(1.0);
+        assert_relative_eq!(m.as_nano_tesla(), 1e3);
+        let m = MagneticInduction::from_mill_tesla(1.0);
+        assert_relative_eq!(m.as_nano_tesla(), 1e6);
+        let m = MagneticInduction::from_tesla(1.0);
+        assert_relative_eq!(m.as_nano_tesla(), 1e9);
+
+        // Gauss 系列单位测试
+        let m = MagneticInduction::from_mill_gauss(1.0);
+        assert_relative_eq!(m.as_nano_tesla(), 1e2);
+        let m = MagneticInduction::from_gauss(1.0);
+        assert_relative_eq!(m.as_nano_tesla(), 1e5);
+        let m = MagneticInduction::from_kilo_gauss(1.0);
+        assert_relative_eq!(m.as_nano_tesla(), 1e8);
+
+        // 边界值测试
+        let zero_case = MagneticInduction {
+            v: 0.0,
+            default_type: MagneticInductionType::Tesla,
+        };
+        assert_eq!(zero_case.as_nano_tesla(), 0.0);
+    }
+
+    #[test]
+    fn test_as_mill_gauss() {
+        // Gauss 系列单位测试
+        let m = MagneticInduction::from_mill_gauss(1.0);
+        assert_relative_eq!(m.as_mill_gauss(), 1.0);
+        let m = MagneticInduction::from_gauss(1.0);
+        assert_relative_eq!(m.as_mill_gauss(), 1e3);
+        let m = MagneticInduction::from_kilo_gauss(1.0);
+        assert_relative_eq!(m.as_mill_gauss(), 1e6);
+
+        // Tesla 系列单位测试
+        let m = MagneticInduction::from_micro_tesla(1.0);
+        assert_relative_eq!(m.as_mill_gauss(), 10.0);
+        let m = MagneticInduction::from_mill_tesla(1.0);
+        assert_relative_eq!(m.as_mill_gauss(), 1e4);
+        let m = MagneticInduction::from_tesla(1.0);
+        assert_relative_eq!(m.as_mill_gauss(), 1e7);
+        let m = MagneticInduction::from_nano_tesla(1.0);
+        assert_relative_eq!(m.as_mill_gauss(), 1e-2);
+
+        // 边界值测试
+        let zero_case = MagneticInduction {
+            v: 0.0,
+            default_type: MagneticInductionType::Gauss,
+        };
+        assert_eq!(zero_case.as_mill_gauss(), 0.0);
+    }
+
+    #[test]
+    fn test_as_kilo_gauss() {
+        // Gauss 系列单位测试
+        let m = MagneticInduction::from_kilo_gauss(1.0);
+        assert_relative_eq!(m.as_kilo_gauss(), 1.0);
+        let m = MagneticInduction::from_gauss(1.0);
+        assert_relative_eq!(m.as_kilo_gauss(), 1e-3);
+        let m = MagneticInduction::from_mill_gauss(1.0);
+        assert_relative_eq!(m.as_kilo_gauss(), 1e-6);
+
+        // Tesla 系列单位测试
+        let m = MagneticInduction::from_micro_tesla(1.0);
+        assert_relative_eq!(m.as_kilo_gauss(), 1e-5);
+        let m = MagneticInduction::from_mill_tesla(1.0);
+        assert_relative_eq!(m.as_kilo_gauss(), 1e-2);
+        let m = MagneticInduction::from_tesla(1.0);
+        assert_relative_eq!(m.as_kilo_gauss(), 10.0);
+        let m = MagneticInduction::from_nano_tesla(1.0);
+        assert_relative_eq!(m.as_kilo_gauss(), 1e-8);
+
+        // 边界值测试
+        let zero_case = MagneticInduction {
+            v: 0.0,
+            default_type: MagneticInductionType::KiloGauss,
+        };
+        assert_eq!(zero_case.as_kilo_gauss(), 0.0);
     }
 
     #[test]

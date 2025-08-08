@@ -153,6 +153,24 @@ impl Div<f64> for Acceleration {
     }
 }
 
+impl Mul<Acceleration> for f64 {
+    type Output = Acceleration;
+    fn mul(self, rhs: Acceleration) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<Acceleration> for f64 {
+    type Output = Acceleration;
+    fn div(self, rhs: Acceleration) -> Self::Output {
+        let v = self / rhs.v;
+        Acceleration {
+            default_type: rhs.default_type,
+            v: v,
+        }
+    }
+}
+
 impl Mul<Coef> for Acceleration {
     type Output = Self;
     fn mul(self, rhs: Coef) -> Self::Output {
@@ -326,5 +344,37 @@ mod tests {
     fn test_as_any() {
         let d1 = Acceleration::from_m_per_s2(1000.0);
         let d2 = d1.as_any().downcast_ref::<Acceleration>().unwrap();
+    }
+
+    #[test]
+    fn test_f64_mul_acceleration() {
+        // f64 * Acceleration 测试
+        let a = Acceleration::from_m_per_s2(2.0);
+        let result = 3.0 * a;
+        assert_relative_eq!(result.as_m_per_s2(), 6.0);
+
+        let a = Acceleration::from_km_per_h2(1000.0);
+        let result = 2.0 * a;
+        assert_relative_eq!(result.as_km_per_h_2(), 2000.0);
+
+        let a = Acceleration::from_g(1.0);
+        let result = 2.0 * a;
+        assert_relative_eq!(result.as_g(), 2.0);
+    }
+
+    #[test]
+    fn test_f64_div_acceleration() {
+        // f64 / Acceleration 测试
+        let a = Acceleration::from_m_per_s2(2.0);
+        let result = 6.0 / a;
+        assert_relative_eq!(result.as_m_per_s2(), 3.0);
+
+        let a = Acceleration::from_km_per_h2(1000.0);
+        let result = 2000.0 / a;
+        assert_relative_eq!(result.as_km_per_h_2(), 2.0);
+
+        let a = Acceleration::from_g(2.0);
+        let result = 4.0 / a;
+        assert_relative_eq!(result.as_g(), 2.0);
     }
 }

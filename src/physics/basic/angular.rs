@@ -143,6 +143,24 @@ impl Div<f64> for Angular {
     }
 }
 
+impl Mul<Angular> for f64 {
+    type Output = Angular;
+    fn mul(self, rhs: Angular) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<Angular> for f64 {
+    type Output = Angular;
+    fn div(self, rhs: Angular) -> Self::Output {
+        let v = self / rhs.v;
+        Angular {
+            default_type: rhs.default_type,
+            v: v,
+        }
+    }
+}
+
 impl Mul<Coef> for Angular {
     type Output = Self;
     fn mul(self, rhs: Coef) -> Self::Output {
@@ -385,5 +403,29 @@ mod tests {
             let angle = Angular::acos(-1.0 + epsilon);
             assert!(angle.as_rad() > PI - 1.5e-5 && angle.as_rad() < PI);
         }
+    }
+
+    #[test]
+    fn test_f64_mul_angular() {
+        // f64 * Angular 测试
+        let a = Angular::from_rad(PI);
+        let result = 2.0 * a;
+        assert_relative_eq!(result.as_rad(), 2.0 * PI);
+
+        let a = Angular::from_deg(90.0);
+        let result = 2.0 * a;
+        assert_relative_eq!(result.as_deg(), 180.0);
+    }
+
+    #[test]
+    fn test_f64_div_angular() {
+        // f64 / Angular 测试
+        let a = Angular::from_rad(PI);
+        let result = 2.0 * PI / a;
+        assert_relative_eq!(result.as_rad(), 2.0);
+
+        let a = Angular::from_deg(180.0);
+        let result = 180.0 / a;
+        assert_relative_eq!(result.as_deg(), 1.0);
     }
 }

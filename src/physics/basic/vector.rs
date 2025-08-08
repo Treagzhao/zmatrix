@@ -219,6 +219,25 @@ impl<T: PhysicalQuantity + Div<Coef, Output = T> + Default> Div<Coef> for Vector
     }
 }
 
+impl<T: PhysicalQuantity + Mul<f64, Output = T> + Default> Mul<Vector3<T>> for f64 {
+    type Output = Vector3<T>;
+    fn mul(self, rhs: Vector3<T>) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl<T: PhysicalQuantity + Div<f64, Output = T> + Default> Div<Vector3<T>> for f64 
+where f64: Div<T, Output = T> {
+    type Output = Vector3<T>;
+    fn div(self, rhs: Vector3<T>) -> Self::Output {
+        Vector3 {
+            x: self / rhs.x,
+            y: self / rhs.y,
+            z: self / rhs.z,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -529,5 +548,42 @@ mod tests {
         assert_relative_eq!(vec_mixed.x.as_tesla(), 2.0, epsilon = 1e-8);
         assert_relative_eq!(vec_mixed.y.as_gauss(), 1100.0, epsilon = 1e-8);
         assert_relative_eq!(vec_mixed.z.as_tesla(), 1.5, epsilon = 1e-8);
+    }
+
+    #[test]
+    fn test_vector3_f64_operations() {
+        let v = Vector3::new(
+            MagneticInduction::from_tesla(1.0),
+            MagneticInduction::from_tesla(2.0),
+            MagneticInduction::from_tesla(3.0),
+        );
+        
+        // 测试 Vector3<T> * f64
+        let result1 = v * 2.0;
+        assert_relative_eq!(result1.x.as_tesla(), 2.0);
+        assert_relative_eq!(result1.y.as_tesla(), 4.0);
+        assert_relative_eq!(result1.z.as_tesla(), 6.0);
+        
+        // 测试 Vector3<T> / f64
+        let result2 = v / 2.0;
+        assert_relative_eq!(result2.x.as_tesla(), 0.5);
+        assert_relative_eq!(result2.y.as_tesla(), 1.0);
+        assert_relative_eq!(result2.z.as_tesla(), 1.5);
+        
+        // 测试 f64 * Vector3<T> (现在应该支持了)
+        let result3 = 2.0 * v;
+        assert_relative_eq!(result3.x.as_tesla(), 2.0);
+        assert_relative_eq!(result3.y.as_tesla(), 4.0);
+        assert_relative_eq!(result3.z.as_tesla(), 6.0);
+        
+        // 测试 f64 / Vector3<T> (现在应该支持了)
+        let result4 = 6.0 / v;
+        assert_relative_eq!(result4.x.as_tesla(), 6.0);
+        assert_relative_eq!(result4.y.as_tesla(), 3.0);
+        assert_relative_eq!(result4.z.as_tesla(), 2.0);
+        
+        // 验证正向操作正常工作
+        assert!(result1.x.as_tesla() == 2.0);
+        assert!(result2.x.as_tesla() == 0.5);
     }
 }

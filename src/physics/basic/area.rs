@@ -132,6 +132,24 @@ impl Div<f64> for Area {
     }
 }
 
+impl Mul<Area> for f64 {
+    type Output = Area;
+    fn mul(self, rhs: Area) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<Area> for f64 {
+    type Output = Area;
+    fn div(self, rhs: Area) -> Self::Output {
+        let v = self / rhs.v;
+        Area {
+            default_type: rhs.default_type,
+            v: v,
+        }
+    }
+}
+
 impl Mul<Coef> for Area {
     type Output = Self;
     fn mul(self, rhs: Coef) -> Self::Output {
@@ -296,5 +314,29 @@ mod tests {
         let mut area = Area::from_m2(1.0);
         area.set_value(2.0);
         assert_eq!(area.as_m2(), 2.0);
+    }
+
+    #[test]
+    fn test_f64_mul_area() {
+        // f64 * Area 测试
+        let a = Area::from_m2(2.0);
+        let result = 3.0 * a;
+        assert_relative_eq!(result.as_m2(), 6.0);
+
+        let a = Area::from_km2(1.0);
+        let result = 2.0 * a;
+        assert_relative_eq!(result.as_km2(), 2.0);
+    }
+
+    #[test]
+    fn test_f64_div_area() {
+        // f64 / Area 测试
+        let a = Area::from_m2(2.0);
+        let result = 6.0 / a;
+        assert_relative_eq!(result.as_m2(), 3.0);
+
+        let a = Area::from_km2(1.0);
+        let result = 2.0 / a;
+        assert_relative_eq!(result.as_km2(), 2.0);
     }
 }

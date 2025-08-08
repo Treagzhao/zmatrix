@@ -137,6 +137,24 @@ impl Div<f64> for Volume {
     }
 }
 
+impl Mul<Volume> for f64 {
+    type Output = Volume;
+    fn mul(self, rhs: Volume) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<Volume> for f64 {
+    type Output = Volume;
+    fn div(self, rhs: Volume) -> Self::Output {
+        let v = self / rhs.v;
+        Volume {
+            default_type: rhs.default_type,
+            v: v,
+        }
+    }
+}
+
 impl Div<Coef> for Volume {
     type Output = Volume;
     fn div(self, rhs: Coef) -> Self::Output {
@@ -287,5 +305,29 @@ mod tests {
         let d = Distance::from_m(10.0);
         let a = v / d;
         assert_relative_eq!(a.as_m2(),100.0);
+    }
+
+    #[test]
+    fn test_f64_mul_volume() {
+        // f64 * Volume 测试
+        let v = Volume::from_m3(2.0);
+        let result = 3.0 * v;
+        assert_relative_eq!(result.as_m3(), 6.0);
+
+        let v = Volume::from_km3(1.0);
+        let result = 2.0 * v;
+        assert_relative_eq!(result.as_km3(), 2.0);
+    }
+
+    #[test]
+    fn test_f64_div_volume() {
+        // f64 / Volume 测试
+        let v = Volume::from_m3(2.0);
+        let result = 6.0 / v;
+        assert_relative_eq!(result.as_m3(), 3.0);
+
+        let v = Volume::from_km3(1.0);
+        let result = 2.0 / v;
+        assert_relative_eq!(result.as_km3(), 2.0);
     }
 }

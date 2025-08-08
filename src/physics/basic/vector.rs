@@ -222,6 +222,7 @@ impl<T: PhysicalQuantity + Div<Coef, Output = T> + Default> Div<Coef> for Vector
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::physics::basic::MagneticInduction;
     use approx::assert_relative_eq;
     #[test]
     fn test_new() {
@@ -488,5 +489,45 @@ mod tests {
         let b: Vector3<Coef> = Vector3::new(Coef::new(2.0), Coef::new(6.0), Coef::new(8.0));
         let result = a.dot(&b);
         assert_eq!(result.get_value(), 52.0);
+    }
+
+    #[test]
+    fn test_vector3_magnetic_induction_add_sub() {
+        // 创建两个MagneticInduction向量
+        let vec1 = Vector3::new(
+            MagneticInduction::from_tesla(1.0),
+            MagneticInduction::from_gauss(100.0),
+            MagneticInduction::from_mill_tesla(500.0),
+        );
+        
+        let vec2 = Vector3::new(
+            MagneticInduction::from_tesla(2.0),
+            MagneticInduction::from_gauss(200.0),
+            MagneticInduction::from_mill_tesla(1000.0),
+        );
+        
+        // 测试加法
+        let vec_add = vec1 + vec2;
+        assert_relative_eq!(vec_add.x.as_tesla(), 3.0, epsilon = 1e-8);
+        assert_relative_eq!(vec_add.y.as_gauss(), 300.0, epsilon = 1e-8);
+        assert_relative_eq!(vec_add.z.as_milli_tesla(), 1500.0, epsilon = 1e-8);
+        
+        // 测试减法
+        let vec_sub = vec2 - vec1;
+        assert_relative_eq!(vec_sub.x.as_tesla(), 1.0, epsilon = 1e-8);
+        assert_relative_eq!(vec_sub.y.as_gauss(), 100.0, epsilon = 1e-8);
+        assert_relative_eq!(vec_sub.z.as_milli_tesla(), 500.0, epsilon = 1e-8);
+        
+        // 测试不同类型单位的混合运算
+        let vec3 = Vector3::new(
+            MagneticInduction::from_micro_tesla(1000000.0), // 1 Tesla
+            MagneticInduction::from_kilo_gauss(1.0),        // 1000 Gauss
+            MagneticInduction::from_nano_tesla(1000000000.0), // 1 Tesla
+        );
+        
+        let vec_mixed = vec1 + vec3;
+        assert_relative_eq!(vec_mixed.x.as_tesla(), 2.0, epsilon = 1e-8);
+        assert_relative_eq!(vec_mixed.y.as_gauss(), 1100.0, epsilon = 1e-8);
+        assert_relative_eq!(vec_mixed.z.as_tesla(), 1.5, epsilon = 1e-8);
     }
 }

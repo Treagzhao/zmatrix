@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::collections::HashMap;
+use std::ops::{Add, Sub};
 use lazy_static::lazy_static;
 use crate::physics::basic::{MagneticInduction, MagneticInductionType, PhysicalQuantity};
 lazy_static! {
@@ -119,6 +120,43 @@ impl MagneticInduction {
             }
         }
     }
+
+    pub fn as_nano_tesla(&self) -> f64 {
+        match self.default_type {
+            MagneticInductionType::Gauss | MagneticInductionType::MillGauss | MagneticInductionType::KiloGauss =>{
+                let v = convert_gauss_value(self.v, self.default_type, MagneticInductionType::Gauss).unwrap();
+                v * 1e5
+            },
+            _ => {
+                let v = convert_tesla_value(self.v, self.default_type, MagneticInductionType::Tesla).unwrap();
+                v * 1e9
+            }
+        }
+    }
+
+    pub fn as_mill_gauss(&self) -> f64 {
+        match self.default_type {
+            MagneticInductionType::Gauss | MagneticInductionType::MillGauss | MagneticInductionType::KiloGauss =>{
+                convert_gauss_value(self.v, self.default_type, MagneticInductionType::MillGauss).unwrap()
+            },
+            _ => {
+                let v = convert_tesla_value(self.v, self.default_type, MagneticInductionType::Tesla).unwrap();
+                v * 1e7
+            }
+        }
+    }
+
+    pub fn as_kilo_gauss(&self) -> f64 {
+        match self.default_type {
+            MagneticInductionType::Gauss | MagneticInductionType::MillGauss | MagneticInductionType::KiloGauss =>{
+                convert_gauss_value(self.v, self.default_type, MagneticInductionType::KiloGauss).unwrap()
+            },
+            _ => {
+                let v = convert_tesla_value(self.v, self.default_type, MagneticInductionType::Tesla).unwrap();
+                v * 1e1
+            }
+        }
+    }
 }
 
 fn convert_gauss_value(v: f64, from: MagneticInductionType, to: MagneticInductionType) -> Option<f64> {
@@ -143,7 +181,7 @@ impl PhysicalQuantity for MagneticInduction {
     }
 
     fn default_unit_value(&self) -> f64 {
-        self.v
+        self.as_tesla()
     }
 
     fn set_value(&mut self, value: f64) {
@@ -154,6 +192,94 @@ impl PhysicalQuantity for MagneticInduction {
 impl Default for MagneticInduction {
     fn default() -> Self {
         MagneticInduction::from_tesla(0.0)
+    }
+}
+
+impl Add for MagneticInduction {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        let v = self.as_tesla() + rhs.as_tesla();
+        MagneticInduction::from_tesla(v)
+    }
+}
+
+impl Add<f64> for MagneticInduction {
+    type Output = Self;
+    fn add(self, rhs: f64) -> Self::Output {
+        return match self.default_type {
+            MagneticInductionType::Tesla => {
+                let v = self.as_tesla() + rhs;
+                Self::from_tesla(v)
+            }
+            MagneticInductionType::Gauss => {
+                let v = self.as_gauss() + rhs;
+                Self::from_gauss(v)
+            }
+            MagneticInductionType::MillTesla => {
+                let v = self.as_milli_tesla() + rhs;
+                Self::from_mill_tesla(v)
+            }
+            MagneticInductionType::MicroTesla => {
+                let v = self.as_micro_tesla() + rhs;
+                Self::from_micro_tesla(v)
+            }
+            MagneticInductionType::NanoTesla => {
+                let v = self.as_nano_tesla() + rhs;
+                Self::from_nano_tesla(v)
+            }
+            MagneticInductionType::MillGauss => {
+                let v = self.as_mill_gauss() + rhs;
+                Self::from_mill_gauss(v)
+            }
+            MagneticInductionType::KiloGauss => {
+                let v = self.as_kilo_gauss() + rhs;
+                Self::from_kilo_gauss(v)
+            }
+        };
+    }
+}
+
+impl Sub for MagneticInduction {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        let v = self.as_tesla() - rhs.as_tesla();
+        MagneticInduction::from_tesla(v)
+    }
+}
+
+impl Sub<f64> for MagneticInduction {
+    type Output = Self;
+    fn sub(self, rhs: f64) -> Self::Output {
+        return match self.default_type {
+            MagneticInductionType::Tesla => {
+                let v = self.as_tesla() - rhs;
+                Self::from_tesla(v)
+            }
+            MagneticInductionType::Gauss => {
+                let v = self.as_gauss() - rhs;
+                Self::from_gauss(v)
+            }
+            MagneticInductionType::MillTesla => {
+                let v = self.as_milli_tesla() - rhs;
+                Self::from_mill_tesla(v)
+            }
+            MagneticInductionType::MicroTesla => {
+                let v = self.as_micro_tesla() - rhs;
+                Self::from_micro_tesla(v)
+            }
+            MagneticInductionType::NanoTesla => {
+                let v = self.as_nano_tesla() - rhs;
+                Self::from_nano_tesla(v)
+            }
+            MagneticInductionType::MillGauss => {
+                let v = self.as_mill_gauss() - rhs;
+                Self::from_mill_gauss(v)
+            }
+            MagneticInductionType::KiloGauss => {
+                let v = self.as_kilo_gauss() - rhs;
+                Self::from_kilo_gauss(v)
+            }
+        };
     }
 }
 
@@ -381,5 +507,141 @@ mod tests {
             default_type: MagneticInductionType::Gauss,
         };
         assert_eq!(zero_case.as_micro_tesla(), 0.0);
+    }
+
+    #[test]
+    fn test_magnetic_induction_add() {
+        {
+            // 同类型加法测试
+            let m1 = MagneticInduction::from_tesla(1.0);
+            let m2 = MagneticInduction::from_tesla(2.0);
+            let m3 = m1 + m2;
+            assert_relative_eq!(m3.as_tesla(), 3.0);
+
+            let m1 = MagneticInduction::from_gauss(10.0);
+            let m2 = MagneticInduction::from_gauss(20.0);
+            let m3 = m1 + m2;
+            assert_relative_eq!(m3.as_gauss(), 30.0);
+
+            let m1 = MagneticInduction::from_mill_tesla(100.0);
+            let m2 = MagneticInduction::from_mill_tesla(200.0);
+            let m3 = m1 + m2;
+            assert_relative_eq!(m3.as_milli_tesla(), 300.0);
+
+            let m1 = MagneticInduction::from_micro_tesla(1000.0);
+            let m2 = MagneticInduction::from_micro_tesla(2000.0);
+            let m3 = m1 + m2;
+            assert_relative_eq!(m3.as_micro_tesla(), 3000.0);
+        }
+        {
+            // 不同类型加法测试
+            let m1 = MagneticInduction::from_tesla(1.0);
+            let m2 = MagneticInduction::from_gauss(10000.0);
+            let m3 = m1 + m2;
+            assert_relative_eq!(m3.as_tesla(), 2.0);
+
+            let m1 = MagneticInduction::from_mill_tesla(1000.0);
+            let m2 = MagneticInduction::from_micro_tesla(1000000.0);
+            let m3 = m1 + m2;
+            assert_relative_eq!(m3.as_milli_tesla(), 2000.0);
+        }
+        {
+            // 与标量加法测试
+            let m1 = MagneticInduction::from_tesla(1.0);
+            let m2 = m1 + 2.0;
+            assert_relative_eq!(m2.as_tesla(), 3.0);
+
+            let m1 = MagneticInduction::from_gauss(10.0);
+            let m2 = m1 + 20.0;
+            assert_relative_eq!(m2.as_gauss(), 30.0);
+
+            let m1 = MagneticInduction::from_mill_tesla(100.0);
+            let m2 = m1 + 200.0;
+            assert_relative_eq!(m2.as_milli_tesla(), 300.0);
+
+            let m1 = MagneticInduction::from_micro_tesla(1000.0);
+            let m2 = m1 + 2000.0;
+            assert_relative_eq!(m2.as_micro_tesla(), 3000.0);
+
+            let m1 = MagneticInduction::from_nano_tesla(1000000.0);
+            let m2 = m1 + 2000000.0;
+            assert_relative_eq!(m2.as_tesla(), 3e-3);
+
+            let m1 = MagneticInduction::from_mill_gauss(1000.0);
+            let m2 = m1 + 2000.0;
+            assert_relative_eq!(m2.as_gauss(), 3.0);
+
+            let m1 = MagneticInduction::from_kilo_gauss(1.0);
+            let m2 = m1 + 2.0;
+            assert_relative_eq!(m2.as_gauss(), 3000.0);
+        }
+    }
+
+    #[test]
+    fn test_magnetic_induction_sub() {
+        {
+            // 同类型减法测试
+            let m1 = MagneticInduction::from_tesla(3.0);
+            let m2 = MagneticInduction::from_tesla(1.0);
+            let m3 = m1 - m2;
+            assert_relative_eq!(m3.as_tesla(), 2.0);
+
+            let m1 = MagneticInduction::from_gauss(30.0);
+            let m2 = MagneticInduction::from_gauss(10.0);
+            let m3 = m1 - m2;
+            assert_relative_eq!(m3.as_gauss(), 20.0);
+
+            let m1 = MagneticInduction::from_mill_tesla(300.0);
+            let m2 = MagneticInduction::from_mill_tesla(100.0);
+            let m3 = m1 - m2;
+            assert_relative_eq!(m3.as_milli_tesla(), 200.0);
+
+            let m1 = MagneticInduction::from_micro_tesla(3000.0);
+            let m2 = MagneticInduction::from_micro_tesla(1000.0);
+            let m3 = m1 - m2;
+            assert_relative_eq!(m3.as_micro_tesla(), 2000.0);
+        }
+        {
+            // 不同类型减法测试
+            let m1 = MagneticInduction::from_tesla(2.0);
+            let m2 = MagneticInduction::from_gauss(10000.0);
+            let m3 = m1 - m2;
+            assert_relative_eq!(m3.as_tesla(), 1.0);
+
+            let m1 = MagneticInduction::from_mill_tesla(2000.0);
+            let m2 = MagneticInduction::from_micro_tesla(1000000.0);
+            let m3 = m1 - m2;
+            assert_relative_eq!(m3.as_milli_tesla(), 1000.0);
+        }
+        {
+            // 与标量减法测试
+            let m1 = MagneticInduction::from_tesla(3.0);
+            let m2 = m1 - 1.0;
+            assert_relative_eq!(m2.as_tesla(), 2.0);
+
+            let m1 = MagneticInduction::from_gauss(30.0);
+            let m2 = m1 - 10.0;
+            assert_relative_eq!(m2.as_gauss(), 20.0);
+
+            let m1 = MagneticInduction::from_mill_tesla(300.0);
+            let m2 = m1 - 100.0;
+            assert_relative_eq!(m2.as_milli_tesla(), 200.0);
+
+            let m1 = MagneticInduction::from_micro_tesla(3000.0);
+            let m2 = m1 - 1000.0;
+            assert_relative_eq!(m2.as_micro_tesla(), 2000.0);
+
+            let m1 = MagneticInduction::from_nano_tesla(3000000.0);
+            let m2 = m1 - 1000000.0;
+            assert_relative_eq!(m2.as_tesla(), 2e-3);
+
+            let m1 = MagneticInduction::from_mill_gauss(3000.0);
+            let m2 = m1 - 1000.0;
+            assert_relative_eq!(m2.as_gauss(), 2.0);
+
+            let m1 = MagneticInduction::from_kilo_gauss(3.0);
+            let m2 = m1 - 1.0;
+            assert_relative_eq!(m2.as_gauss(), 2000.0);
+        }
     }
 }

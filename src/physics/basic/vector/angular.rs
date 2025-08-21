@@ -142,29 +142,29 @@ mod tests {
             Vector3::new(
                 Angular::from_rad(0.0),
                 Angular::from_rad(0.0),
-                Angular::from_rad(0.0)
+                Angular::from_rad(0.0),
             ),
             Vector3::new(
                 Angular::from_rad(PI),
                 Angular::from_rad(PI),
-                Angular::from_rad(PI)
+                Angular::from_rad(PI),
             ),
             // Edge cases
             Vector3::new(
                 Angular::from_rad(2.0 * PI),
                 Angular::from_rad(2.0 * PI),
-                Angular::from_rad(2.0 * PI)
+                Angular::from_rad(2.0 * PI),
             ),
             Vector3::new(
                 Angular::from_rad(PI / 2.0),
                 Angular::from_rad(3.0 * PI / 2.0),
-                Angular::from_rad(PI / 4.0)
+                Angular::from_rad(PI / 4.0),
             ),
             // Extreme values
             Vector3::new(
                 Angular::from_rad(1000.0 * PI),
                 Angular::from_rad(-500.0 * PI),
-                Angular::from_rad(123.456 * PI)
+                Angular::from_rad(123.456 * PI),
             ),
         ]
     }
@@ -177,9 +177,21 @@ mod tests {
             let result = vector.mod_to_round();
 
             // Check each component is properly rounded
-            assert_relative_eq!(result.x.as_rad(), vector.x.mod_to_round().as_rad(), epsilon = 1e-7);
-            assert_relative_eq!(result.y.as_rad(), vector.y.mod_to_round().as_rad(), epsilon = 1e-7);
-            assert_relative_eq!(result.z.as_rad(), vector.z.mod_to_round().as_rad(), epsilon = 1e-7);
+            assert_relative_eq!(
+                result.x.as_rad(),
+                vector.x.mod_to_round().as_rad(),
+                epsilon = 1e-7
+            );
+            assert_relative_eq!(
+                result.y.as_rad(),
+                vector.y.mod_to_round().as_rad(),
+                epsilon = 1e-7
+            );
+            assert_relative_eq!(
+                result.z.as_rad(),
+                vector.z.mod_to_round().as_rad(),
+                epsilon = 1e-7
+            );
 
             // Verify results are within expected range [0, 2π)
             assert!(result.x.as_rad() >= 0.0 && result.x.as_rad() < 2.0 * PI);
@@ -196,14 +208,26 @@ mod tests {
             let result = vector.mod_to_round_half();
 
             // Check each component is properly rounded to half intervals
-            assert_relative_eq!(result.x.as_rad(), vector.x.mod_to_round_half().as_rad(), epsilon = 1e-7);
-            assert_relative_eq!(result.y.as_rad(), vector.y.mod_to_round_half().as_rad(), epsilon = 1e-7);
-            assert_relative_eq!(result.z.as_rad(), vector.z.mod_to_round_half().as_rad(), epsilon = 1e-7);
+            assert_relative_eq!(
+                result.x.as_rad(),
+                vector.x.mod_to_round_half().as_rad(),
+                epsilon = 1e-7
+            );
+            assert_relative_eq!(
+                result.y.as_rad(),
+                vector.y.mod_to_round_half().as_rad(),
+                epsilon = 1e-7
+            );
+            assert_relative_eq!(
+                result.z.as_rad(),
+                vector.z.mod_to_round_half().as_rad(),
+                epsilon = 1e-7
+            );
 
             // Verify results are within expected range [0, 2π)
-            assert!(result.x.as_rad() >= 0.0 && result.x.as_rad() < 2.0 * PI);
-            assert!(result.y.as_rad() >= 0.0 && result.y.as_rad() < 2.0 * PI);
-            assert!(result.z.as_rad() >= 0.0 && result.z.as_rad() < 2.0 * PI);
+            assert!(result.x.as_rad() >= -PI && result.x.as_rad() < PI);
+            assert!(result.y.as_rad() >= -PI && result.y.as_rad() < PI);
+            assert!(result.z.as_rad() >= -PI && result.z.as_rad() < PI);
         }
     }
 
@@ -213,7 +237,7 @@ mod tests {
         let zero = Vector3::new(
             Angular::from_rad(0.0),
             Angular::from_rad(0.0),
-            Angular::from_rad(0.0)
+            Angular::from_rad(0.0),
         );
 
         let rounded = zero.mod_to_round();
@@ -233,7 +257,7 @@ mod tests {
         let full_rotation = Vector3::new(
             Angular::from_rad(2.0 * PI),
             Angular::from_rad(4.0 * PI),
-            Angular::from_rad(6.0 * PI)
+            Angular::from_rad(6.0 * PI),
         );
 
         let rounded = full_rotation.mod_to_round();

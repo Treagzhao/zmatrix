@@ -1,6 +1,7 @@
 use super::*;
 use crate::constant::FLT64_ZERO;
 use crate::spatial_geometry::quaternion::Quaternion;
+use crate::physics::basic::AngularType;
 
 impl Vector3<Angular> {
     pub fn to_f32_array(&self) -> [f32; 3] {
@@ -65,6 +66,35 @@ impl Vector3<Angular> {
             self.z.mod_to_round_half(),
         );
         return result;
+    }
+
+    pub fn to_vector3_coef(&self, angular_type: AngularType) -> Vector3<Coef> {
+        match angular_type {
+            AngularType::Rad => {
+                let (x, y, z) = (self.x.as_rad(), self.y.as_rad(), self.z.as_rad());
+                Vector3::<Coef>::from_array([x, y, z])
+            }
+            AngularType::Deg => {
+                let (x, y, z) = (self.x.as_deg(), self.y.as_deg(), self.z.as_deg());
+                Vector3::<Coef>::from_array([x, y, z])
+            }
+        }
+    }
+
+    pub fn from_vector_coef(coef: Vector3<Coef>, angular_type: AngularType) -> Vector3<Angular> {
+        let x = Angular {
+            v: coef.x.v,
+            default_type: angular_type,
+        };
+        let y = Angular {
+            v: coef.y.v,
+            default_type: angular_type,
+        };
+        let z = Angular {
+            v: coef.z.v,
+            default_type: angular_type,
+        };
+        Vector3::new(x, y, z)
     }
 }
 
@@ -269,5 +299,81 @@ mod tests {
         assert_relative_eq!(rounded_half.x.as_rad(), 0.0, epsilon = 1e-7);
         assert_relative_eq!(rounded_half.y.as_rad(), 0.0, epsilon = 1e-7);
         assert_relative_eq!(rounded_half.z.as_rad(), 0.0, epsilon = 1e-7);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_rad() {
+        let angular_vec = Vector3::new(
+            Angular::from_rad(1.0),
+            Angular::from_rad(2.0),
+            Angular::from_rad(3.0),
+        );
+        
+        let coef_vec = angular_vec.to_vector3_coef(AngularType::Rad);
+        
+        assert_relative_eq!(coef_vec.x, 1.0);
+        assert_relative_eq!(coef_vec.y, 2.0);
+        assert_relative_eq!(coef_vec.z, 3.0);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_deg() {
+        let angular_vec = Vector3::new(
+            Angular::from_rad(PI),     // π rad = 180°
+            Angular::from_rad(PI/2.0), // π/2 rad = 90°
+            Angular::from_rad(PI/4.0), // π/4 rad = 45°
+        );
+        
+        let coef_vec = angular_vec.to_vector3_coef(AngularType::Deg);
+        
+        assert_relative_eq!(coef_vec.x, 180.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y, 90.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z, 45.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_from_vector_coef_rad() {
+        let coef_vec = Vector3::new(
+            Coef::new(1.0),
+            Coef::new(2.0),
+            Coef::new(3.0),
+        );
+
+        let angular_vec = Vector3::<Angular>::from_vector_coef(coef_vec, AngularType::Rad);
+
+        assert_relative_eq!(angular_vec.x.as_rad(), 1.0);
+        assert_relative_eq!(angular_vec.y.as_rad(), 2.0);
+        assert_relative_eq!(angular_vec.z.as_rad(), 3.0);
+    }
+
+    #[test]
+    fn test_from_vector_coef_deg() {
+        let coef_vec = Vector3::new(
+            Coef::new(180.0),
+            Coef::new(90.0),
+            Coef::new(45.0),
+        );
+
+        let angular_vec = Vector3::<Angular>::from_vector_coef(coef_vec, AngularType::Deg);
+
+        assert_relative_eq!(angular_vec.x.as_deg(), 180.0);
+        assert_relative_eq!(angular_vec.y.as_deg(), 90.0);
+        assert_relative_eq!(angular_vec.z.as_deg(), 45.0);
+    }
+
+    #[test]
+    fn test_from_vector_coef_roundtrip() {
+        let original_angular_vec = Vector3::new(
+            Angular::from_rad(PI),
+            Angular::from_rad(PI/2.0),
+            Angular::from_rad(PI/4.0),
+        );
+
+        let coef_vec = original_angular_vec.to_vector3_coef(AngularType::Rad);
+        let reconstructed_angular_vec = Vector3::<Angular>::from_vector_coef(coef_vec, AngularType::Rad);
+
+        assert_relative_eq!(original_angular_vec.x.as_rad(), reconstructed_angular_vec.x.as_rad());
+        assert_relative_eq!(original_angular_vec.y.as_rad(), reconstructed_angular_vec.y.as_rad());
+        assert_relative_eq!(original_angular_vec.z.as_rad(), reconstructed_angular_vec.z.as_rad());
     }
 }

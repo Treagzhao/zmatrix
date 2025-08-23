@@ -1,9 +1,16 @@
+mod acceleration;
 mod angular;
 mod angular_acceleration;
+mod angular_momentum;
 mod angular_velocity;
+mod area;
 mod coef;
 mod distance;
+mod magnetic_induction;
+mod mass;
+mod momentum;
 mod velocity;
+mod volume;
 
 use super::*;
 use crate::dense::Matrix;

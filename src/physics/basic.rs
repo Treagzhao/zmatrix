@@ -12,6 +12,9 @@ mod coef;
 mod angular_acceleration;
 mod area;
 mod magnetic_induction;
+mod magnetic_moment;
+mod torque;
+mod energy;
 pub mod mass;
 mod angular_momentum;
 mod momentum;
@@ -173,6 +176,62 @@ pub struct MagneticInduction {
     pub v: f64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum MagneticMomentType {
+    AM2,           // 安培·平方米 (A·m²)
+    MillAM2,       // 毫安培·平方米 (mA·m²)
+    MicroAM2,      // 微安培·平方米 (μA·m²)
+    NanoAM2,       // 纳安培·平方米 (nA·m²)
+    JPerTesla,     // 焦耳/特斯拉 (J/T)
+    MillJPerTesla, // 毫焦耳/特斯拉 (mJ/T)
+    MicroJPerTesla, // 微焦耳/特斯拉 (μJ/T)
+    NanoJPerTesla, // 纳焦耳/特斯拉 (nJ/T)
+}
+
+// 磁矩，单位是安培·平方米或焦耳/特斯拉
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MagneticMoment {
+    default_type: MagneticMomentType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum TorqueType {
+    NM,           // 牛顿·米 (N·m)
+    MillNM,       // 毫牛顿·米 (mN·m)
+    MicroNM,      // 微牛顿·米 (μN·m)
+    NanoNM,       // 纳牛顿·米 (nN·m)
+    KNM,          // 千牛顿·米 (kN·m)
+    MNM,          // 兆牛顿·米 (MN·m)
+}
+
+// 力矩，单位是牛顿·米
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Torque {
+    default_type: TorqueType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum EnergyType {
+    Joule,           // 焦耳 (J)
+    MillJoule,       // 毫焦耳 (mJ)
+    MicroJoule,      // 微焦耳 (μJ)
+    NanoJoule,       // 纳焦耳 (nJ)
+    KiloJoule,       // 千焦耳 (kJ)
+    MegaJoule,       // 兆焦耳 (MJ)
+    ElectronVolt,    // 电子伏特 (eV)
+    KiloElectronVolt, // 千电子伏特 (keV)
+    MegaElectronVolt, // 兆电子伏特 (MeV)
+}
+
+// 能量，单位是焦耳
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Energy {
+    default_type: EnergyType,
+    pub v: f64,
+}
+
 
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum VolumeType {
@@ -185,6 +244,8 @@ pub struct Volume {
     default_type: VolumeType,
     pub v: f64,
 }
+
+
 
 impl Default for Distance {
     fn default() -> Self {
@@ -338,5 +399,68 @@ mod tests {
         let a = Volume::from_m3(3.8);
         let b = a.clone();
         assert_relative_eq!(a.as_km3(),b.as_km3(),epsilon=1e-8);
+    }
+
+    #[test]
+    fn test_magnetic_moment_as_any(){
+        let g: &dyn PhysicalQuantity = &MagneticMoment::from_am2(1.23);
+        let d = g.as_any().downcast_ref::<MagneticMoment>().unwrap();
+        assert_eq!(d.default_type, MagneticMomentType::AM2);
+    }
+
+    #[test]
+    fn test_magnetic_moment_default(){
+        let mm = MagneticMoment::default();
+        assert_eq!(0.0, mm.as_am2());
+    }
+
+    #[test]
+    fn test_magnetic_moment_is_zero(){
+        let mm = MagneticMoment::from_am2(0.0);
+        assert_eq!(true, mm.is_zero());
+        let mm = MagneticMoment::from_am2(1.0);
+        assert_eq!(false, mm.is_zero());
+    }
+
+    #[test]
+    fn test_torque_as_any(){
+        let g: &dyn PhysicalQuantity = &Torque::from_nm(1.23);
+        let d = g.as_any().downcast_ref::<Torque>().unwrap();
+        assert_eq!(d.default_type, TorqueType::NM);
+    }
+
+    #[test]
+    fn test_torque_default(){
+        let t = Torque::default();
+        assert_eq!(0.0, t.as_nm());
+    }
+
+    #[test]
+    fn test_torque_is_zero(){
+        let t = Torque::from_nm(0.0);
+        assert_eq!(true, t.is_zero());
+        let t = Torque::from_nm(1.0);
+        assert_eq!(false, t.is_zero());
+    }
+
+    #[test]
+    fn test_energy_as_any(){
+        let g: &dyn PhysicalQuantity = &Energy::from_joule(1.23);
+        let d = g.as_any().downcast_ref::<Energy>().unwrap();
+        assert_eq!(d.default_type, EnergyType::Joule);
+    }
+
+    #[test]
+    fn test_energy_default(){
+        let e = Energy::default();
+        assert_eq!(0.0, e.as_joule());
+    }
+
+    #[test]
+    fn test_energy_is_zero(){
+        let e = Energy::from_joule(0.0);
+        assert_eq!(true, e.is_zero());
+        let e = Energy::from_joule(1.0);
+        assert_eq!(false, e.is_zero());
     }
 }

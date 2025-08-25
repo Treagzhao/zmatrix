@@ -75,28 +75,28 @@ impl<T: VectorQuantity + Default> Vector3<T> {
         ];
         Matrix::new(data)
     }
-    // 通过两个向量叉乘返回与平面垂直的单位向量
-    pub fn cross_unit(&self, rhs: &Vector3<T>) -> Vector3<T> {
-        let result = self.cross(rhs);
-        result.normalize()
-    }
-
-    //通过两个向量叉乘返回与平面垂直的向量
-    pub fn cross(&self, rhs: &Vector3<T>) -> Vector3<T> {
-        let crsf3 = [
-            self.y.default_unit_value() * rhs.z.default_unit_value()
-                - self.z.default_unit_value() * rhs.y.default_unit_value(), // 1维值叉乘值
-            self.z.default_unit_value() * rhs.x.default_unit_value()
-                - self.x.default_unit_value() * rhs.z.default_unit_value(), // 2维值叉乘值
-            self.x.default_unit_value() * rhs.y.default_unit_value()
-                - self.y.default_unit_value() * rhs.x.default_unit_value(), // 3维值叉乘值
-        ];
-        let mut result: Vector3<T> = Vector3::default();
-        result.x.set_value(crsf3[0]);
-        result.y.set_value(crsf3[1]);
-        result.z.set_value(crsf3[2]);
-        result
-    }
+    // // 通过两个向量叉乘返回与平面垂直的单位向量
+    // pub fn cross_unit(&self, rhs: &Vector3<T>) -> Vector3<T> {
+    //     let result = self.cross(rhs);
+    //     result.normalize()
+    // }
+    //
+    // //通过两个向量叉乘返回与平面垂直的向量
+    // pub fn cross(&self, rhs: &Vector3<T>) -> Vector3<T> {
+    //     let crsf3 = [
+    //         self.y.default_unit_value() * rhs.z.default_unit_value()
+    //             - self.z.default_unit_value() * rhs.y.default_unit_value(), // 1维值叉乘值
+    //         self.z.default_unit_value() * rhs.x.default_unit_value()
+    //             - self.x.default_unit_value() * rhs.z.default_unit_value(), // 2维值叉乘值
+    //         self.x.default_unit_value() * rhs.y.default_unit_value()
+    //             - self.y.default_unit_value() * rhs.x.default_unit_value(), // 3维值叉乘值
+    //     ];
+    //     let mut result: Vector3<T> = Vector3::default();
+    //     result.x.set_value(crsf3[0]);
+    //     result.y.set_value(crsf3[1]);
+    //     result.z.set_value(crsf3[2]);
+    //     result
+    // }
 
     //向量点积
     pub fn dot(&self, rhs: &Vector3<T>) -> T {
@@ -240,14 +240,17 @@ where
     }
 }
 
-impl<T, B, F> Vector3<T>
+impl<T> Vector3<T>
 where
-    T: VectorQuantity + Mul<B, Output = F> + Default + Copy + Sub<T, Output = T>,
-    B: VectorQuantity + Default + Copy,
-    F: VectorQuantity + Default + Copy + Sub<F, Output = F>,
+    T: VectorQuantity + Default + Copy,
 {
-    pub fn cross(self, rhs: Vector3<B>) -> Vector3<F> {
-        let x = self.x.default_unit_value() * rhs.z.default_unit_value()
+    pub fn cross<B, F>(self, rhs: &Vector3<B>) -> Vector3<F>
+    where
+        T: Mul<B, Output = F> + Sub<T, Output = T>,
+        B: VectorQuantity + Default + Copy,
+        F: VectorQuantity + Default + Copy + Sub<F, Output = F>,
+    {
+        let x = self.y.default_unit_value() * rhs.z.default_unit_value()
             - self.z.default_unit_value() * rhs.y.default_unit_value();
         let y = self.z.default_unit_value() * rhs.x.default_unit_value()
             - self.x.default_unit_value() * rhs.z.default_unit_value();
@@ -260,6 +263,17 @@ where
         f_y.set_value(y);
         f_z.set_value(z);
         Vector3::new(f_x, f_y, f_z)
+    }
+
+    pub fn cross_unit<B, F>(self, rhs: &Vector3<B>) -> Vector3<F>
+    where
+        T: Mul<B, Output = F> + Sub<T, Output = T>,
+        B: VectorQuantity + Default + Copy,
+        F: VectorQuantity + Default + Copy + Sub<F, Output = F>,
+    {
+        let result = self.cross(rhs);
+        println!("{:?}",result.to_array());
+        result.normalize()
     }
 }
 

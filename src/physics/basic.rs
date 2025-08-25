@@ -153,7 +153,7 @@ pub struct Momentum {
 }
 
 #[derive(Clone, Debug, PartialEq, Copy)]
-pub struct Vector3<T: PhysicalQuantity + Default> {
+pub struct Vector3<T: VectorQuantity + Default> {
     pub x: T,
     pub y: T,
     pub z: T,
@@ -386,7 +386,7 @@ impl Default for AngularAcceleration {
 }
 
 
-impl<T: PhysicalQuantity + Default> Default for Vector3<T> {
+impl<T: VectorQuantity + Default> Default for Vector3<T> {
     fn default() -> Self {
         Vector3 {
             x: T::default(),

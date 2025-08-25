@@ -1,6 +1,6 @@
 use super::*;
 use crate::dense::Matrix;
-use crate::physics::basic::{Angular, Coef, PhysicalQuantity, Vector3};
+use crate::physics::basic::{Angular, Coef, PhysicalQuantity, Vector3, VectorQuantity};
 use crate::spatial_geometry::quaternion::Quaternion;
 use crate::utils::float::sgn2_64;
 use std::ops::{Add, Div, Mul, Sub};
@@ -426,7 +426,7 @@ impl CosMatrix {
     }
 
     // 与一个列向量进行矩阵乘法，得到一个列向量
-    pub fn product_vector<T: PhysicalQuantity + Default>(&self, vec: &Vector3<T>) -> Vector3<T> {
+    pub fn product_vector<T: VectorQuantity + Default>(&self, vec: &Vector3<T>) -> Vector3<T> {
         let vec_arr = vec.to_array();
         let mut result: Vector3<T> = Vector3::default();
         result.x.set_value(

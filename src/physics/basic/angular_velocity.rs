@@ -227,6 +227,15 @@ impl Div<Coef> for AngularVelocity {
     }
 }
 
+// 角速度 × 角动量 = 力矩（满足交换律）
+impl Mul<AngularMomentum> for AngularVelocity {
+    type Output = Torque;
+    fn mul(self, rhs: AngularMomentum) -> Self::Output {
+        let torque_value = self.as_rad_per_second() * rhs.as_kg_m2_per_second();
+        Torque::from_nm(torque_value)
+    }
+}
+
 impl Div for AngularVelocity {
     type Output = Coef;
     fn div(self, rhs: Self) -> Self::Output {
@@ -488,5 +497,20 @@ mod tests {
         let a = AngularVelocity::from_rad_per_hour(PI);
         let result = 2.0 * PI / a;
         assert_relative_eq!(result.as_rad_per_hour(), 2.0);
+    }
+
+    #[test]
+    fn test_angular_velocity_mul_angular_momentum() {
+        // 角速度 × 角动量 = 力矩（满足交换律）
+        let omega = AngularVelocity::from_rad_per_second(5.0);
+        let l = AngularMomentum::from_kg_m2_per_second(10.0);
+        let torque = omega * l;
+        assert_relative_eq!(torque.as_nm(), 50.0);
+
+        // 测试不同单位
+        let omega = AngularVelocity::from_deg_per_second(180.0);
+        let l = AngularMomentum::from_kg_km2_per_second(1.0);
+        let torque = omega * l;
+        assert_relative_eq!(torque.as_nm(), 1e6 * std::f64::consts::PI);
     }
 }

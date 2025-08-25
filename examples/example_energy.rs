@@ -48,40 +48,8 @@ fn main() {
     println!("   e1 * 3 = {} J", e_scale.as_joule());
     println!("   e_scale / 2 = {} J", e_div.as_joule());
 
-    // 4. 能量与距离的乘积（得到功）
-    println!("\n4. 能量与距离的乘积（得到功）:");
-    let d = Distance::from_m(2.0); // 2 m
-    let work = e1 * d; // 1 J × 2 m = 2 J·m
-    println!("   能量: {} J", e1.as_joule());
-    println!("   距离: {} m", d.as_m());
-    println!("   功: {} J·m", work);
-
-    // 5. 能量与质量的乘积
-    println!("\n5. 能量与质量的乘积:");
-    let m = Mass::from_kg(3.0); // 3 kg
-    let result = e1 * m; // 1 J × 3 kg = 3 kg·J
-    println!("   能量: {} J", e1.as_joule());
-    println!("   质量: {} kg", m.as_kg());
-    println!("   结果: {} kg·J", result);
-
-    // 6. 能量与速度的乘积（得到功率）
-    println!("\n6. 能量与速度的乘积（得到功率）:");
-    let v = Velocity::from_m_per_sec(4.0); // 4 m/s
-    let power = e1 * v; // 1 J × 4 m/s = 4 W
-    println!("   能量: {} J", e1.as_joule());
-    println!("   速度: {} m/s", v.as_m_per_sec());
-    println!("   功率: {} W", power);
-
-    // 7. 能量与加速度的乘积（得到力）
-    println!("\n7. 能量与加速度的乘积（得到力）:");
-    let a = Acceleration::from_m_per_s2(5.0); // 5 m/s²
-    let force = e1 * a; // 1 J × 5 m/s² = 5 N
-    println!("   能量: {} J", e1.as_joule());
-    println!("   加速度: {} m/s²", a.as_m_per_s2());
-    println!("   力: {} N", force);
-
-    // 8. 不同单位之间的运算
-    println!("\n8. 不同单位之间的运算:");
+    // 4. 不同单位之间的运算
+    println!("\n4. 不同单位之间的运算:");
     let e_micro = Energy::from_micro_joule(1e6); // 1 J
     let e_mill = Energy::from_mill_joule(1000.0); // 1 J
     let e_result = e_micro + e_mill; // 1 J + 1 J = 2 J
@@ -90,22 +58,22 @@ fn main() {
              e_mill.as_mill_joule(), 
              e_result.as_joule());
 
-    // 9. 标量与能量的运算
-    println!("\n9. 标量与能量的运算:");
+    // 5. 标量与能量的运算
+    println!("\n5. 标量与能量的运算:");
     let e_scaled = 5.0 * e1; // 5 × 1 J = 5 J
     let e_divided = 10.0 / e1; // 10 / 1 J = 10 J
     println!("   5.0 * {} J = {} J", e1.as_joule(), e_scaled.as_joule());
     println!("   10.0 / {} J = {} J", e1.as_joule(), e_divided.as_joule());
 
-    // 10. 零值检查
-    println!("\n10. 零值检查:");
+    // 6. 零值检查
+    println!("\n6. 零值检查:");
     let e_zero = Energy::from_joule(0.0);
     let e_nonzero = Energy::from_joule(1.0);
     println!("   e_zero.is_zero() = {}", e_zero.is_zero());
     println!("   e_nonzero.is_zero() = {}", e_nonzero.is_zero());
 
-    // 11. 实际应用示例
-    println!("\n11. 实际应用示例:");
+    // 7. 实际应用示例
+    println!("\n7. 实际应用示例:");
     
     // 动能计算
     let mass = Mass::from_kg(2.0); // 2 kg

@@ -122,6 +122,10 @@ pub struct Mass {
 pub enum AngularMomentumType {
     KgM2perSecond, // 每秒1千克1平方米
     KgKm2perSecond, // 每秒1千克1平方公里
+    Nms,           // 牛顿·米·秒 (N·m·s)
+    MillNms,       // 毫牛顿·米·秒 (mN·m·s)
+    MicroNms,      // 微牛顿·米·秒 (μN·m·s)
+    NanoNms,       // 纳牛顿·米·秒 (nN·m·s)
 }
 //角动量
 #[derive(Clone, Debug, PartialEq, Copy)]
@@ -244,6 +248,7 @@ pub struct Volume {
     default_type: VolumeType,
     pub v: f64,
 }
+
 
 
 

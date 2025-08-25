@@ -1,4 +1,4 @@
-use zmatrix::physics::basic::{Torque, Distance, Mass, Acceleration, PhysicalQuantity};
+use zmatrix::physics::basic::{Torque, Distance, Energy, PhysicalQuantity};
 
 fn main() {
     println!("=== 力矩物理量示例 ===\n");
@@ -45,26 +45,10 @@ fn main() {
     let work = t1 * d; // 1 N·m × 2 m = 2 J
     println!("   力矩: {} N·m", t1.as_nm());
     println!("   距离: {} m", d.as_m());
-    println!("   功/能量: {} J", work);
+    println!("   功/能量: {} J", work.as_joule());
 
-    // 5. 力矩与质量的乘积
-    println!("\n5. 力矩与质量的乘积:");
-    let m = Mass::from_kg(3.0); // 3 kg
-    let result = t1 * m; // 1 N·m × 3 kg = 3 kg·m²/s
-    println!("   力矩: {} N·m", t1.as_nm());
-    println!("   质量: {} kg", m.as_kg());
-    println!("   结果: {} kg·m²/s", result);
-
-    // 6. 力矩与加速度的乘积（得到功率）
-    println!("\n6. 力矩与加速度的乘积（得到功率）:");
-    let a = Acceleration::from_m_per_s2(4.0); // 4 m/s²
-    let power = t1 * a; // 1 N·m × 4 m/s² = 4 W
-    println!("   力矩: {} N·m", t1.as_nm());
-    println!("   加速度: {} m/s²", a.as_m_per_s2());
-    println!("   功率: {} W", power);
-
-    // 7. 不同单位之间的运算
-    println!("\n7. 不同单位之间的运算:");
+    // 5. 不同单位之间的运算
+    println!("\n5. 不同单位之间的运算:");
     let t_micro = Torque::from_micro_nm(1e6); // 1 N·m
     let t_mill = Torque::from_mill_nm(1000.0); // 1 N·m
     let t_result = t_micro + t_mill; // 1 N·m + 1 N·m = 2 N·m
@@ -73,22 +57,22 @@ fn main() {
              t_mill.as_mill_nm(), 
              t_result.as_nm());
 
-    // 8. 标量与力矩的运算
-    println!("\n8. 标量与力矩的运算:");
+    // 6. 标量与力矩的运算
+    println!("\n6. 标量与力矩的运算:");
     let t_scaled = 5.0 * t1; // 5 × 1 N·m = 5 N·m
     let t_divided = 10.0 / t1; // 10 / 1 N·m = 10 N·m
     println!("   5.0 * {} N·m = {} N·m", t1.as_nm(), t_scaled.as_nm());
     println!("   10.0 / {} N·m = {} N·m", t1.as_nm(), t_divided.as_nm());
 
-    // 9. 零值检查
-    println!("\n9. 零值检查:");
+    // 7. 零值检查
+    println!("\n7. 零值检查:");
     let t_zero = Torque::from_nm(0.0);
     let t_nonzero = Torque::from_nm(1.0);
     println!("   t_zero.is_zero() = {}", t_zero.is_zero());
     println!("   t_nonzero.is_zero() = {}", t_nonzero.is_zero());
 
-    // 10. 实际应用示例
-    println!("\n10. 实际应用示例:");
+    // 8. 实际应用示例
+    println!("\n8. 实际应用示例:");
     
     // 汽车发动机扭矩
     let engine_torque = Torque::from_nm(300.0); // 300 N·m

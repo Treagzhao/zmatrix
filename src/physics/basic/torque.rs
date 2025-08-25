@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Sub};
-use crate::physics::basic::{Coef, Torque, TorqueType, PhysicalQuantity, Distance, Mass, Acceleration};
+use crate::physics::basic::{Coef, Torque, TorqueType, PhysicalQuantity, Distance, Energy, AngularMomentum, AngularVelocity};
 use approx::assert_relative_eq;
 
 impl Default for Torque {
@@ -269,27 +269,21 @@ impl Div<Coef> for Torque {
     }
 }
 
+// 力矩 ÷ 角速度 = 角动量
+impl Div<AngularVelocity> for Torque {
+    type Output = AngularMomentum;
+    fn div(self, rhs: AngularVelocity) -> Self::Output {
+        let angular_momentum_value = self.as_nm() / rhs.as_rad_per_second();
+        AngularMomentum::from_kg_m2_per_second(angular_momentum_value)
+    }
+}
+
 // 力矩与距离的乘积得到功（能量）
 impl Mul<Distance> for Torque {
-    type Output = f64; // 功，单位：焦耳
+    type Output = Energy; // 功，单位：焦耳
     fn mul(self, rhs: Distance) -> Self::Output {
-        self.as_nm() * rhs.as_m()
-    }
-}
-
-// 力矩与质量的乘积得到角动量
-impl Mul<Mass> for Torque {
-    type Output = f64; // 角动量，单位：kg·m²/s
-    fn mul(self, rhs: Mass) -> Self::Output {
-        self.as_nm() * rhs.as_kg()
-    }
-}
-
-// 力矩与加速度的乘积得到功率
-impl Mul<Acceleration> for Torque {
-    type Output = f64; // 功率，单位：瓦特
-    fn mul(self, rhs: Acceleration) -> Self::Output {
-        self.as_nm() * rhs.as_m_per_s2()
+        let energy_value = self.as_nm() * rhs.as_m();
+        Energy::from_joule(energy_value)
     }
 }
 
@@ -463,28 +457,12 @@ mod tests {
         let t = Torque::from_nm(1.0);
         let d = Distance::from_m(2.0);
         let work = t * d;
-        assert_relative_eq!(work, 2.0); // 1 N·m × 2 m = 2 J
+        assert_relative_eq!(work.as_joule(), 2.0); // 1 N·m × 2 m = 2 J
 
         let t = Torque::from_mill_nm(1000.0);
         let d = Distance::from_m(1.0);
         let work = t * d;
-        assert_relative_eq!(work, 1.0); // 1 N·m × 1 m = 1 J
-    }
-
-    #[test]
-    fn test_torque_mul_mass() {
-        let t = Torque::from_nm(1.0);
-        let m = Mass::from_kg(2.0);
-        let angular_momentum = t * m;
-        assert_relative_eq!(angular_momentum, 2.0); // 1 N·m × 2 kg = 2 kg·m²/s
-    }
-
-    #[test]
-    fn test_torque_mul_acceleration() {
-        let t = Torque::from_nm(1.0);
-        let a = Acceleration::from_m_per_s2(2.0);
-        let power = t * a;
-        assert_relative_eq!(power, 2.0); // 1 N·m × 2 m/s² = 2 W
+        assert_relative_eq!(work.as_joule(), 1.0); // 1 N·m × 1 m = 1 J
     }
 
     #[test]
@@ -492,5 +470,20 @@ mod tests {
         let mut t = Torque::from_nm(1.0);
         t.set_value(2.0);
         assert_relative_eq!(t.as_nm(), 2.0);
+    }
+
+    #[test]
+    fn test_torque_div_angular_velocity() {
+        // 力矩 ÷ 角速度 = 角动量
+        let torque = Torque::from_nm(20.0);
+        let omega = AngularVelocity::from_rad_per_second(4.0);
+        let angular_momentum = torque / omega;
+        assert_relative_eq!(angular_momentum.as_kg_m2_per_second(), 5.0);
+
+        // 测试不同单位
+        let torque = Torque::from_mill_nm(2000.0); // 2 N·m
+        let omega = AngularVelocity::from_deg_per_second(360.0); // 2π rad/s
+        let angular_momentum = torque / omega;
+        assert_relative_eq!(angular_momentum.as_kg_m2_per_second(), 1.0 / std::f64::consts::PI);
     }
 }

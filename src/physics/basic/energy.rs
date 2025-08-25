@@ -374,37 +374,7 @@ impl Div<Coef> for Energy {
     }
 }
 
-// 能量与距离的乘积得到功（能量）
-impl Mul<Distance> for Energy {
-    type Output = f64; // 功，单位：焦耳·米
-    fn mul(self, rhs: Distance) -> Self::Output {
-        self.as_joule() * rhs.as_m()
-    }
-}
 
-// 能量与质量的乘积得到动能
-impl Mul<Mass> for Energy {
-    type Output = f64; // 动能，单位：kg·J
-    fn mul(self, rhs: Mass) -> Self::Output {
-        self.as_joule() * rhs.as_kg()
-    }
-}
-
-// 能量与速度的乘积得到功率
-impl Mul<Velocity> for Energy {
-    type Output = f64; // 功率，单位：瓦特
-    fn mul(self, rhs: Velocity) -> Self::Output {
-        self.as_joule() * rhs.as_m_per_sec()
-    }
-}
-
-// 能量与加速度的乘积得到力
-impl Mul<Acceleration> for Energy {
-    type Output = f64; // 力，单位：牛顿
-    fn mul(self, rhs: Acceleration) -> Self::Output {
-        self.as_joule() * rhs.as_m_per_s2()
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -596,42 +566,7 @@ mod tests {
         assert_relative_eq!(result.as_joule(), 3.0);
     }
 
-    #[test]
-    fn test_energy_mul_distance() {
-        let e = Energy::from_joule(1.0);
-        let d = Distance::from_m(2.0);
-        let work = e * d;
-        assert_relative_eq!(work, 2.0); // 1 J × 2 m = 2 J·m
 
-        let e = Energy::from_mill_joule(1000.0);
-        let d = Distance::from_m(1.0);
-        let work = e * d;
-        assert_relative_eq!(work, 1.0); // 1 J × 1 m = 1 J·m
-    }
-
-    #[test]
-    fn test_energy_mul_mass() {
-        let e = Energy::from_joule(1.0);
-        let m = Mass::from_kg(2.0);
-        let kinetic_energy = e * m;
-        assert_relative_eq!(kinetic_energy, 2.0); // 1 J × 2 kg = 2 kg·J
-    }
-
-    #[test]
-    fn test_energy_mul_velocity() {
-        let e = Energy::from_joule(1.0);
-        let v = Velocity::from_m_per_sec(2.0);
-        let power = e * v;
-        assert_relative_eq!(power, 2.0); // 1 J × 2 m/s = 2 W
-    }
-
-    #[test]
-    fn test_energy_mul_acceleration() {
-        let e = Energy::from_joule(1.0);
-        let a = Acceleration::from_m_per_s2(2.0);
-        let force = e * a;
-        assert_relative_eq!(force, 2.0); // 1 J × 2 m/s² = 2 N
-    }
 
     #[test]
     fn test_set_value() {

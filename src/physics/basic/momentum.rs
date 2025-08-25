@@ -69,8 +69,11 @@ impl Add for Momentum {
 impl Add<f64> for Momentum {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        let v = self.as_kg_m_s() + rhs;
-        Self::from_kg_m_s(v)
+        let v = self.v + rhs;
+        Momentum {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -85,8 +88,11 @@ impl Sub for Momentum {
 impl Sub<f64> for Momentum {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        let v = self.as_kg_m_s() - rhs;
-        Self::from_kg_m_s(v)
+        let v = self.v - rhs;
+        Momentum {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 

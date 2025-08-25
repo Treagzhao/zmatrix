@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::time::Duration;
 
-use crate::physics::basic::AngularVelocity;
+use crate::physics::basic::{AngularVelocity, MagneticInduction, MagneticAngularVelocity};
 use super::*;
 impl AngularVelocity {
     pub fn from_rad_per_second(v: f64) -> Self {
@@ -116,24 +116,11 @@ impl Add for AngularVelocity {
 impl Add<f64> for AngularVelocity {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            AngularVelocityType::RadperSecond => {
-                let v = self.as_rad_per_second() + rhs;
-                Self::from_rad_per_second(v)
-            }
-            AngularVelocityType::DegPerSecond => {
-                let v = self.as_deg_per_second() + rhs;
-                Self::from_deg_per_second(v)
-            }
-            AngularVelocityType::RadperHour => {
-                let v = self.as_rad_per_hour() + rhs;
-                Self::from_rad_per_hour(v)
-            }
-            AngularVelocityType::DegperHour => {
-                let v = self.as_deg_per_hour() + rhs;
-                Self::from_deg_per_hour(v)
-            }
-        };
+        let v = self.v + rhs;
+        AngularVelocity {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -148,24 +135,11 @@ impl Sub for AngularVelocity {
 impl Sub<f64> for AngularVelocity {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            AngularVelocityType::RadperSecond => {
-                let v = self.as_rad_per_second() - rhs;
-                Self::from_rad_per_second(v)
-            }
-            AngularVelocityType::DegPerSecond => {
-                let v = self.as_deg_per_second() - rhs;
-                Self::from_deg_per_second(v)
-            }
-            AngularVelocityType::RadperHour => {
-                let v = self.as_rad_per_hour() - rhs;
-                Self::from_rad_per_hour(v)
-            }
-            AngularVelocityType::DegperHour => {
-                let v = self.as_deg_per_hour() - rhs;
-                Self::from_deg_per_hour(v)
-            }
-        };
+        let v = self.v - rhs;
+        AngularVelocity {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -227,11 +201,40 @@ impl Div<Coef> for AngularVelocity {
     }
 }
 
+// 角速度 × 角动量 = 力矩（满足交换律）
+impl Mul<AngularMomentum> for AngularVelocity {
+    type Output = Torque;
+    fn mul(self, rhs: AngularMomentum) -> Self::Output {
+        let torque_value = self.as_rad_per_second() * rhs.as_kg_m2_per_second();
+        Torque::from_nm(torque_value)
+    }
+}
+
+// 角速度 × 磁感应强度 = 磁角速度（满足交换律）
+impl Mul<MagneticInduction> for AngularVelocity {
+    type Output = MagneticAngularVelocity;
+    fn mul(self, rhs: MagneticInduction) -> Self::Output {
+        let rad_per_second_value = self.as_rad_per_second();
+        let tesla_value = rhs.as_tesla();
+        let result_value = rad_per_second_value * tesla_value;
+        MagneticAngularVelocity::from_tesla_rad_per_second(result_value)
+    }
+}
+
 impl Div for AngularVelocity {
     type Output = Coef;
     fn div(self, rhs: Self) -> Self::Output {
         let v = self.as_rad_per_second() / rhs.as_rad_per_second();
         Coef::new(v)
+    }
+}
+
+// 角速度 ÷ 角加速度 = 时间
+impl Div<AngularAcceleration> for AngularVelocity {
+    type Output = std::time::Duration;
+    fn div(self, rhs: AngularAcceleration) -> Self::Output {
+        let time_value = self.as_rad_per_second() / rhs.as_rad_per_second2();
+        std::time::Duration::from_secs_f64(time_value)
     }
 }
 
@@ -488,5 +491,57 @@ mod tests {
         let a = AngularVelocity::from_rad_per_hour(PI);
         let result = 2.0 * PI / a;
         assert_relative_eq!(result.as_rad_per_hour(), 2.0);
+    }
+
+    #[test]
+    fn test_angular_velocity_mul_angular_momentum() {
+        // 角速度 × 角动量 = 力矩（满足交换律）
+        let omega = AngularVelocity::from_rad_per_second(5.0);
+        let l = AngularMomentum::from_kg_m2_per_second(10.0);
+        let torque = omega * l;
+        assert_relative_eq!(torque.as_nm(), 50.0);
+
+        // 测试不同单位
+        let omega = AngularVelocity::from_deg_per_second(180.0);
+        let l = AngularMomentum::from_kg_km2_per_second(1.0);
+        let torque = omega * l;
+        assert_relative_eq!(torque.as_nm(), 1e6 * std::f64::consts::PI);
+    }
+
+    #[test]
+    fn test_angular_velocity_div_angular_acceleration() {
+        let omega = AngularVelocity::from_rad_per_second(10.0); // 10 rad/s
+        let alpha = AngularAcceleration::from_rad_per_second2(2.0); // 2 rad/s²
+        let time = omega / alpha; // 5 s
+        
+        assert_relative_eq!(time.as_secs_f64(), 5.0);
+    }
+
+    #[test]
+    fn test_angular_velocity_mul_magnetic_induction() {
+        // 角速度 × 磁感应强度 = 磁角速度
+        let angular_velocity = AngularVelocity::from_rad_per_second(4.0);
+        let magnetic_induction = MagneticInduction::from_tesla(2.5);
+        let result = angular_velocity * magnetic_induction;
+        assert_relative_eq!(result.as_tesla_rad_per_second(), 10.0);
+
+        // 测试不同单位的角速度
+        let angular_velocity = AngularVelocity::from_deg_per_second(180.0); // π rad/s
+        let magnetic_induction = MagneticInduction::from_tesla(1.0);
+        let result = angular_velocity * magnetic_induction;
+        assert_relative_eq!(result.as_tesla_rad_per_second(), std::f64::consts::PI);
+
+        // 测试不同单位的磁感应强度
+        let angular_velocity = AngularVelocity::from_rad_per_second(3.0);
+        let magnetic_induction = MagneticInduction::from_gauss(10000.0); // 1 T
+        let result = angular_velocity * magnetic_induction;
+        assert_relative_eq!(result.as_tesla_rad_per_second(), 3.0);
+
+        // 测试交换律
+        let angular_velocity = AngularVelocity::from_rad_per_second(2.0);
+        let magnetic_induction = MagneticInduction::from_tesla(3.0);
+        let result1 = angular_velocity * magnetic_induction;
+        let result2 = magnetic_induction * angular_velocity;
+        assert_relative_eq!(result1.as_tesla_rad_per_second(), result2.as_tesla_rad_per_second());
     }
 }

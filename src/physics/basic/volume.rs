@@ -67,16 +67,11 @@ impl Add for Volume {
 impl Add<f64> for Volume {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            VolumeType::M3 => {
-                let v = self.as_m3() + rhs;
-                Self::from_m3(v)
-            }
-            VolumeType::KM3 => {
-                let v = self.as_km3() + rhs;
-                Self::from_km3(v)
-            }
-        };
+        let v = self.v + rhs;
+        Volume {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -91,16 +86,11 @@ impl Sub for Volume {
 impl Sub<f64> for Volume {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            VolumeType::M3 => {
-                let v = self.as_m3() - rhs;
-                Self::from_m3(v)
-            }
-            VolumeType::KM3 => {
-                let v = self.as_km3() - rhs;
-                Self::from_km3(v)
-            }
-        };
+        let v = self.v - rhs;
+        Volume {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -112,13 +102,7 @@ impl Mul<f64> for Volume {
     }
 }
 
-impl Mul for Volume {
-    type Output = Area;
-    fn mul(self, rhs: Self) -> Self::Output {
-        let v = self.as_m3() * rhs.as_m3();
-        Area::from_m2(v)
-    }
-}
+
 
 impl Div for Volume {
     type Output = Coef;

@@ -94,10 +94,11 @@ impl Add for Angular {
 impl Add<f64> for Angular {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            AngularType::Rad => Angular::from_rad(self.v + rhs),
-            AngularType::Deg => Angular::from_deg(self.v + rhs),
-        };
+        let v = self.v + rhs;
+        Angular {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -112,10 +113,11 @@ impl Sub for Angular {
 impl Sub<f64> for Angular {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            AngularType::Rad => Angular::from_rad(self.v - rhs),
-            AngularType::Deg => Angular::from_deg(self.v - rhs),
-        };
+        let v = self.v - rhs;
+        Angular {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 

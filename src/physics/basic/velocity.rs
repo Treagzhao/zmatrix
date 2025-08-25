@@ -110,24 +110,11 @@ impl Sub for Velocity {
 impl Sub<f64> for Velocity {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            VelocityType::MPerSecond => {
-                let v = self.as_m_per_sec() - rhs;
-                Self::from_m_per_sec(v)
-            }
-            VelocityType::KmPerHour => {
-                let v = self.as_km_per_h() - rhs;
-                Self::from_km_per_h(v)
-            }
-            VelocityType::KmPerSecond => {
-                let v = self.as_km_per_sec() - rhs;
-                Self::from_km_per_sec(v)
-            }
-            VelocityType::LightSpeed => {
-                let v = self.as_light_speed() - rhs;
-                Self::from_light_speed(v)
-            }
-        };
+        let v = self.v - rhs;
+        Velocity {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -157,24 +144,11 @@ impl Add for Velocity {
 impl Add<f64> for Velocity {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            VelocityType::MPerSecond => {
-                let v = self.as_m_per_sec() + rhs;
-                Self::from_m_per_sec(v)
-            }
-            VelocityType::KmPerHour => {
-                let v = self.as_km_per_h() + rhs;
-                Self::from_km_per_h(v)
-            }
-            VelocityType::KmPerSecond => {
-                let v = self.as_km_per_sec() + rhs;
-                Self::from_km_per_sec(v)
-            }
-            VelocityType::LightSpeed => {
-                let v = self.as_light_speed() + rhs;
-                Self::from_light_speed(v)
-            }
-        };
+        let v = self.v + rhs;
+        Velocity {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -243,6 +217,15 @@ impl Div<Distance> for Velocity {
     fn div(self, rhs: Distance) -> Self::Output {
         let v = self.as_m_per_sec() / rhs.as_m();
         AngularVelocity::from_rad_per_second(v)
+    }
+}
+
+// 速度 ÷ 加速度 = 时间
+impl Div<Acceleration> for Velocity {
+    type Output = std::time::Duration;
+    fn div(self, rhs: Acceleration) -> Self::Output {
+        let time_value = self.as_m_per_sec() / rhs.as_m_per_s2();
+        std::time::Duration::from_secs_f64(time_value)
     }
 }
 
@@ -491,5 +474,14 @@ mod tests {
         let v = Velocity::from_light_speed(0.5);
         let result = 1.0 / v;
         assert_relative_eq!(result.as_light_speed(), 2.0);
+    }
+
+    #[test]
+    fn test_velocity_div_acceleration() {
+        let velocity = Velocity::from_m_per_sec(10.0); // 10 m/s
+        let acceleration = Acceleration::from_m_per_s2(2.0); // 2 m/s²
+        let time = velocity / acceleration; // 5 s
+        
+        assert_relative_eq!(time.as_secs_f64(), 5.0);
     }
 }

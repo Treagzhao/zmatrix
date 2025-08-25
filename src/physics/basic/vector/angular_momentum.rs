@@ -11,6 +11,22 @@ impl Vector3<AngularMomentum> {
                 let (x, y, z) = (self.x.as_kg_km2_per_second(), self.y.as_kg_km2_per_second(), self.z.as_kg_km2_per_second());
                 Vector3::<Coef>::from_array([x, y, z])
             }
+            AngularMomentumType::Nms => {
+                let (x, y, z) = (self.x.as_nms(), self.y.as_nms(), self.z.as_nms());
+                Vector3::<Coef>::from_array([x, y, z])
+            }
+            AngularMomentumType::MillNms => {
+                let (x, y, z) = (self.x.as_mill_nms(), self.y.as_mill_nms(), self.z.as_mill_nms());
+                Vector3::<Coef>::from_array([x, y, z])
+            }
+            AngularMomentumType::MicroNms => {
+                let (x, y, z) = (self.x.as_micro_nms(), self.y.as_micro_nms(), self.z.as_micro_nms());
+                Vector3::<Coef>::from_array([x, y, z])
+            }
+            AngularMomentumType::NanoNms => {
+                let (x, y, z) = (self.x.as_nano_nms(), self.y.as_nano_nms(), self.z.as_nano_nms());
+                Vector3::<Coef>::from_array([x, y, z])
+            }
         }
     }
 

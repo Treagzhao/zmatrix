@@ -76,20 +76,11 @@ impl Sub for Acceleration {
 impl Sub<f64> for Acceleration {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            AccelerationType::MPerSecond2 => {
-                let v = self.as_m_per_s2() - rhs;
-                Self::from_m_per_s2(v)
-            }
-            AccelerationType::KmPerHour2 => {
-                let v = self.as_km_per_h_2() - rhs;
-                Self::from_km_per_h2(v)
-            }
-            AccelerationType::G => {
-                let v = self.as_g() - rhs;
-                Self::from_g(v)
-            }
-        };
+        let v = self.v - rhs;
+        Acceleration {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -104,20 +95,11 @@ impl Add for Acceleration {
 impl Add<f64> for Acceleration {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            AccelerationType::MPerSecond2 => {
-                let v = self.as_m_per_s2() + rhs;
-                Self::from_m_per_s2(v)
-            }
-            AccelerationType::KmPerHour2 => {
-                let v = self.as_km_per_h_2() + rhs;
-                Self::from_km_per_h2(v)
-            }
-            AccelerationType::G => {
-                let v = self.as_g() + rhs;
-                Self::from_g(v)
-            }
-        };
+        let v = self.v + rhs;
+        Acceleration {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 

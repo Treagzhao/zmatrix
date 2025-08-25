@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Sub};
-use crate::physics::basic::{Coef, Torque, TorqueType, PhysicalQuantity, Distance, Energy, AngularMomentum, AngularVelocity};
+use crate::physics::basic::{Coef, Torque, TorqueType, PhysicalQuantity, Distance, Energy, AngularMomentum, AngularVelocity, Force, Power};
 use approx::assert_relative_eq;
 
 impl Default for Torque {
@@ -278,6 +278,24 @@ impl Div<AngularVelocity> for Torque {
     }
 }
 
+// 力矩 ÷ 距离 = 力
+impl Div<Distance> for Torque {
+    type Output = Force;
+    fn div(self, rhs: Distance) -> Self::Output {
+        let force_value = self.as_nm() / rhs.as_m();
+        Force::from_newton(force_value)
+    }
+}
+
+// 力矩 × 角速度 = 功率
+impl Mul<AngularVelocity> for Torque {
+    type Output = Power;
+    fn mul(self, rhs: AngularVelocity) -> Self::Output {
+        let power_value = self.as_nm() * rhs.as_rad_per_second();
+        Power::from_watt(power_value)
+    }
+}
+
 // 力矩与距离的乘积得到功（能量）
 impl Mul<Distance> for Torque {
     type Output = Energy; // 功，单位：焦耳
@@ -485,5 +503,23 @@ mod tests {
         let omega = AngularVelocity::from_deg_per_second(360.0); // 2π rad/s
         let angular_momentum = torque / omega;
         assert_relative_eq!(angular_momentum.as_kg_m2_per_second(), 1.0 / std::f64::consts::PI);
+    }
+
+    #[test]
+    fn test_torque_div_distance() {
+        let torque = Torque::from_nm(20.0); // 20 N·m
+        let distance = Distance::from_m(4.0); // 4 m
+        let force: Force = torque / distance; // 5 N
+        
+        assert_relative_eq!(force.as_newton(), 5.0);
+    }
+
+    #[test]
+    fn test_torque_mul_angular_velocity() {
+        let torque = Torque::from_nm(100.0); // 100 N·m
+        let angular_velocity = AngularVelocity::from_rad_per_second(50.0); // 50 rad/s
+        let power: Power = torque * angular_velocity; // 5000 W
+        
+        assert_relative_eq!(power.as_watt(), 5000.0);
     }
 }

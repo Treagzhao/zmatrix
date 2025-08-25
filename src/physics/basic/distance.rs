@@ -198,6 +198,15 @@ impl Div for Distance {
     }
 }
 
+// 距离 ÷ 速度 = 时间
+impl Div<Velocity> for Distance {
+    type Output = std::time::Duration;
+    fn div(self, rhs: Velocity) -> Self::Output {
+        let time_value = self.as_m() / rhs.as_m_per_sec();
+        std::time::Duration::from_secs_f64(time_value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -392,5 +401,14 @@ mod tests {
         let d = Distance::from_light_year(0.5);
         let result = 1.0 / d;
         assert_relative_eq!(result.as_light_year(), 2.0);
+    }
+
+    #[test]
+    fn test_distance_div_velocity() {
+        let distance = Distance::from_m(100.0); // 100 m
+        let velocity = Velocity::from_m_per_sec(20.0); // 20 m/s
+        let time = distance / velocity; // 5 s
+        
+        assert_relative_eq!(time.as_secs_f64(), 5.0);
     }
 }

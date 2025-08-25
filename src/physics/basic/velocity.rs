@@ -246,6 +246,15 @@ impl Div<Distance> for Velocity {
     }
 }
 
+// 速度 ÷ 加速度 = 时间
+impl Div<Acceleration> for Velocity {
+    type Output = std::time::Duration;
+    fn div(self, rhs: Acceleration) -> Self::Output {
+        let time_value = self.as_m_per_sec() / rhs.as_m_per_s2();
+        std::time::Duration::from_secs_f64(time_value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::any::TypeId;
@@ -491,5 +500,14 @@ mod tests {
         let v = Velocity::from_light_speed(0.5);
         let result = 1.0 / v;
         assert_relative_eq!(result.as_light_speed(), 2.0);
+    }
+
+    #[test]
+    fn test_velocity_div_acceleration() {
+        let velocity = Velocity::from_m_per_sec(10.0); // 10 m/s
+        let acceleration = Acceleration::from_m_per_s2(2.0); // 2 m/s²
+        let time = velocity / acceleration; // 5 s
+        
+        assert_relative_eq!(time.as_secs_f64(), 5.0);
     }
 }

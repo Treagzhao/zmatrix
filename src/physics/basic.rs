@@ -15,10 +15,17 @@ mod magnetic_induction;
 mod magnetic_moment;
 mod torque;
 mod energy;
+mod force;
+mod power;
 pub mod mass;
 mod angular_momentum;
 mod momentum;
 mod volume;
+mod magnetic_angular_velocity;
+
+//支持向量的物理量
+pub trait VectorQuantity:PhysicalQuantity {
+}
 
 pub trait PhysicalQuantity: Any {
     fn as_any(&self) -> &dyn Any;
@@ -233,6 +240,59 @@ pub enum EnergyType {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Energy {
     default_type: EnergyType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ForceType {
+    Newton,           // 牛顿 (N)
+    MillNewton,       // 毫牛顿 (mN)
+    MicroNewton,      // 微牛顿 (μN)
+    NanoNewton,       // 纳牛顿 (nN)
+    KiloNewton,       // 千牛顿 (kN)
+    MegaNewton,       // 兆牛顿 (MN)
+}
+
+// 力，单位是牛顿
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Force {
+    default_type: ForceType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PowerType {
+    Watt,           // 瓦特 (W)
+    MillWatt,       // 毫瓦特 (mW)
+    MicroWatt,      // 微瓦特 (μW)
+    NanoWatt,       // 纳瓦特 (nW)
+    KiloWatt,       // 千瓦特 (kW)
+    MegaWatt,       // 兆瓦特 (MW)
+    HorsePower,     // 马力 (hp)
+}
+
+// 功率，单位是瓦特
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Power {
+    default_type: PowerType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum MagneticAngularVelocityType {
+    TeslaRadPerSecond,           // 特斯拉·弧度/秒 (T·rad/s)
+    MillTeslaRadPerSecond,       // 毫特斯拉·弧度/秒 (mT·rad/s)
+    MicroTeslaRadPerSecond,      // 微特斯拉·弧度/秒 (μT·rad/s)
+    NanoTeslaRadPerSecond,       // 纳特斯拉·弧度/秒 (nT·rad/s)
+    GaussRadPerSecond,           // 高斯·弧度/秒 (G·rad/s)
+    MillGaussRadPerSecond,       // 毫高斯·弧度/秒 (mG·rad/s)
+    KiloGaussRadPerSecond,       // 千高斯·弧度/秒 (kG·rad/s)
+}
+
+// 磁角速度，单位是特斯拉·弧度/秒或高斯·弧度/秒
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MagneticAngularVelocity {
+    default_type: MagneticAngularVelocityType,
     pub v: f64,
 }
 
@@ -469,3 +529,19 @@ mod tests {
         assert_eq!(false, e.is_zero());
     }
 }
+
+// 手动实现 VectorQuantity trait 给所有支持向量的物理量
+impl VectorQuantity for Distance {}
+impl VectorQuantity for Velocity {}
+impl VectorQuantity for Acceleration {}
+impl VectorQuantity for Angular {}
+impl VectorQuantity for AngularVelocity {}
+impl VectorQuantity for AngularAcceleration {}
+impl VectorQuantity for Coef {}
+impl VectorQuantity for AngularMomentum {}
+impl VectorQuantity for Momentum {}
+impl VectorQuantity for MagneticInduction {}
+impl VectorQuantity for MagneticMoment {}
+impl VectorQuantity for Torque {}
+impl VectorQuantity for Force {}
+impl VectorQuantity for MagneticAngularVelocity {}

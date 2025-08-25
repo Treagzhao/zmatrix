@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Sub};
-use crate::physics::basic::{Coef, Energy, EnergyType, PhysicalQuantity, Distance, Mass, Velocity, Acceleration};
+use crate::physics::basic::{Coef, Energy, EnergyType, Force, PhysicalQuantity, Distance, Mass, Velocity, Acceleration};
 use approx::assert_relative_eq;
 
 impl Default for Energy {
@@ -374,6 +374,24 @@ impl Div<Coef> for Energy {
     }
 }
 
+// 能量 ÷ 时间 = 功率
+impl Div<std::time::Duration> for Energy {
+    type Output = crate::physics::basic::Power;
+    fn div(self, rhs: std::time::Duration) -> Self::Output {
+        let power_value = self.as_joule() / rhs.as_secs_f64();
+        crate::physics::basic::Power::from_watt(power_value)
+    }
+}
+
+// 能量 ÷ 距离 = 力
+impl Div<Distance> for Energy {
+    type Output = Force;
+    fn div(self, rhs: Distance) -> Self::Output {
+        let force_value = self.as_joule() / rhs.as_m();
+        Force::from_newton(force_value)
+    }
+}
+
 
 
 #[cfg(test)]
@@ -573,5 +591,23 @@ mod tests {
         let mut e = Energy::from_joule(1.0);
         e.set_value(2.0);
         assert_relative_eq!(e.as_joule(), 2.0);
+    }
+
+    #[test]
+    fn test_energy_div_duration() {
+        let energy = Energy::from_joule(100.0); // 100 J
+        let time = std::time::Duration::from_secs(5); // 5 s
+        let power: crate::physics::basic::Power = energy / time; // 20 W
+        
+        assert_relative_eq!(power.as_watt(), 20.0);
+    }
+
+    #[test]
+    fn test_energy_div_distance() {
+        let energy = Energy::from_joule(60.0); // 60 J
+        let distance = Distance::from_m(3.0); // 3 m
+        let force: Force = energy / distance; // 20 N
+        
+        assert_relative_eq!(force.as_newton(), 20.0);
     }
 }

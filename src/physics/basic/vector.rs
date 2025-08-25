@@ -1,9 +1,11 @@
 mod angular;
 mod angular_acceleration;
 mod angular_velocity;
+mod magnetic_angular_velocity;
 mod coef;
 mod distance;
 mod velocity;
+mod megnetic_induction;
 
 use super::*;
 use crate::dense::Matrix;
@@ -117,6 +119,13 @@ impl<T: VectorQuantity + Default> Vector3<T> {
             [self.y.default_unit_value()],
             [self.z.default_unit_value()],
         ])
+    }
+
+    pub fn norm_square(&self) -> f64 {
+        let sum = self.x.default_unit_value() * self.x.default_unit_value()
+            + self.y.default_unit_value() * self.y.default_unit_value()
+            + self.z.default_unit_value() * self.z.default_unit_value();
+        sum
     }
 
     pub fn norm(&self) -> T {
@@ -624,5 +633,41 @@ mod tests {
         // 验证正向操作正常工作
         assert!(result1.x.as_tesla() == 2.0);
         assert!(result2.x.as_tesla() == 0.5);
+    }
+
+    #[test]
+    fn test_norm_square_basic() {
+        // 测试基本功能：计算向量的模平方
+        let vec = Vector3::new(
+            Distance::from_m(1.0),
+            Distance::from_m(2.0),
+            Distance::from_m(3.0),
+        );
+        let result = vec.norm_square();
+        assert_relative_eq!(result, 14.0);
+    }
+
+    #[test]
+    fn test_norm_square_zero_vector() {
+        // 测试零向量的模平方
+        let vec = Vector3::new(
+            Distance::from_m(0.0),
+            Distance::from_m(0.0),
+            Distance::from_m(0.0),
+        );
+        let result = vec.norm_square();
+        assert_relative_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn test_norm_square_negative_components() {
+        // 测试含负分量的向量模平方
+        let vec = Vector3::new(
+            Distance::from_m(-1.0),
+            Distance::from_m(-2.0),
+            Distance::from_m(-3.0),
+        );
+        let result = vec.norm_square();
+        assert_relative_eq!(result, 14.0);
     }
 }

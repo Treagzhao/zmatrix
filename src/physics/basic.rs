@@ -100,7 +100,7 @@ pub struct AngularAcceleration {
     default_type: AngularAccelerationType,
     v: f64,
 }
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Copy)]
 pub struct Coef {
     v: f64,
 }

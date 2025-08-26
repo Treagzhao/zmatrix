@@ -1,5 +1,6 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::time::Duration;
+use approx::{AbsDiffEq, RelativeEq};
 use super::*;
 impl Coef {
     pub fn new(v: f64) -> Self {
@@ -130,6 +131,66 @@ impl From<Angular> for Coef {
         Coef::new(value.as_rad())
     }
 }
+
+impl AbsDiffEq for Coef {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f64::EPSILON
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.v.abs_diff_eq(&other.v, epsilon)
+    }
+}
+
+impl RelativeEq for Coef {
+    fn default_max_relative() -> Self::Epsilon {
+        f64::EPSILON
+    }
+
+    fn relative_eq(&self, other: &Self, epsilon: Self::Epsilon, max_relative: Self::Epsilon) -> bool {
+        self.v.relative_eq(&other.v, epsilon, max_relative)
+    }
+}
+
+impl AbsDiffEq<f64> for Coef {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f64::EPSILON
+    }
+
+    fn abs_diff_eq(&self, other: &f64, epsilon: Self::Epsilon) -> bool {
+        self.v.abs_diff_eq(other, epsilon)
+    }
+}
+
+impl RelativeEq<f64> for Coef {
+    fn default_max_relative() -> Self::Epsilon {
+        f64::EPSILON
+    }
+
+    fn relative_eq(&self, other: &f64, epsilon: Self::Epsilon, max_relative: Self::Epsilon) -> bool {
+        self.v.relative_eq(other, epsilon, max_relative)
+    }
+}
+
+impl PartialEq<f64> for Coef {
+    fn eq(&self, other: &f64) -> bool {
+        self.v == *other
+    }
+}
+
+impl PartialOrd<f64> for Coef {
+    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
+        self.v.partial_cmp(other)
+    }
+}
+
+
+
+
 
 #[cfg(test)]
 mod tests {
@@ -279,5 +340,225 @@ mod tests {
         let angular = Angular::from_rad(1.0);
         let coef = Coef::from(angular);
         assert_eq!(coef.get_value(), 1.0);
+    }
+
+    #[test]
+    fn test_partial_eq_f64() {
+        let coef = Coef::new(1.0);
+        
+        // 测试 Coef == f64
+        assert_eq!(coef, 1.0);
+        assert_ne!(coef, 2.0);
+        
+        // 测试边界情况
+        let zero_coef = Coef::new(0.0);
+        assert_eq!(zero_coef, 0.0);
+        assert_ne!(zero_coef, 0.1);
+        
+        // 测试负数
+        let negative_coef = Coef::new(-5.5);
+        assert_eq!(negative_coef, -5.5);
+        assert_ne!(negative_coef, 5.5);
+        
+        // 测试小数
+        let decimal_coef = Coef::new(3.14159);
+        assert_eq!(decimal_coef, 3.14159);
+        assert_ne!(decimal_coef, 3.14);
+        
+        // 测试很大的数
+        let large_coef = Coef::new(1e10);
+        assert_eq!(large_coef, 1e10);
+        assert_ne!(large_coef, 1e9);
+        
+        // 测试很小的数
+        let small_coef = Coef::new(1e-10);
+        assert_eq!(small_coef, 1e-10);
+        assert_ne!(small_coef, 1e-9);
+    }
+
+    #[test]
+    fn test_partial_ord_f64() {
+        let coef = Coef::new(5.0);
+        
+        // 测试比较操作
+        assert!(coef > 4.0);
+        assert!(coef >= 5.0);
+        assert!(coef >= 4.0);
+        assert!(coef < 6.0);
+        assert!(coef <= 5.0);
+        assert!(coef <= 6.0);
+        
+        // 测试负数比较
+        let negative_coef = Coef::new(-3.0);
+        assert!(negative_coef < 0.0);
+        assert!(negative_coef < -2.0);
+        assert!(negative_coef > -4.0);
+        
+        // 测试零值比较
+        let zero_coef = Coef::new(0.0);
+        assert!(zero_coef == 0.0);
+        assert!(zero_coef > -1.0);
+        assert!(zero_coef < 1.0);
+    }
+
+    #[test]
+    fn test_abs_diff_eq() {
+        let coef1 = Coef::new(1.0);
+        let coef2 = Coef::new(1.0 + f64::EPSILON);
+        let coef3 = Coef::new(1.0 + 2.0 * f64::EPSILON);
+        
+        // 测试相等情况
+        assert!(coef1.abs_diff_eq(&coef1, f64::EPSILON));
+        
+        // 测试在误差范围内的差异
+        assert!(coef1.abs_diff_eq(&coef2, f64::EPSILON));
+        
+        // 测试超出误差范围的差异
+        assert!(!coef1.abs_diff_eq(&coef3, f64::EPSILON));
+        
+        // 测试零值
+        let zero_coef = Coef::new(0.0);
+        assert!(zero_coef.abs_diff_eq(&zero_coef, f64::EPSILON));
+        
+        // 测试负数
+        let negative_coef = Coef::new(-1.0);
+        assert!(negative_coef.abs_diff_eq(&negative_coef, f64::EPSILON));
+    }
+
+    #[test]
+    fn test_relative_eq() {
+        let coef1 = Coef::new(1.0);
+        let coef2 = Coef::new(1.0 + f64::EPSILON);
+        let coef3 = Coef::new(1.0 + 2.0 * f64::EPSILON);
+        
+        // 测试相等情况
+        assert!(coef1.relative_eq(&coef1, f64::EPSILON, f64::EPSILON));
+        
+        // 测试在相对误差范围内的差异
+        assert!(coef1.relative_eq(&coef2, f64::EPSILON, f64::EPSILON));
+        
+        // 测试超出相对误差范围的差异
+        assert!(!coef1.relative_eq(&coef3, f64::EPSILON, f64::EPSILON));
+        
+        // 测试大数值的相对比较
+        let large_coef1 = Coef::new(1e10);
+        let large_coef2 = Coef::new(1e10 + 1e6);
+        assert!(large_coef1.relative_eq(&large_coef2, f64::EPSILON, 1e-4));
+    }
+
+    #[test]
+    fn test_abs_diff_eq_f64() {
+        let coef = Coef::new(1.0);
+        let f64_val1 = 1.0 + f64::EPSILON;
+        let f64_val2 = 1.0 + 2.0 * f64::EPSILON;
+        
+        // 测试相等情况
+        assert!(coef.abs_diff_eq(&1.0, f64::EPSILON));
+        
+        // 测试在误差范围内的差异
+        assert!(coef.abs_diff_eq(&f64_val1, f64::EPSILON));
+        
+        // 测试超出误差范围的差异
+        assert!(!coef.abs_diff_eq(&f64_val2, f64::EPSILON));
+        
+        // 测试零值
+        let zero_coef = Coef::new(0.0);
+        assert!(zero_coef.abs_diff_eq(&0.0, f64::EPSILON));
+        
+        // 测试负数
+        let negative_coef = Coef::new(-1.0);
+        assert!(negative_coef.abs_diff_eq(&-1.0, f64::EPSILON));
+    }
+
+    #[test]
+    fn test_relative_eq_f64() {
+        let coef = Coef::new(1.0);
+        let f64_val1 = 1.0 + f64::EPSILON;
+        let f64_val2 = 1.0 + 2.0 * f64::EPSILON;
+        
+        // 测试相等情况
+        assert!(coef.relative_eq(&1.0, f64::EPSILON, f64::EPSILON));
+        
+        // 测试在相对误差范围内的差异
+        assert!(coef.relative_eq(&f64_val1, f64::EPSILON, f64::EPSILON));
+        
+        // 测试超出相对误差范围的差异
+        assert!(!coef.relative_eq(&f64_val2, f64::EPSILON, f64::EPSILON));
+        
+        // 测试大数值的相对比较
+        let large_coef = Coef::new(1e10);
+        assert!(large_coef.relative_eq(&(1e10 + 1e6), f64::EPSILON, 1e-4));
+    }
+
+    #[test]
+    fn test_default_epsilon() {
+        // 测试 AbsDiffEq 的默认 epsilon
+        assert_eq!(<Coef as AbsDiffEq>::default_epsilon(), f64::EPSILON);
+        
+        // 测试 RelativeEq 的默认 max_relative
+        assert_eq!(<Coef as RelativeEq>::default_max_relative(), f64::EPSILON);
+        
+        // 测试 AbsDiffEq<f64> 的默认 epsilon
+        assert_eq!(<Coef as AbsDiffEq<f64>>::default_epsilon(), f64::EPSILON);
+        
+        // 测试 RelativeEq<f64> 的默认 max_relative
+        assert_eq!(<Coef as RelativeEq<f64>>::default_max_relative(), f64::EPSILON);
+    }
+
+    #[test]
+    fn test_edge_cases() {
+        // 测试无穷大
+        let inf_coef = Coef::new(f64::INFINITY);
+        assert!(inf_coef.get_value().is_infinite());
+        assert!(!inf_coef.get_value().is_finite());
+        
+        // 测试负无穷大
+        let neg_inf_coef = Coef::new(f64::NEG_INFINITY);
+        assert!(neg_inf_coef.get_value().is_infinite());
+        assert!(!neg_inf_coef.get_value().is_finite());
+        
+        // 测试 NaN
+        let nan_coef = Coef::new(f64::NAN);
+        assert!(nan_coef.get_value().is_nan());
+        assert!(!nan_coef.get_value().is_finite());
+        
+        // 测试最大和最小值
+        let max_coef = Coef::new(f64::MAX);
+        let min_coef = Coef::new(f64::MIN);
+        assert!(max_coef.get_value().is_finite());
+        assert!(min_coef.get_value().is_finite());
+    }
+
+    #[test]
+    fn test_division_by_zero() {
+        // 测试除以零的情况
+        let coef = Coef::new(1.0);
+        let zero_coef = Coef::new(0.0);
+        
+        // 这应该产生无穷大
+        let result = coef / zero_coef;
+        assert!(result.get_value().is_infinite());
+        
+        // 测试 f64 除以零系数
+        let result = 1.0 / zero_coef;
+        assert!(result.get_value().is_infinite());
+    }
+
+    #[test]
+    fn test_overflow_underflow() {
+        // 测试乘法溢出
+        let large_coef = Coef::new(f64::MAX);
+        let result = large_coef * 2.0;
+        assert!(result.get_value().is_infinite());
+        
+        // 测试加法溢出
+        let max_coef = Coef::new(f64::MAX);
+        let result = max_coef + f64::MAX;
+        assert!(result.get_value().is_infinite());
+        
+        // 测试减法下溢
+        let min_coef = Coef::new(f64::MIN);
+        let result = min_coef - f64::MAX;
+        assert!(result.get_value().is_infinite());
     }
 }

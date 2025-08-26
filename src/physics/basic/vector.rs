@@ -1,9 +1,16 @@
+mod acceleration;
 mod angular;
 mod angular_acceleration;
+mod angular_momentum;
 mod angular_velocity;
+mod area;
 mod coef;
 mod distance;
+mod magnetic_induction;
+mod mass;
+mod momentum;
 mod velocity;
+mod volume;
 
 use super::*;
 use crate::dense::Matrix;
@@ -585,5 +592,36 @@ mod tests {
         // 验证正向操作正常工作
         assert!(result1.x.as_tesla() == 2.0);
         assert!(result2.x.as_tesla() == 0.5);
+    }
+
+    #[test]
+    fn test_partial_eq() {
+        let vec1 = Vector3::new(
+            Distance::from_m(1.0),
+            Distance::from_m(2.0),
+            Distance::from_m(3.0),
+        );
+        let vec2 = Vector3::new(
+            Distance::from_m(1.0),
+            Distance::from_m(2.0),
+            Distance::from_m(3.0),
+        );
+        let vec3 = Vector3::new(
+            Distance::from_m(1.0),
+            Distance::from_m(2.0),
+            Distance::from_m(4.0),
+        );
+
+        // 测试相等
+        assert_eq!(vec1, vec2);
+        
+        // 测试不相等
+        assert_ne!(vec1, vec3);
+        assert_ne!(vec2, vec3);
+        
+        // 测试自反性
+        assert_eq!(vec1, vec1);
+        assert_eq!(vec2, vec2);
+        assert_eq!(vec3, vec3);
     }
 }

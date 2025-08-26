@@ -71,20 +71,11 @@ impl Add for Distance {
 impl Add<f64> for Distance {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            DistanceType::M => {
-                let v = self.as_m() + rhs;
-                Self::from_m(v)
-            }
-            DistanceType::KM => {
-                let v = self.as_km() + rhs;
-                Self::from_km(v)
-            }
-            DistanceType::LightYear => {
-                let v = self.as_light_year() + rhs;
-                Self::from_light_year(v)
-            }
-        };
+        let v = self.v + rhs;
+        Distance {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -99,20 +90,11 @@ impl Sub for Distance {
 impl Sub<f64> for Distance {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            DistanceType::M => {
-                let v = self.as_m() - rhs;
-                Self::from_m(v)
-            }
-            DistanceType::KM => {
-                let v = self.as_km() - rhs;
-                Self::from_km(v)
-            }
-            DistanceType::LightYear => {
-                let v = self.as_light_year() - rhs;
-                Self::from_light_year(v)
-            }
-        };
+        let v = self.v - rhs;
+        Distance {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -195,6 +177,15 @@ impl Div for Distance {
     fn div(self, rhs: Self) -> Self::Output {
         let v = self.as_m() / rhs.as_m();
         Coef::new(v)
+    }
+}
+
+// 距离 ÷ 速度 = 时间
+impl Div<Velocity> for Distance {
+    type Output = std::time::Duration;
+    fn div(self, rhs: Velocity) -> Self::Output {
+        let time_value = self.as_m() / rhs.as_m_per_sec();
+        std::time::Duration::from_secs_f64(time_value)
     }
 }
 
@@ -392,5 +383,14 @@ mod tests {
         let d = Distance::from_light_year(0.5);
         let result = 1.0 / d;
         assert_relative_eq!(result.as_light_year(), 2.0);
+    }
+
+    #[test]
+    fn test_distance_div_velocity() {
+        let distance = Distance::from_m(100.0); // 100 m
+        let velocity = Velocity::from_m_per_sec(20.0); // 20 m/s
+        let time = distance / velocity; // 5 s
+        
+        assert_relative_eq!(time.as_secs_f64(), 5.0);
     }
 }

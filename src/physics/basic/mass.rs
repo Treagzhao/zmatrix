@@ -70,16 +70,11 @@ impl Add for Mass {
 impl Add<f64> for Mass {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            MassType::g => {
-                let v = self.as_g() + rhs;
-                Self::from_g(v)
-            }
-            MassType::Kg => {
-                let v = self.as_kg() + rhs;
-                Self::from_kg(v)
-            }
-        };
+        let v = self.v + rhs;
+        Mass {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -94,16 +89,11 @@ impl Sub for Mass {
 impl Sub<f64> for Mass {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            MassType::g => {
-                let v = self.as_g() - rhs;
-                Self::from_g(v)
-            }
-            MassType::Kg => {
-                let v = self.as_kg() - rhs;
-                Self::from_kg(v)
-            }
-        };
+        let v = self.v - rhs;
+        Mass {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 

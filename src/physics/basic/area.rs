@@ -71,16 +71,11 @@ impl Add for Area {
 impl Add<f64> for Area {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            AreaType::M2 => {
-                let v = self.as_m2() + rhs;
-                Self::from_m2(v)
-            }
-            AreaType::KM2 => {
-                let v = self.as_km2() + rhs;
-                Self::from_km2(v)
-            }
-        };
+        let v = self.v + rhs;
+        Area {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -95,16 +90,11 @@ impl Sub for Area {
 impl Sub<f64> for Area {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            AreaType::KM2 => {
-                let v = self.as_km2() - rhs;
-                Self::from_km2(v)
-            }
-            AreaType::M2 => {
-                let v = self.as_m2() - rhs;
-                Self::from_m2(v)
-            }
-        };
+        let v = self.v - rhs;
+        Area {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 

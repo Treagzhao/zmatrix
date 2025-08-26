@@ -132,21 +132,26 @@ Convert flexibly via as_\[unit\]() methods.
 目前支持的物理量模块：
 supported physical quantities:
 
-| 物理量 | 模块名                 |
-|----|-----------------------|
-| 长度 | `distance`            |
-| 速度 | `velocity`            |
-| 加速度 | `acceleration`        |
-| 角度 | `angular`             |
-| 角速度 | `angular_velocity`    |
-| 系数 | `coef`                |
-| 角加速度 | `angular_acceleration`|
-| 面积 | `area`                |
-| 磁感应强度 | `magnetic_induction` |
-| 质量 | `mass`                |
-| 角动量 | `angular_momentum`    |
-| 动量 | `momentum`            |
-| 体积 | `volume`              |
+| 物理量 | 模块名                 | 支持的单位 |
+|----|-----------------------|------------|
+| 长度 | `distance`            | 米(m)、千米(km)、光年(light_year) |
+| 速度 | `velocity`            | 米/秒(m/s)、千米/小时(km/h)、光速(c) |
+| 加速度 | `acceleration`        | 米/秒²(m/s²)、重力加速度(g) |
+| 角度 | `angular`             | 弧度(rad)、度(deg) |
+| 角速度 | `angular_velocity`    | 弧度/秒(rad/s)、度/秒(deg/s)、弧度/小时(rad/h)、度/小时(deg/h) |
+| 系数 | `coef`                | 无量纲系数 |
+| 角加速度 | `angular_acceleration`| 弧度/秒²(rad/s²)、度/秒²(deg/s²) |
+| 面积 | `area`                | 平方米(m²)、平方千米(km²) |
+| 磁感应强度 | `magnetic_induction` | 特斯拉(T)、高斯(G)、毫特斯拉(mT)、微特斯拉(μT)、纳特斯拉(nT) |
+| 质量 | `mass`                | 千克(kg)、克(g) |
+| 角动量 | `angular_momentum`    | 千克·米²/秒(kg·m²/s)、千克·千米²/秒(kg·km²/s)、牛顿·米·秒(N·m·s)、毫牛顿·米·秒(mN·m·s)、微牛顿·米·秒(μN·m·s)、纳牛顿·米·秒(nN·m·s) |
+| 动量 | `momentum`            | 千克·米/秒(kg·m/s)、千克·千米/秒(kg·km/s) |
+| 体积 | `volume`              | 立方米(m³)、立方千米(km³) |
+| 磁矩 | `magnetic_moment`     | 安培·平方米(A·m²)、焦耳/特斯拉(J/T)及其毫、微、纳单位 |
+| 力矩 | `torque`              | 牛顿·米(N·m)及其毫、微、纳、千、兆单位 |
+| 力 | `force`                | 牛顿(N)及其毫、微、纳、千、兆单位 |
+| 功率 | `power`               | 瓦特(W)、马力(hp)及其毫、微、纳、千、兆单位 |
+| 能量 | `energy`              | 焦耳(J)、电子伏特(eV)及其毫、微、纳、千、兆单位 |
 以后会慢慢维护，也欢迎大家提issue和pr。
 
 ## 物理量的计算
@@ -185,6 +190,127 @@ Examples:
 Compile-Time Safety:
 
 Operations with dimensionally incompatible quantities will trigger compile errors, preventing invalid physics logic at the code level.
+
+## 物理量之间的运算关系
+
+库支持符合物理意义的运算关系，所有运算都满足量纲一致性，编译时进行类型检查。
+
+### 支持的运算关系表
+
+| 运算 | 物理量A | 运算符 | 物理量B | 结果 | 物理意义 |
+|------|---------|--------|---------|------|----------|
+| 距离 | ÷ | 时间 | = | 速度 | 位移除以时间得到速度 |
+| 速度 | ÷ | 时间 | = | 加速度 | 速度变化率 |
+| 角度 | ÷ | 时间 | = | 角速度 | 角位移变化率 |
+| 角速度 | ÷ | 时间 | = | 角加速度 | 角速度变化率 |
+| 距离 | × | 距离 | = | 面积 | 长度相乘得到面积 |
+| 距离 | × | 面积 | = | 体积 | 长度与面积相乘得到体积 |
+| 质量 | × | 速度 | = | 动量 | 质量与速度相乘得到动量 |
+| 距离 | × | 动量 | = | 角动量 | 距离与动量叉乘得到角动量 |
+| 角动量 | × | 角速度 | = | 力矩 | 角动量与角速度相乘得到力矩 |
+| 角速度 | × | 角动量 | = | 力矩 | 满足交换律 |
+| 力矩 | ÷ | 角速度 | = | 角动量 | 力矩除以角速度得到角动量 |
+| 角动量 | ÷ | 角速度 | = | 转动惯量(系数) | 角动量除以角速度得到转动惯量系数 |
+| 磁矩 | × | 磁感应强度 | = | 能量 | 磁矩与磁感应强度相乘得到能量 |
+| 力 | × | 距离 | = | 能量 | 力与距离相乘得到能量 |
+| 距离 | × | 力 | = | 能量 | 满足交换律 |
+| 质量 | × | 加速度 | = | 力 | 质量与加速度相乘得到力 |
+| 加速度 | × | 质量 | = | 力 | 满足交换律 |
+| 功率 | × | 时间 | = | 能量 | 功率与时间相乘得到能量 |
+| 时间 | × | 功率 | = | 能量 | 满足交换律 |
+| 力 | × | 速度 | = | 功率 | 力与速度相乘得到功率 |
+| 速度 | × | 力 | = | 功率 | 满足交换律 |
+
+### 运算示例
+
+```rust
+// 基础运动学运算
+let distance = Distance::from_m(1000.0);
+let time = Duration::from_secs(10);
+let velocity: Velocity = distance / time;
+let acceleration: Acceleration = velocity / time;
+
+// 旋转运动学运算
+let angular = Angular::from_deg(180.0);
+let angular_velocity: AngularVelocity = angular / time;
+let angular_acceleration: AngularAcceleration = angular_velocity / time;
+
+// 几何运算
+let dis: Distance = Distance::from_m(10.0);
+let area: Area = dis * dis; // 10m × 10m = 100m²
+let volume: Volume = dis * area; // 10m × 100m² = 1000m³
+
+// 动力学运算
+let mass = Mass::from_kg(2.0);
+let momentum: Momentum = mass * velocity;
+let angular_momentum: AngularMomentum = dis * momentum; // 距离与动量叉乘得到角动量
+
+// 旋转动力学运算
+let angular_momentum = AngularMomentum::from_kg_m2_per_second(10.0);
+let angular_velocity = AngularVelocity::from_rad_per_second(5.0);
+let torque: Torque = angular_momentum * angular_velocity; // 50 N·m
+
+// 满足交换律的运算
+let torque2: Torque = angular_velocity * angular_momentum; // 同样是 50 N·m
+
+// 逆运算
+let angular_momentum_back: AngularMomentum = torque / angular_velocity; // 10 kg·m²/s
+let moment_of_inertia: Coef = angular_momentum / angular_velocity; // 2 kg·m²
+
+// 磁学运算
+let magnetic_moment = MagneticMoment::from_am2(1.0); // 1 A·m²
+let magnetic_induction = MagneticInduction::from_tesla(2.0); // 2 T
+let energy: Energy = magnetic_moment * magnetic_induction; // 2 J
+
+// 力学运算
+let force = Force::from_newton(10.0); // 10 N
+let distance = Distance::from_m(5.0);  // 5 m
+let work: Energy = force * distance;   // 50 J
+
+let mass = Mass::from_kg(2.0);                    // 2 kg
+let acceleration = Acceleration::from_m_per_s2(5.0); // 5 m/s²
+let force_from_ma: Force = mass * acceleration;   // 10 N
+
+// 功率运算
+let power = Power::from_watt(100.0); // 100 W
+let time = Duration::from_secs(5); // 5 s
+let energy_from_power: Energy = power * time; // 500 J
+
+let force = Force::from_newton(10.0); // 10 N
+let velocity = Velocity::from_m_per_sec(5.0); // 5 m/s
+let power_from_force: Power = force * velocity; // 50 W
+```
+
+### 角动量单位系统
+
+角动量支持多种单位，满足不同精度和领域的计算需求：
+
+```rust
+// 传统单位
+let l1 = AngularMomentum::from_kg_m2_per_second(100.0); // 100 kg·m²/s
+let l2 = AngularMomentum::from_kg_km2_per_second(1.0);  // 1 kg·km²/s
+
+// N·m·s系列单位（与kg·m²/s数值相等）
+let l3 = AngularMomentum::from_nms(100.0);              // 100 N·m·s
+let l4 = AngularMomentum::from_mill_nms(1000.0);        // 1000 mN·m·s
+let l5 = AngularMomentum::from_micro_nms(1000000.0);    // 1000000 μN·m·s
+let l6 = AngularMomentum::from_nano_nms(1000000000.0);  // 1000000000 nN·m·s
+
+// 单位转换验证
+println!("100 N·m·s = {} kg·m²/s", l3.as_kg_m2_per_second()); // 100
+println!("1000 mN·m·s = {} kg·m²/s", l4.as_kg_m2_per_second()); // 1
+println!("1000000 μN·m·s = {} kg·m²/s", l5.as_kg_m2_per_second()); // 1
+println!("1000000000 nN·m·s = {} kg·m²/s", l6.as_kg_m2_per_second()); // 1
+
+// 不同单位之间的运算
+let sum = l3 + l4 + l5 + l6;
+println!("总和: {} N·m·s", sum.as_nms()); // 103 N·m·s
+```
+
+**物理意义**：
+- 1 N·m·s = 1 kg·m²/s（数值相等）
+- 这些单位在旋转动力学计算中非常重要
+- 支持从纳牛顿·米·秒到千克·平方千米/秒的各种精度
 
 # 向量计算
 ## 各种物理量向量之间的转换
@@ -448,3 +574,33 @@ println!("{:?}",cos);
  let q_div = q1 / q2 ;
  println!("{:?}",q_div);             
   ```
+
+# 更新日志
+
+## v0.2.11 - 角动量运算关系和单位系统
+
+### 功能特性
+- **角动量与角速度的乘法运算**：实现角动量 × 角速度 = 力矩的关系
+- **角动量与角速度的除法运算**：实现角动量 ÷ 角速度 = 转动惯量（系数）的关系
+- **力矩与角速度的除法运算**：实现力矩 ÷ 角速度 = 角动量的关系
+- **角动量单位系统**：支持N·m·s、mN·m·s、μN·m·s、nN·m·s系列单位
+- **力物理量**：新增力(Force)物理量，支持牛顿(N)及其毫、微、纳、千、兆单位
+- **力与距离的乘积**：实现力 × 距离 = 能量的关系
+- **质量与加速度的乘积**：实现质量 × 加速度 = 力的关系
+- **功率物理量**：新增功率(Power)物理量，支持瓦特(W)、马力(hp)及其毫、微、纳、千、兆单位
+- **功率与时间的乘积**：实现功率 × 时间 = 能量的关系
+- **力与速度的乘积**：实现力 × 速度 = 功率的关系
+
+### 技术特性
+- 所有运算都满足数学交换律
+- 支持不同单位之间的自动转换
+- 编译时类型安全，防止量纲不匹配的错误
+- 完整的单元测试覆盖
+
+### 物理意义
+- 在旋转动力学中，这些关系非常重要
+- 1 N·m·s = 1 kg·m²/s（数值相等）
+- 支持从纳牛顿·米·秒到千克·平方千米/秒的各种精度
+
+### 示例
+运行 `cargo run --example example_angular_relations` 查看完整示例。

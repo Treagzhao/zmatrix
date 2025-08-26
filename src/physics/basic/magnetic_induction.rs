@@ -2,7 +2,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::ops::{Add, Sub, Mul, Div};
 use lazy_static::lazy_static;
-use crate::physics::basic::{MagneticInduction, MagneticInductionType, PhysicalQuantity};
+use crate::physics::basic::{MagneticInduction, MagneticInductionType, PhysicalQuantity, AngularVelocity, MagneticAngularVelocity};
 lazy_static! {
     static ref TESLA_CONVERT:HashMap<MagneticInductionType,f64> = [
         (MagneticInductionType::Tesla, 1.0),
@@ -206,36 +206,11 @@ impl Add for MagneticInduction {
 impl Add<f64> for MagneticInduction {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            MagneticInductionType::Tesla => {
-                let v = self.as_tesla() + rhs;
-                Self::from_tesla(v)
-            }
-            MagneticInductionType::Gauss => {
-                let v = self.as_gauss() + rhs;
-                Self::from_gauss(v)
-            }
-            MagneticInductionType::MillTesla => {
-                let v = self.as_milli_tesla() + rhs;
-                Self::from_mill_tesla(v)
-            }
-            MagneticInductionType::MicroTesla => {
-                let v = self.as_micro_tesla() + rhs;
-                Self::from_micro_tesla(v)
-            }
-            MagneticInductionType::NanoTesla => {
-                let v = self.as_nano_tesla() + rhs;
-                Self::from_nano_tesla(v)
-            }
-            MagneticInductionType::MillGauss => {
-                let v = self.as_mill_gauss() + rhs;
-                Self::from_mill_gauss(v)
-            }
-            MagneticInductionType::KiloGauss => {
-                let v = self.as_kilo_gauss() + rhs;
-                Self::from_kilo_gauss(v)
-            }
-        };
+        let v = self.v + rhs;
+        MagneticInduction {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -250,36 +225,11 @@ impl Sub for MagneticInduction {
 impl Sub<f64> for MagneticInduction {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            MagneticInductionType::Tesla => {
-                let v = self.as_tesla() - rhs;
-                Self::from_tesla(v)
-            }
-            MagneticInductionType::Gauss => {
-                let v = self.as_gauss() - rhs;
-                Self::from_gauss(v)
-            }
-            MagneticInductionType::MillTesla => {
-                let v = self.as_milli_tesla() - rhs;
-                Self::from_mill_tesla(v)
-            }
-            MagneticInductionType::MicroTesla => {
-                let v = self.as_micro_tesla() - rhs;
-                Self::from_micro_tesla(v)
-            }
-            MagneticInductionType::NanoTesla => {
-                let v = self.as_nano_tesla() - rhs;
-                Self::from_nano_tesla(v)
-            }
-            MagneticInductionType::MillGauss => {
-                let v = self.as_mill_gauss() - rhs;
-                Self::from_mill_gauss(v)
-            }
-            MagneticInductionType::KiloGauss => {
-                let v = self.as_kilo_gauss() - rhs;
-                Self::from_kilo_gauss(v)
-            }
-        };
+        let v = self.v - rhs;
+        MagneticInduction {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -311,6 +261,16 @@ impl Div<MagneticInduction> for f64 {
     fn div(self, rhs: MagneticInduction) -> Self::Output {
         let v = self / rhs.as_tesla();
         MagneticInduction::from_tesla(v)
+    }
+}
+
+impl Mul<AngularVelocity> for MagneticInduction {
+    type Output = MagneticAngularVelocity;
+    fn mul(self, rhs: AngularVelocity) -> Self::Output {
+        let tesla_value = self.as_tesla();
+        let rad_per_second_value = rhs.as_rad_per_second();
+        let result_value = tesla_value * rad_per_second_value;
+        MagneticAngularVelocity::from_tesla_rad_per_second(result_value)
     }
 }
 
@@ -919,5 +879,33 @@ mod tests {
         let m = MagneticInduction::from_kilo_gauss(2.0);
         let result = 0.1 / m;
         assert_relative_eq!(result.as_tesla(), 0.5);
+    }
+
+    #[test]
+    fn test_magnetic_induction_mul_angular_velocity() {
+        // 磁感应强度 × 角速度 = 磁角速度
+        let magnetic_induction = MagneticInduction::from_tesla(2.0);
+        let angular_velocity = AngularVelocity::from_rad_per_second(3.0);
+        let result = magnetic_induction * angular_velocity;
+        assert_relative_eq!(result.as_tesla_rad_per_second(), 6.0);
+
+        // 测试不同单位的磁感应强度
+        let magnetic_induction = MagneticInduction::from_gauss(10000.0); // 1 T
+        let angular_velocity = AngularVelocity::from_rad_per_second(5.0);
+        let result = magnetic_induction * angular_velocity;
+        assert_relative_eq!(result.as_tesla_rad_per_second(), 5.0);
+
+        // 测试不同单位的角速度
+        let magnetic_induction = MagneticInduction::from_tesla(1.5);
+        let angular_velocity = AngularVelocity::from_deg_per_second(180.0); // π rad/s
+        let result = magnetic_induction * angular_velocity;
+        assert_relative_eq!(result.as_tesla_rad_per_second(), 1.5 * std::f64::consts::PI);
+
+        // 测试交换律
+        let magnetic_induction = MagneticInduction::from_tesla(2.0);
+        let angular_velocity = AngularVelocity::from_rad_per_second(3.0);
+        let result1 = magnetic_induction * angular_velocity;
+        let result2 = angular_velocity * magnetic_induction;
+        assert_relative_eq!(result1.as_tesla_rad_per_second(), result2.as_tesla_rad_per_second());
     }
 }

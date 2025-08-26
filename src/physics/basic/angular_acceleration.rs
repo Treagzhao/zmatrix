@@ -74,16 +74,11 @@ impl Add for AngularAcceleration {
 impl Add<f64> for AngularAcceleration {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            AngularAccelerationType::RadperSecond2 => {
-                let v = self.as_rad_per_second2() + rhs;
-                Self::from_rad_per_second2(v)
-            }
-            AngularAccelerationType::DegPerSecond2 => {
-                let v = self.as_deg_per_second2() + rhs;
-                Self::from_deg_per_second2(v)
-            }
-        };
+        let v = self.v + rhs;
+        AngularAcceleration {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 
@@ -98,16 +93,11 @@ impl Sub for AngularAcceleration {
 impl Sub<f64> for AngularAcceleration {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
-        return match self.default_type {
-            AngularAccelerationType::RadperSecond2 => {
-                let v = self.as_rad_per_second2() - rhs;
-                Self::from_rad_per_second2(v)
-            }
-            AngularAccelerationType::DegPerSecond2 => {
-                let v = self.as_deg_per_second2() - rhs;
-                Self::from_deg_per_second2(v)
-            }
-        };
+        let v = self.v - rhs;
+        AngularAcceleration {
+            v,
+            default_type: self.default_type,
+        }
     }
 }
 // 从角加速度变成角速度

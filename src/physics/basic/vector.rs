@@ -3,21 +3,23 @@ mod angular;
 mod angular_acceleration;
 mod angular_momentum;
 mod angular_velocity;
-mod area;
 mod coef;
 mod distance;
+mod force;
+mod magnetic_angular_velocity;
 mod magnetic_induction;
-mod mass;
+mod magnetic_moment;
+mod megnetic_induction;
 mod momentum;
+mod torque;
 mod velocity;
-mod volume;
 
 use super::*;
 use crate::dense::Matrix;
 use crate::utils::float;
 use std::ops::{Add, Mul, Sub};
 
-impl<T: PhysicalQuantity + Default> Vector3<T> {
+impl<T: VectorQuantity + Default> Vector3<T> {
     pub fn new(x: T, y: T, z: T) -> Self {
         Self { x, y, z }
     }
@@ -82,28 +84,28 @@ impl<T: PhysicalQuantity + Default> Vector3<T> {
         ];
         Matrix::new(data)
     }
-    // 通过两个向量叉乘返回与平面垂直的单位向量
-    pub fn cross_unit(&self, rhs: &Vector3<T>) -> Vector3<T> {
-        let result = self.cross(rhs);
-        result.normalize()
-    }
-
-    //通过两个向量叉乘返回与平面垂直的向量
-    pub fn cross(&self, rhs: &Vector3<T>) -> Vector3<T> {
-        let crsf3 = [
-            self.y.default_unit_value() * rhs.z.default_unit_value()
-                - self.z.default_unit_value() * rhs.y.default_unit_value(), // 1维值叉乘值
-            self.z.default_unit_value() * rhs.x.default_unit_value()
-                - self.x.default_unit_value() * rhs.z.default_unit_value(), // 2维值叉乘值
-            self.x.default_unit_value() * rhs.y.default_unit_value()
-                - self.y.default_unit_value() * rhs.x.default_unit_value(), // 3维值叉乘值
-        ];
-        let mut result: Vector3<T> = Vector3::default();
-        result.x.set_value(crsf3[0]);
-        result.y.set_value(crsf3[1]);
-        result.z.set_value(crsf3[2]);
-        result
-    }
+    // // 通过两个向量叉乘返回与平面垂直的单位向量
+    // pub fn cross_unit(&self, rhs: &Vector3<T>) -> Vector3<T> {
+    //     let result = self.cross(rhs);
+    //     result.normalize()
+    // }
+    //
+    // //通过两个向量叉乘返回与平面垂直的向量
+    // pub fn cross(&self, rhs: &Vector3<T>) -> Vector3<T> {
+    //     let crsf3 = [
+    //         self.y.default_unit_value() * rhs.z.default_unit_value()
+    //             - self.z.default_unit_value() * rhs.y.default_unit_value(), // 1维值叉乘值
+    //         self.z.default_unit_value() * rhs.x.default_unit_value()
+    //             - self.x.default_unit_value() * rhs.z.default_unit_value(), // 2维值叉乘值
+    //         self.x.default_unit_value() * rhs.y.default_unit_value()
+    //             - self.y.default_unit_value() * rhs.x.default_unit_value(), // 3维值叉乘值
+    //     ];
+    //     let mut result: Vector3<T> = Vector3::default();
+    //     result.x.set_value(crsf3[0]);
+    //     result.y.set_value(crsf3[1]);
+    //     result.z.set_value(crsf3[2]);
+    //     result
+    // }
 
     //向量点积
     pub fn dot(&self, rhs: &Vector3<T>) -> T {
@@ -117,13 +119,20 @@ impl<T: PhysicalQuantity + Default> Vector3<T> {
     }
 }
 
-impl<T: PhysicalQuantity + Default> Vector3<T> {
+impl<T: VectorQuantity + Default> Vector3<T> {
     pub fn to_col_matrix(&self) -> Matrix<3, 1, f64> {
         Matrix::new([
             [self.x.default_unit_value()],
             [self.y.default_unit_value()],
             [self.z.default_unit_value()],
         ])
+    }
+
+    pub fn norm_square(&self) -> f64 {
+        let sum = self.x.default_unit_value() * self.x.default_unit_value()
+            + self.y.default_unit_value() * self.y.default_unit_value()
+            + self.z.default_unit_value() * self.z.default_unit_value();
+        sum
     }
 
     pub fn norm(&self) -> T {
@@ -157,7 +166,7 @@ impl<T: PhysicalQuantity + Default> Vector3<T> {
     }
 }
 
-impl<T: PhysicalQuantity + Mul<f64, Output = T> + Default> Mul<f64> for Vector3<T> {
+impl<T: VectorQuantity + Mul<f64, Output = T> + Default> Mul<f64> for Vector3<T> {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
@@ -169,7 +178,7 @@ impl<T: PhysicalQuantity + Mul<f64, Output = T> + Default> Mul<f64> for Vector3<
     }
 }
 
-impl<T: PhysicalQuantity + Mul<Coef, Output = T> + Default> Mul<Coef> for Vector3<T> {
+impl<T: VectorQuantity + Mul<Coef, Output = T> + Default> Mul<Coef> for Vector3<T> {
     type Output = Vector3<T>;
 
     fn mul(self, rhs: Coef) -> Self::Output {
@@ -181,7 +190,7 @@ impl<T: PhysicalQuantity + Mul<Coef, Output = T> + Default> Mul<Coef> for Vector
     }
 }
 
-impl<T: PhysicalQuantity + Sub<T, Output = T> + Default> Sub for Vector3<T> {
+impl<T: VectorQuantity + Sub<T, Output = T> + Default> Sub for Vector3<T> {
     type Output = Vector3<T>;
 
     fn sub(self, rhs: Vector3<T>) -> Self::Output {
@@ -191,7 +200,7 @@ impl<T: PhysicalQuantity + Sub<T, Output = T> + Default> Sub for Vector3<T> {
         Self { x, y, z }
     }
 }
-impl<T: PhysicalQuantity + Add<T, Output = T> + Default> Add for Vector3<T> {
+impl<T: VectorQuantity + Add<T, Output = T> + Default> Add for Vector3<T> {
     type Output = Vector3<T>;
 
     fn add(self, rhs: Vector3<T>) -> Self::Output {
@@ -202,7 +211,7 @@ impl<T: PhysicalQuantity + Add<T, Output = T> + Default> Add for Vector3<T> {
     }
 }
 
-impl<T: PhysicalQuantity + Div<f64, Output = T> + Default> Div<f64> for Vector3<T> {
+impl<T: VectorQuantity + Div<f64, Output = T> + Default> Div<f64> for Vector3<T> {
     type Output = Vector3<T>;
 
     fn div(self, rhs: f64) -> Self::Output {
@@ -214,7 +223,7 @@ impl<T: PhysicalQuantity + Div<f64, Output = T> + Default> Div<f64> for Vector3<
     }
 }
 
-impl<T: PhysicalQuantity + Div<Coef, Output = T> + Default> Div<Coef> for Vector3<T> {
+impl<T: VectorQuantity + Div<Coef, Output = T> + Default> Div<Coef> for Vector3<T> {
     type Output = Vector3<T>;
 
     fn div(self, rhs: Coef) -> Self::Output {
@@ -226,15 +235,17 @@ impl<T: PhysicalQuantity + Div<Coef, Output = T> + Default> Div<Coef> for Vector
     }
 }
 
-impl<T: PhysicalQuantity + Mul<f64, Output = T> + Default> Mul<Vector3<T>> for f64 {
+impl<T: VectorQuantity + Mul<f64, Output = T> + Default> Mul<Vector3<T>> for f64 {
     type Output = Vector3<T>;
     fn mul(self, rhs: Vector3<T>) -> Self::Output {
         rhs * self
     }
 }
 
-impl<T: PhysicalQuantity + Div<f64, Output = T> + Default> Div<Vector3<T>> for f64 
-where f64: Div<T, Output = T> {
+impl<T: VectorQuantity + Div<f64, Output = T> + Default> Div<Vector3<T>> for f64
+where
+    f64: Div<T, Output = T>,
+{
     type Output = Vector3<T>;
     fn div(self, rhs: Vector3<T>) -> Self::Output {
         Vector3 {
@@ -242,6 +253,43 @@ where f64: Div<T, Output = T> {
             y: self / rhs.y,
             z: self / rhs.z,
         }
+    }
+}
+
+impl<T> Vector3<T>
+where
+    T: VectorQuantity + Default + Copy,
+{
+    pub fn cross<B, F>(self, rhs: &Vector3<B>) -> Vector3<F>
+    where
+        T: Mul<B, Output = F> + Sub<T, Output = T>,
+        B: VectorQuantity + Default + Copy,
+        F: VectorQuantity + Default + Copy + Sub<F, Output = F>,
+    {
+        let x = self.y.default_unit_value() * rhs.z.default_unit_value()
+            - self.z.default_unit_value() * rhs.y.default_unit_value();
+        let y = self.z.default_unit_value() * rhs.x.default_unit_value()
+            - self.x.default_unit_value() * rhs.z.default_unit_value();
+        let z = self.x.default_unit_value() * rhs.y.default_unit_value()
+            - self.y.default_unit_value() * rhs.x.default_unit_value();
+        let mut f_x = F::default();
+        let mut f_y = F::default();
+        let mut f_z = F::default();
+        f_x.set_value(x);
+        f_y.set_value(y);
+        f_z.set_value(z);
+        Vector3::new(f_x, f_y, f_z)
+    }
+
+    pub fn cross_unit<B, F>(self, rhs: &Vector3<B>) -> Vector3<F>
+    where
+        T: Mul<B, Output = F> + Sub<T, Output = T>,
+        B: VectorQuantity + Default + Copy,
+        F: VectorQuantity + Default + Copy + Sub<F, Output = F>,
+    {
+        let result = self.cross(rhs);
+        println!("{:?}", result.to_array());
+        result.normalize()
     }
 }
 
@@ -498,6 +546,8 @@ mod tests {
         assert_relative_eq!(result.x.get_value(), expected[0], epsilon = 0.00001);
         assert_relative_eq!(result.y.get_value(), expected[1], epsilon = 0.00001);
         assert_relative_eq!(result.z.get_value(), expected[2], epsilon = 0.00001);
+
+
     }
 
     #[test]
@@ -525,32 +575,32 @@ mod tests {
             MagneticInduction::from_gauss(100.0),
             MagneticInduction::from_mill_tesla(500.0),
         );
-        
+
         let vec2 = Vector3::new(
             MagneticInduction::from_tesla(2.0),
             MagneticInduction::from_gauss(200.0),
             MagneticInduction::from_mill_tesla(1000.0),
         );
-        
+
         // 测试加法
         let vec_add = vec1 + vec2;
         assert_relative_eq!(vec_add.x.as_tesla(), 3.0, epsilon = 1e-8);
         assert_relative_eq!(vec_add.y.as_gauss(), 300.0, epsilon = 1e-8);
         assert_relative_eq!(vec_add.z.as_milli_tesla(), 1500.0, epsilon = 1e-8);
-        
+
         // 测试减法
         let vec_sub = vec2 - vec1;
         assert_relative_eq!(vec_sub.x.as_tesla(), 1.0, epsilon = 1e-8);
         assert_relative_eq!(vec_sub.y.as_gauss(), 100.0, epsilon = 1e-8);
         assert_relative_eq!(vec_sub.z.as_milli_tesla(), 500.0, epsilon = 1e-8);
-        
+
         // 测试不同类型单位的混合运算
         let vec3 = Vector3::new(
             MagneticInduction::from_micro_tesla(1000000.0), // 1 Tesla
             MagneticInduction::from_kilo_gauss(1.0),        // 1000 Gauss
             MagneticInduction::from_nano_tesla(1000000000.0), // 1 Tesla
         );
-        
+
         let vec_mixed = vec1 + vec3;
         assert_relative_eq!(vec_mixed.x.as_tesla(), 2.0, epsilon = 1e-8);
         assert_relative_eq!(vec_mixed.y.as_gauss(), 1100.0, epsilon = 1e-8);
@@ -564,43 +614,45 @@ mod tests {
             MagneticInduction::from_tesla(2.0),
             MagneticInduction::from_tesla(3.0),
         );
-        
+
         // 测试 Vector3<T> * f64
         let result1 = v * 2.0;
         assert_relative_eq!(result1.x.as_tesla(), 2.0);
         assert_relative_eq!(result1.y.as_tesla(), 4.0);
         assert_relative_eq!(result1.z.as_tesla(), 6.0);
-        
+
         // 测试 Vector3<T> / f64
         let result2 = v / 2.0;
         assert_relative_eq!(result2.x.as_tesla(), 0.5);
         assert_relative_eq!(result2.y.as_tesla(), 1.0);
         assert_relative_eq!(result2.z.as_tesla(), 1.5);
-        
+
         // 测试 f64 * Vector3<T> (现在应该支持了)
         let result3 = 2.0 * v;
         assert_relative_eq!(result3.x.as_tesla(), 2.0);
         assert_relative_eq!(result3.y.as_tesla(), 4.0);
         assert_relative_eq!(result3.z.as_tesla(), 6.0);
-        
+
         // 测试 f64 / Vector3<T> (现在应该支持了)
         let result4 = 6.0 / v;
         assert_relative_eq!(result4.x.as_tesla(), 6.0);
         assert_relative_eq!(result4.y.as_tesla(), 3.0);
         assert_relative_eq!(result4.z.as_tesla(), 2.0);
-        
+
         // 验证正向操作正常工作
         assert!(result1.x.as_tesla() == 2.0);
         assert!(result2.x.as_tesla() == 0.5);
     }
 
     #[test]
+
     fn test_partial_eq() {
         let vec1 = Vector3::new(
             Distance::from_m(1.0),
             Distance::from_m(2.0),
             Distance::from_m(3.0),
         );
+
         let vec2 = Vector3::new(
             Distance::from_m(1.0),
             Distance::from_m(2.0),
@@ -614,14 +666,48 @@ mod tests {
 
         // 测试相等
         assert_eq!(vec1, vec2);
-        
+
         // 测试不相等
         assert_ne!(vec1, vec3);
         assert_ne!(vec2, vec3);
-        
+
         // 测试自反性
         assert_eq!(vec1, vec1);
         assert_eq!(vec2, vec2);
         assert_eq!(vec3, vec3);
+    }
+
+    fn test_norm_square_basic() {
+        // 测试基本功能：计算向量的模平方
+        let vec = Vector3::new(
+            Distance::from_m(1.0),
+            Distance::from_m(2.0),
+            Distance::from_m(3.0),
+        );
+        let result = vec.norm_square();
+        assert_relative_eq!(result, 14.0);
+    }
+    #[test]
+    fn test_norm_square_zero_vector() {
+        // 测试零向量的模平方
+        let vec = Vector3::new(
+            Distance::from_m(0.0),
+            Distance::from_m(0.0),
+            Distance::from_m(0.0),
+        );
+        let result = vec.norm_square();
+        assert_relative_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn test_norm_square_negative_components() {
+        // 测试含负分量的向量模平方
+        let vec = Vector3::new(
+            Distance::from_m(-1.0),
+            Distance::from_m(-2.0),
+            Distance::from_m(-3.0),
+        );
+        let result = vec.norm_square();
+        assert_relative_eq!(result, 14.0);
     }
 }

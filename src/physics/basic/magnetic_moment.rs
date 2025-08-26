@@ -647,4 +647,118 @@ mod tests {
         let energy = mm_j_per_t * b_gauss;
         assert_relative_eq!(energy.as_joule(), 6.0); // 2 J/T × 3 T = 6 J
     }
+
+    #[test]
+    fn test_magnetic_moment_comprehensive_as_methods() {
+        // 测试所有单位到所有单位的转换
+        // 从 AM2 开始
+        let mm_am2 = MagneticMoment::from_am2(1.0);
+        assert_relative_eq!(mm_am2.as_am2(), 1.0);
+        assert_relative_eq!(mm_am2.as_mill_am2(), 1000.0);
+        assert_relative_eq!(mm_am2.as_micro_am2(), 1000000.0);
+        assert_relative_eq!(mm_am2.as_nano_am2(), 1000000000.0);
+        assert_relative_eq!(mm_am2.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(mm_am2.as_mill_j_per_tesla(), 1000.0);
+        assert_relative_eq!(mm_am2.as_micro_j_per_tesla(), 1000000.0);
+        assert_relative_eq!(mm_am2.as_nano_j_per_tesla(), 1000000000.0);
+
+        // 从 MillAM2 开始
+        let mm_mill_am2 = MagneticMoment::from_mill_am2(1000.0);
+        assert_relative_eq!(mm_mill_am2.as_am2(), 1.0);
+        assert_relative_eq!(mm_mill_am2.as_mill_am2(), 1000.0);
+        assert_relative_eq!(mm_mill_am2.as_micro_am2(), 1000000.0);
+        assert_relative_eq!(mm_mill_am2.as_nano_am2(), 1000000000.0);
+        assert_relative_eq!(mm_mill_am2.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(mm_mill_am2.as_mill_j_per_tesla(), 1000.0);
+        assert_relative_eq!(mm_mill_am2.as_micro_j_per_tesla(), 1000000.0);
+        assert_relative_eq!(mm_mill_am2.as_nano_j_per_tesla(), 1000000000.0);
+
+        // 从 MicroAM2 开始
+        let mm_micro_am2 = MagneticMoment::from_micro_am2(1000000.0);
+        assert_relative_eq!(mm_micro_am2.as_am2(), 1.0);
+        assert_relative_eq!(mm_micro_am2.as_mill_am2(), 1000.0);
+        assert_relative_eq!(mm_micro_am2.as_micro_am2(), 1000000.0);
+        assert_relative_eq!(mm_micro_am2.as_nano_am2(), 1000000000.0);
+        assert_relative_eq!(mm_micro_am2.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(mm_micro_am2.as_mill_j_per_tesla(), 1000.0);
+        assert_relative_eq!(mm_micro_am2.as_micro_j_per_tesla(), 1000000.0);
+        assert_relative_eq!(mm_micro_am2.as_nano_j_per_tesla(), 1000000000.0);
+
+        // 从 NanoAM2 开始
+        let mm_nano_am2 = MagneticMoment::from_nano_am2(1000000000.0);
+        assert_relative_eq!(mm_nano_am2.as_am2(), 1.0);
+        assert_relative_eq!(mm_nano_am2.as_mill_am2(), 1000.0);
+        assert_relative_eq!(mm_nano_am2.as_micro_am2(), 1000000.0);
+        assert_relative_eq!(mm_nano_am2.as_nano_am2(), 1000000000.0);
+        assert_relative_eq!(mm_nano_am2.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(mm_nano_am2.as_mill_j_per_tesla(), 1000.0);
+        assert_relative_eq!(mm_nano_am2.as_micro_j_per_tesla(), 1000000.0);
+        assert_relative_eq!(mm_nano_am2.as_nano_j_per_tesla(), 1000000000.0);
+
+        // 从 JPerTesla 开始
+        let mm_j_per_t = MagneticMoment::from_j_per_tesla(1.0);
+        assert_relative_eq!(mm_j_per_t.as_am2(), 1.0);
+        assert_relative_eq!(mm_j_per_t.as_mill_am2(), 1000.0);
+        assert_relative_eq!(mm_j_per_t.as_micro_am2(), 1000000.0);
+        assert_relative_eq!(mm_j_per_t.as_nano_am2(), 1000000000.0);
+        assert_relative_eq!(mm_j_per_t.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(mm_j_per_t.as_mill_j_per_tesla(), 1000.0);
+        assert_relative_eq!(mm_j_per_t.as_micro_j_per_tesla(), 1000000.0);
+        assert_relative_eq!(mm_j_per_t.as_nano_j_per_tesla(), 1000000000.0);
+
+        // 从 MillJPerTesla 开始
+        let mm_mill_j_per_t = MagneticMoment::from_mill_j_per_tesla(1000.0);
+        assert_relative_eq!(mm_mill_j_per_t.as_am2(), 1.0);
+        assert_relative_eq!(mm_mill_j_per_t.as_mill_am2(), 1000.0);
+        assert_relative_eq!(mm_mill_j_per_t.as_micro_am2(), 1000000.0);
+        assert_relative_eq!(mm_mill_j_per_t.as_nano_am2(), 1000000000.0);
+        assert_relative_eq!(mm_mill_j_per_t.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(mm_mill_j_per_t.as_mill_j_per_tesla(), 1000.0);
+        assert_relative_eq!(mm_mill_j_per_t.as_micro_j_per_tesla(), 1000000.0);
+        assert_relative_eq!(mm_mill_j_per_t.as_nano_j_per_tesla(), 1000000000.0);
+
+        // 从 MicroJPerTesla 开始
+        let mm_micro_j_per_t = MagneticMoment::from_micro_j_per_tesla(1000000.0);
+        assert_relative_eq!(mm_micro_j_per_t.as_am2(), 1.0);
+        assert_relative_eq!(mm_micro_j_per_t.as_mill_am2(), 1000.0);
+        assert_relative_eq!(mm_micro_j_per_t.as_micro_am2(), 1000000.0);
+        assert_relative_eq!(mm_micro_j_per_t.as_nano_am2(), 1000000000.0);
+        assert_relative_eq!(mm_micro_j_per_t.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(mm_micro_j_per_t.as_mill_j_per_tesla(), 1000.0);
+        assert_relative_eq!(mm_micro_j_per_t.as_micro_j_per_tesla(), 1000000.0);
+        assert_relative_eq!(mm_micro_j_per_t.as_nano_j_per_tesla(), 1000000000.0);
+
+        // 从 NanoJPerTesla 开始
+        let mm_nano_j_per_t = MagneticMoment::from_nano_j_per_tesla(1000000000.0);
+        assert_relative_eq!(mm_nano_j_per_t.as_am2(), 1.0);
+        assert_relative_eq!(mm_nano_j_per_t.as_mill_am2(), 1000.0);
+        assert_relative_eq!(mm_nano_j_per_t.as_micro_am2(), 1000000.0);
+        assert_relative_eq!(mm_nano_j_per_t.as_nano_am2(), 1000000000.0);
+        assert_relative_eq!(mm_nano_j_per_t.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(mm_nano_j_per_t.as_mill_j_per_tesla(), 1000.0);
+        assert_relative_eq!(mm_nano_j_per_t.as_micro_j_per_tesla(), 1000000.0);
+        assert_relative_eq!(mm_nano_j_per_t.as_nano_j_per_tesla(), 1000000000.0);
+
+        // 测试负值
+        let mm_negative = MagneticMoment::from_am2(-2.0);
+        assert_relative_eq!(mm_negative.as_am2(), -2.0);
+        assert_relative_eq!(mm_negative.as_mill_am2(), -2000.0);
+        assert_relative_eq!(mm_negative.as_micro_am2(), -2000000.0);
+        assert_relative_eq!(mm_negative.as_nano_am2(), -2000000000.0);
+        assert_relative_eq!(mm_negative.as_j_per_tesla(), -2.0);
+        assert_relative_eq!(mm_negative.as_mill_j_per_tesla(), -2000.0);
+        assert_relative_eq!(mm_negative.as_micro_j_per_tesla(), -2000000.0);
+        assert_relative_eq!(mm_negative.as_nano_j_per_tesla(), -2000000000.0);
+
+        // 测试零值
+        let mm_zero = MagneticMoment::from_am2(0.0);
+        assert_relative_eq!(mm_zero.as_am2(), 0.0);
+        assert_relative_eq!(mm_zero.as_mill_am2(), 0.0);
+        assert_relative_eq!(mm_zero.as_micro_am2(), 0.0);
+        assert_relative_eq!(mm_zero.as_nano_am2(), 0.0);
+        assert_relative_eq!(mm_zero.as_j_per_tesla(), 0.0);
+        assert_relative_eq!(mm_zero.as_mill_j_per_tesla(), 0.0);
+        assert_relative_eq!(mm_zero.as_micro_j_per_tesla(), 0.0);
+        assert_relative_eq!(mm_zero.as_nano_j_per_tesla(), 0.0);
+    }
 }

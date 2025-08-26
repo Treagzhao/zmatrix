@@ -5,10 +5,13 @@ mod angular_momentum;
 mod angular_velocity;
 mod coef;
 mod distance;
+mod force;
 mod magnetic_angular_velocity;
 mod magnetic_induction;
+mod magnetic_moment;
 mod megnetic_induction;
 mod momentum;
+mod torque;
 mod velocity;
 
 use super::*;

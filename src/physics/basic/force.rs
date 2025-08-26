@@ -516,4 +516,80 @@ mod tests {
         let result = f - 3.0;
         assert_relative_eq!(result.as_newton(), 7.0);
     }
+
+    #[test]
+    fn test_force_comprehensive_as_methods() {
+        // 测试所有单位到所有单位的转换
+        // 从 Newton 开始
+        let f_newton = Force::from_newton(1.0);
+        assert_relative_eq!(f_newton.as_newton(), 1.0);
+        assert_relative_eq!(f_newton.as_mill_newton(), 1000.0);
+        assert_relative_eq!(f_newton.as_micro_newton(), 1000000.0);
+        assert_relative_eq!(f_newton.as_nano_newton(), 1000000000.0);
+        assert_relative_eq!(f_newton.as_kilo_newton(), 0.001);
+        assert_relative_eq!(f_newton.as_mega_newton(), 0.000001);
+
+        // 从 MillNewton 开始
+        let f_mill = Force::from_mill_newton(1000.0);
+        assert_relative_eq!(f_mill.as_newton(), 1.0);
+        assert_relative_eq!(f_mill.as_mill_newton(), 1000.0);
+        assert_relative_eq!(f_mill.as_micro_newton(), 1000000.0);
+        assert_relative_eq!(f_mill.as_nano_newton(), 1000000000.0);
+        assert_relative_eq!(f_mill.as_kilo_newton(), 0.001);
+        assert_relative_eq!(f_mill.as_mega_newton(), 0.000001);
+
+        // 从 MicroNewton 开始
+        let f_micro = Force::from_micro_newton(1000000.0);
+        assert_relative_eq!(f_micro.as_newton(), 1.0);
+        assert_relative_eq!(f_micro.as_mill_newton(), 1000.0);
+        assert_relative_eq!(f_micro.as_micro_newton(), 1000000.0);
+        assert_relative_eq!(f_micro.as_nano_newton(), 1000000000.0);
+        assert_relative_eq!(f_micro.as_kilo_newton(), 0.001);
+        assert_relative_eq!(f_micro.as_mega_newton(), 0.000001);
+
+        // 从 NanoNewton 开始
+        let f_nano = Force::from_nano_newton(1000000000.0);
+        assert_relative_eq!(f_nano.as_newton(), 1.0);
+        assert_relative_eq!(f_nano.as_mill_newton(), 1000.0);
+        assert_relative_eq!(f_nano.as_micro_newton(), 1000000.0);
+        assert_relative_eq!(f_nano.as_nano_newton(), 1000000000.0);
+        assert_relative_eq!(f_nano.as_kilo_newton(), 0.001);
+        assert_relative_eq!(f_nano.as_mega_newton(), 0.000001);
+
+        // 从 KiloNewton 开始
+        let f_kilo = Force::from_kilo_newton(0.001);
+        assert_relative_eq!(f_kilo.as_newton(), 1.0);
+        assert_relative_eq!(f_kilo.as_mill_newton(), 1000.0);
+        assert_relative_eq!(f_kilo.as_micro_newton(), 1000000.0);
+        assert_relative_eq!(f_kilo.as_nano_newton(), 1000000000.0);
+        assert_relative_eq!(f_kilo.as_kilo_newton(), 0.001);
+        assert_relative_eq!(f_kilo.as_mega_newton(), 0.000001);
+
+        // 从 MegaNewton 开始
+        let f_mega = Force::from_mega_newton(0.000001);
+        assert_relative_eq!(f_mega.as_newton(), 1.0);
+        assert_relative_eq!(f_mega.as_mill_newton(), 1000.0);
+        assert_relative_eq!(f_mega.as_micro_newton(), 1000000.0);
+        assert_relative_eq!(f_mega.as_nano_newton(), 1000000000.0);
+        assert_relative_eq!(f_mega.as_kilo_newton(), 0.001);
+        assert_relative_eq!(f_mega.as_mega_newton(), 0.000001);
+
+        // 测试负值
+        let f_negative = Force::from_newton(-2.0);
+        assert_relative_eq!(f_negative.as_newton(), -2.0);
+        assert_relative_eq!(f_negative.as_mill_newton(), -2000.0);
+        assert_relative_eq!(f_negative.as_micro_newton(), -2000000.0);
+        assert_relative_eq!(f_negative.as_nano_newton(), -2000000000.0);
+        assert_relative_eq!(f_negative.as_kilo_newton(), -0.002);
+        assert_relative_eq!(f_negative.as_mega_newton(), -0.000002);
+
+        // 测试零值
+        let f_zero = Force::from_newton(0.0);
+        assert_relative_eq!(f_zero.as_newton(), 0.0);
+        assert_relative_eq!(f_zero.as_mill_newton(), 0.0);
+        assert_relative_eq!(f_zero.as_micro_newton(), 0.0);
+        assert_relative_eq!(f_zero.as_nano_newton(), 0.0);
+        assert_relative_eq!(f_zero.as_kilo_newton(), 0.0);
+        assert_relative_eq!(f_zero.as_mega_newton(), 0.0);
+    }
 }

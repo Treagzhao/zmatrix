@@ -727,4 +727,163 @@ mod tests {
         assert_relative_eq!(a.v,0.0);
         assert_eq!(a.default_type,PowerType::Watt);
     }
+
+    #[test]
+    fn test_f64_mul_power() {
+        // 测试 f64 与 Power 的乘法
+        
+        let p_watt = Power::from_watt(10.0);
+        let result = 2.0 * p_watt;
+        assert_relative_eq!(result.as_watt(), 20.0);
+        
+        let p_mill_watt = Power::from_mill_watt(1000.0);
+        let result = 3.0 * p_mill_watt;
+        assert_relative_eq!(result.as_watt(), 3.0);
+        
+        let p_micro_watt = Power::from_micro_watt(1000000.0);
+        let result = 2.5 * p_micro_watt;
+        assert_relative_eq!(result.as_watt(), 2.5);
+        
+        let p_nano_watt = Power::from_nano_watt(1000000000.0);
+        let result = 1.5 * p_nano_watt;
+        assert_relative_eq!(result.as_watt(), 1.5);
+        
+        let p_kilo_watt = Power::from_kilo_watt(0.001);
+        let result = 2.0 * p_kilo_watt;
+        assert_relative_eq!(result.as_watt(), 2.0);
+        
+        let p_mega_watt = Power::from_mega_watt(0.000001);
+        let result = 3.0 * p_mega_watt;
+        assert_relative_eq!(result.as_watt(), 3.0);
+        
+        let p_horse_power = Power::from_horse_power(1.0 / 745.7);
+        let result = 4.0 * p_horse_power;
+        assert_relative_eq!(result.as_watt(), 4.0, epsilon = 1e-10);
+        
+        // 测试负值
+        let p_negative = Power::from_watt(-5.0);
+        let result = 3.0 * p_negative;
+        assert_relative_eq!(result.as_watt(), -15.0);
+        
+        // 测试零值
+        let p_zero = Power::from_watt(0.0);
+        let result = 100.0 * p_zero;
+        assert_relative_eq!(result.as_watt(), 0.0);
+    }
+
+    #[test]
+    fn test_f64_div_power() {
+        // 测试 f64 与 Power 的除法
+        
+        let p_watt = Power::from_watt(20.0);
+        let result = 40.0 / p_watt;
+        assert_relative_eq!(result.as_watt(), 2.0);
+        
+        let p_mill_watt = Power::from_mill_watt(3000.0);
+        let result = 3.0 / p_mill_watt;
+        assert_relative_eq!(result.as_watt(), 1.0);
+        
+        let p_micro_watt = Power::from_micro_watt(2500000.0);
+        let result = 2.5 / p_micro_watt;
+        assert_relative_eq!(result.as_watt(), 1.0);
+        
+        let p_nano_watt = Power::from_nano_watt(1500000000.0);
+        let result = 1.5 / p_nano_watt;
+        assert_relative_eq!(result.as_watt(), 1.0);
+        
+        let p_kilo_watt = Power::from_kilo_watt(0.002);
+        let result = 2.0 / p_kilo_watt;
+        assert_relative_eq!(result.as_watt(), 1.0);
+        
+        let p_mega_watt = Power::from_mega_watt(0.000003);
+        let result = 3.0 / p_mega_watt;
+        assert_relative_eq!(result.as_watt(), 1.0);
+        
+        let p_horse_power = Power::from_horse_power(4.0 / 745.7);
+        let result = 4.0 / p_horse_power;
+        assert_relative_eq!(result.as_watt(), 1.0, epsilon = 1e-10);
+        
+        // 测试负值
+        let p_negative = Power::from_watt(-10.0);
+        let result = 30.0 / p_negative;
+        assert_relative_eq!(result.as_watt(), -3.0);
+        
+        // 测试零值（应该 panic）
+        let p_zero = Power::from_watt(0.0);
+        // 注意：这里不测试除以零的情况，因为会导致 panic
+    }
+
+    #[test]
+    fn test_power_comprehensive_multiplication_division() {
+        // 综合测试所有乘法除法操作
+        
+        // 测试 Power 与 f64 的乘法（所有单位类型）
+        let units = vec![
+            (Power::from_watt(10.0), "Watt"),
+            (Power::from_mill_watt(10000.0), "MillWatt"),
+            (Power::from_micro_watt(10000000.0), "MicroWatt"),
+            (Power::from_nano_watt(10000000000.0), "NanoWatt"),
+            (Power::from_kilo_watt(0.01), "KiloWatt"),
+            (Power::from_mega_watt(0.00001), "MegaWatt"),
+            (Power::from_horse_power(10.0 / 745.7), "HorsePower"),
+        ];
+        
+        for (power, unit_name) in units {
+            // Power * f64
+            let result1 = power * 2.0;
+            assert_relative_eq!(result1.as_watt(), 20.0, epsilon = 1e-10);
+            
+            // f64 * Power
+            let result2 = 2.0 * power;
+            assert_relative_eq!(result2.as_watt(), 20.0, epsilon = 1e-10);
+            
+            // Power / f64
+            let result3 = power / 2.0;
+            assert_relative_eq!(result3.as_watt(), 5.0, epsilon = 1e-10);
+            
+            // f64 / Power
+            let result4 = 10.0 / power;
+            assert_relative_eq!(result4.as_watt(), 1.0, epsilon = 1e-10);
+        }
+        
+        // 测试与 Coef 的运算
+        let p = Power::from_watt(15.0);
+        let coef = Coef::new(3.0);
+        
+        let result_mul = p * coef;
+        assert_relative_eq!(result_mul.as_watt(), 45.0);
+        
+        let result_div = p / coef;
+        assert_relative_eq!(result_div.as_watt(), 5.0);
+        
+        // 测试物理运算
+        let power = Power::from_watt(100.0);
+        let force = Force::from_newton(20.0);
+        let velocity = Velocity::from_m_per_sec(5.0);
+        
+        // 功率 ÷ 力 = 速度
+        let result_velocity = power / force;
+        assert_relative_eq!(result_velocity.as_m_per_sec(), 5.0);
+        
+        // 功率 ÷ 速度 = 力
+        let result_force = power / velocity;
+        assert_relative_eq!(result_force.as_newton(), 20.0);
+        
+        // 力 × 速度 = 功率
+        let result_power1 = force * velocity;
+        assert_relative_eq!(result_power1.as_watt(), 100.0);
+        
+        // 速度 × 力 = 功率
+        let result_power2 = velocity * force;
+        assert_relative_eq!(result_power2.as_watt(), 100.0);
+        
+        // 功率 × 时间 = 能量
+        let time = Duration::from_secs(2);
+        let energy = power * time;
+        assert_relative_eq!(energy.as_joule(), 200.0);
+        
+        // 时间 × 功率 = 能量
+        let energy2 = time * power;
+        assert_relative_eq!(energy2.as_joule(), 200.0);
+    }
 }

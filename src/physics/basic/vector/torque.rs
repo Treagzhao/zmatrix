@@ -109,6 +109,51 @@ mod tests {
     }
 
     #[test]
+    fn test_from_vector_coef_mill_nm() {
+        let coef_vec = Vector3::new(Coef::new(1.0), Coef::new(2.0), Coef::new(3.0));
+        let torque_vec = Vector3::<Torque>::from_vector_coef(coef_vec, TorqueType::MillNM);
+        assert_relative_eq!(torque_vec.x.as_mill_nm(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(torque_vec.y.as_mill_nm(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(torque_vec.z.as_mill_nm(), 3.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_from_vector_coef_micro_nm() {
+        let coef_vec = Vector3::new(Coef::new(1.0), Coef::new(2.0), Coef::new(3.0));
+        let torque_vec = Vector3::<Torque>::from_vector_coef(coef_vec, TorqueType::MicroNM);
+        assert_relative_eq!(torque_vec.x.as_micro_nm(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(torque_vec.y.as_micro_nm(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(torque_vec.z.as_micro_nm(), 3.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_from_vector_coef_nano_nm() {
+        let coef_vec = Vector3::new(Coef::new(1.0), Coef::new(2.0), Coef::new(3.0));
+        let torque_vec = Vector3::<Torque>::from_vector_coef(coef_vec, TorqueType::NanoNM);
+        assert_relative_eq!(torque_vec.x.as_nano_nm(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(torque_vec.y.as_nano_nm(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(torque_vec.z.as_nano_nm(), 3.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_from_vector_coef_knm() {
+        let coef_vec = Vector3::new(Coef::new(1.0), Coef::new(2.0), Coef::new(3.0));
+        let torque_vec = Vector3::<Torque>::from_vector_coef(coef_vec, TorqueType::KNM);
+        assert_relative_eq!(torque_vec.x.as_knm(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(torque_vec.y.as_knm(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(torque_vec.z.as_knm(), 3.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_from_vector_coef_mnm() {
+        let coef_vec = Vector3::new(Coef::new(1.0), Coef::new(2.0), Coef::new(3.0));
+        let torque_vec = Vector3::<Torque>::from_vector_coef(coef_vec, TorqueType::MNM);
+        assert_relative_eq!(torque_vec.x.as_mnm(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(torque_vec.y.as_mnm(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(torque_vec.z.as_mnm(), 3.0, epsilon = 1e-10);
+    }
+
+    #[test]
     fn test_torque_comprehensive_as_methods() {
         // 测试所有单位类型之间的转换
         let torque_vec = Vector3::new(
@@ -132,5 +177,110 @@ mod tests {
         assert_relative_eq!(coef_nano_nm.x.get_value(), 1000000000.0, epsilon = 1e-10);
         assert_relative_eq!(coef_knm.x.get_value(), 0.001, epsilon = 1e-10);
         assert_relative_eq!(coef_mnm.x.get_value(), 0.000001, epsilon = 1e-10);
+
+        // 从 MillNM 转换到所有单位类型
+        let mill_nm_vec = Vector3::new(
+            Torque::from_mill_nm(1000.0),
+            Torque::from_mill_nm(2000.0),
+            Torque::from_mill_nm(3000.0),
+        );
+
+        let coef_from_mill_nm = mill_nm_vec.to_vector3_coef(TorqueType::NM);
+        let coef_from_mill_nm_mill = mill_nm_vec.to_vector3_coef(TorqueType::MillNM);
+        let coef_from_mill_nm_micro = mill_nm_vec.to_vector3_coef(TorqueType::MicroNM);
+        let coef_from_mill_nm_nano = mill_nm_vec.to_vector3_coef(TorqueType::NanoNM);
+        let coef_from_mill_nm_knm = mill_nm_vec.to_vector3_coef(TorqueType::KNM);
+        let coef_from_mill_nm_mnm = mill_nm_vec.to_vector3_coef(TorqueType::MNM);
+
+        assert_relative_eq!(coef_from_mill_nm.x.get_value(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_mill_nm_mill.x.get_value(), 1000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_mill_nm_micro.x.get_value(), 1000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_mill_nm_nano.x.get_value(), 1000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_mill_nm_knm.x.get_value(), 0.001, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_mill_nm_mnm.x.get_value(), 0.000001, epsilon = 1e-10);
+
+        // 从 MicroNM 转换到所有单位类型
+        let micro_nm_vec = Vector3::new(
+            Torque::from_micro_nm(1000000.0),
+            Torque::from_micro_nm(2000000.0),
+            Torque::from_micro_nm(3000000.0),
+        );
+
+        let coef_from_micro_nm = micro_nm_vec.to_vector3_coef(TorqueType::NM);
+        let coef_from_micro_nm_mill = micro_nm_vec.to_vector3_coef(TorqueType::MillNM);
+        let coef_from_micro_nm_micro = micro_nm_vec.to_vector3_coef(TorqueType::MicroNM);
+        let coef_from_micro_nm_nano = micro_nm_vec.to_vector3_coef(TorqueType::NanoNM);
+        let coef_from_micro_nm_knm = micro_nm_vec.to_vector3_coef(TorqueType::KNM);
+        let coef_from_micro_nm_mnm = micro_nm_vec.to_vector3_coef(TorqueType::MNM);
+
+        assert_relative_eq!(coef_from_micro_nm.x.get_value(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_micro_nm_mill.x.get_value(), 1000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_micro_nm_micro.x.get_value(), 1000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_micro_nm_nano.x.get_value(), 1000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_micro_nm_knm.x.get_value(), 0.001, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_micro_nm_mnm.x.get_value(), 0.000001, epsilon = 1e-10);
+
+        // 从 NanoNM 转换到所有单位类型
+        let nano_nm_vec = Vector3::new(
+            Torque::from_nano_nm(1000000000.0),
+            Torque::from_nano_nm(2000000000.0),
+            Torque::from_nano_nm(3000000000.0),
+        );
+
+        let coef_from_nano_nm = nano_nm_vec.to_vector3_coef(TorqueType::NM);
+        let coef_from_nano_nm_mill = nano_nm_vec.to_vector3_coef(TorqueType::MillNM);
+        let coef_from_nano_nm_micro = nano_nm_vec.to_vector3_coef(TorqueType::MicroNM);
+        let coef_from_nano_nm_nano = nano_nm_vec.to_vector3_coef(TorqueType::NanoNM);
+        let coef_from_nano_nm_knm = nano_nm_vec.to_vector3_coef(TorqueType::KNM);
+        let coef_from_nano_nm_mnm = nano_nm_vec.to_vector3_coef(TorqueType::MNM);
+
+        assert_relative_eq!(coef_from_nano_nm.x.get_value(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_nano_nm_mill.x.get_value(), 1000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_nano_nm_micro.x.get_value(), 1000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_nano_nm_nano.x.get_value(), 1000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_nano_nm_knm.x.get_value(), 0.001, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_nano_nm_mnm.x.get_value(), 0.000001, epsilon = 1e-10);
+
+        // 从 KNM 转换到所有单位类型
+        let knm_vec = Vector3::new(
+            Torque::from_knm(0.001),
+            Torque::from_knm(0.002),
+            Torque::from_knm(0.003),
+        );
+
+        let coef_from_knm = knm_vec.to_vector3_coef(TorqueType::NM);
+        let coef_from_knm_mill = knm_vec.to_vector3_coef(TorqueType::MillNM);
+        let coef_from_knm_micro = knm_vec.to_vector3_coef(TorqueType::MicroNM);
+        let coef_from_knm_nano = knm_vec.to_vector3_coef(TorqueType::NanoNM);
+        let coef_from_knm_knm = knm_vec.to_vector3_coef(TorqueType::KNM);
+        let coef_from_knm_mnm = knm_vec.to_vector3_coef(TorqueType::MNM);
+
+        assert_relative_eq!(coef_from_knm.x.get_value(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_knm_mill.x.get_value(), 1000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_knm_micro.x.get_value(), 1000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_knm_nano.x.get_value(), 1000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_knm_knm.x.get_value(), 0.001, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_knm_mnm.x.get_value(), 0.000001, epsilon = 1e-10);
+
+        // 从 MNM 转换到所有单位类型
+        let mnm_vec = Vector3::new(
+            Torque::from_mnm(0.000001),
+            Torque::from_mnm(0.000002),
+            Torque::from_mnm(0.000003),
+        );
+
+        let coef_from_mnm = mnm_vec.to_vector3_coef(TorqueType::NM);
+        let coef_from_mnm_mill = mnm_vec.to_vector3_coef(TorqueType::MillNM);
+        let coef_from_mnm_micro = mnm_vec.to_vector3_coef(TorqueType::MicroNM);
+        let coef_from_mnm_nano = mnm_vec.to_vector3_coef(TorqueType::NanoNM);
+        let coef_from_mnm_knm = mnm_vec.to_vector3_coef(TorqueType::KNM);
+        let coef_from_mnm_mnm = mnm_vec.to_vector3_coef(TorqueType::MNM);
+
+        assert_relative_eq!(coef_from_mnm.x.get_value(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_mnm_mill.x.get_value(), 1000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_mnm_micro.x.get_value(), 1000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_mnm_nano.x.get_value(), 1000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_mnm_knm.x.get_value(), 0.001, epsilon = 1e-10);
+        assert_relative_eq!(coef_from_mnm_mnm.x.get_value(), 0.000001, epsilon = 1e-10);
     }
 }

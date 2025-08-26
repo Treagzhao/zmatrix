@@ -1348,27 +1348,33 @@ mod tests {
         // 测试与旧版本陀螺模式详细计算的等价性
         // 旧版本输入：B = [1.0, 0.0, 0.0] T, ω = [0.0, 1.0, 2.0] rad/s, k_mmg = 0.5
         // 旧版本输出：[-0.0, 1.0, -0.5] T
-        
+
         // 计算 B × ω
         let b = Vector3::new(
-            MagneticInduction::from_tesla(1.0),  // B_x = 1.0 T
-            MagneticInduction::from_tesla(0.0),  // B_y = 0.0 T
-            MagneticInduction::from_tesla(0.0),  // B_z = 0.0 T
+            MagneticInduction::from_tesla(1.0), // B_x = 1.0 T
+            MagneticInduction::from_tesla(0.0), // B_y = 0.0 T
+            MagneticInduction::from_tesla(0.0), // B_z = 0.0 T
         );
         let omega = Vector3::new(
-            AngularVelocity::from_rad_per_second(0.0),  // ω_x = 0.0 rad/s
-            AngularVelocity::from_rad_per_second(1.0),  // ω_y = 1.0 rad/s
-            AngularVelocity::from_rad_per_second(2.0),  // ω_z = 2.0 rad/s
+            AngularVelocity::from_rad_per_second(0.0), // ω_x = 0.0 rad/s
+            AngularVelocity::from_rad_per_second(1.0), // ω_y = 1.0 rad/s
+            AngularVelocity::from_rad_per_second(2.0), // ω_z = 2.0 rad/s
         );
-        
+
         // 计算 B × ω，然后取负号以匹配旧版本的逻辑
         let cross_product = b.cross(&omega);
         let w = Vector3::new(
-            MagneticAngularVelocity::from_tesla_rad_per_second(-cross_product.x.as_tesla_rad_per_second()),
-            MagneticAngularVelocity::from_tesla_rad_per_second(-cross_product.y.as_tesla_rad_per_second()),
-            MagneticAngularVelocity::from_tesla_rad_per_second(-cross_product.z.as_tesla_rad_per_second()),
+            MagneticAngularVelocity::from_tesla_rad_per_second(
+                -cross_product.x.as_tesla_rad_per_second(),
+            ),
+            MagneticAngularVelocity::from_tesla_rad_per_second(
+                -cross_product.y.as_tesla_rad_per_second(),
+            ),
+            MagneticAngularVelocity::from_tesla_rad_per_second(
+                -cross_product.z.as_tesla_rad_per_second(),
+            ),
         );
-        
+
         let k = AngularMomentum::from_nms(0.5); // k_mmg = 0.5
 
         let result = w.to_magnetic_moment(&k, &b);
@@ -1378,12 +1384,30 @@ mod tests {
 
         println!("=== to_magnetic_moment 等价性测试（陀螺模式详细） ===");
         println!("输入参数（与旧版本一致）:");
-        println!("  ω (magnetic_angular_velocity): [{}, {}, {}] T·rad/s", w.x.as_tesla_rad_per_second(), w.y.as_tesla_rad_per_second(), w.z.as_tesla_rad_per_second());
-        println!("  B (magnetic_induction): [{}, {}, {}] T", b.x.as_tesla(), b.y.as_tesla(), b.z.as_tesla());
+        println!(
+            "  ω (magnetic_angular_velocity): [{}, {}, {}] T·rad/s",
+            w.x.as_tesla_rad_per_second(),
+            w.y.as_tesla_rad_per_second(),
+            w.z.as_tesla_rad_per_second()
+        );
+        println!(
+            "  B (magnetic_induction): [{}, {}, {}] T",
+            b.x.as_tesla(),
+            b.y.as_tesla(),
+            b.z.as_tesla()
+        );
         println!("  k (angular_momentum): {} N·m·s", k.as_nms());
         println!("旧版本输出: [-0.0, 1.0, -0.5] T");
-        println!("新版本输出: [{}, {}, {}] A·m²", result.x.as_am2(), result.y.as_am2(), result.z.as_am2());
-        println!("预期结果: [{}, {}, {}] A·m²", expected_result[0], expected_result[1], expected_result[2]);
+        println!(
+            "新版本输出: [{}, {}, {}] A·m²",
+            result.x.as_am2(),
+            result.y.as_am2(),
+            result.z.as_am2()
+        );
+        println!(
+            "预期结果: [{}, {}, {}] A·m²",
+            expected_result[0], expected_result[1], expected_result[2]
+        );
         println!();
 
         // 验证结果（如果不等价，说明新版本代码有误）
@@ -1397,27 +1421,33 @@ mod tests {
         // 测试与旧版本陀螺模式非零叉积的等价性
         // 旧版本输入：B = [1.0, 0.0, 0.0] T, ω = [0.0, 0.2, 0.3] rad/s, k_mmg = 1.0
         // 旧版本输出：[-0.0, 0.3, -0.2] T
-        
+
         // 计算 B × ω
         let b = Vector3::new(
-            MagneticInduction::from_tesla(1.0),  // B_x = 1.0 T
-            MagneticInduction::from_tesla(0.0),  // B_y = 0.0 T
-            MagneticInduction::from_tesla(0.0),  // B_z = 0.0 T
+            MagneticInduction::from_tesla(1.0), // B_x = 1.0 T
+            MagneticInduction::from_tesla(0.0), // B_y = 0.0 T
+            MagneticInduction::from_tesla(0.0), // B_z = 0.0 T
         );
         let omega = Vector3::new(
-            AngularVelocity::from_rad_per_second(0.0),  // ω_x = 0.0 rad/s
-            AngularVelocity::from_rad_per_second(0.2),  // ω_y = 0.2 rad/s
-            AngularVelocity::from_rad_per_second(0.3),  // ω_z = 0.3 rad/s
+            AngularVelocity::from_rad_per_second(0.0), // ω_x = 0.0 rad/s
+            AngularVelocity::from_rad_per_second(0.2), // ω_y = 0.2 rad/s
+            AngularVelocity::from_rad_per_second(0.3), // ω_z = 0.3 rad/s
         );
-        
+
         // 计算 B × ω，然后取负号以匹配旧版本的逻辑
         let cross_product = b.cross(&omega);
         let w = Vector3::new(
-            MagneticAngularVelocity::from_tesla_rad_per_second(-cross_product.x.as_tesla_rad_per_second()),
-            MagneticAngularVelocity::from_tesla_rad_per_second(-cross_product.y.as_tesla_rad_per_second()),
-            MagneticAngularVelocity::from_tesla_rad_per_second(-cross_product.z.as_tesla_rad_per_second()),
+            MagneticAngularVelocity::from_tesla_rad_per_second(
+                -cross_product.x.as_tesla_rad_per_second(),
+            ),
+            MagneticAngularVelocity::from_tesla_rad_per_second(
+                -cross_product.y.as_tesla_rad_per_second(),
+            ),
+            MagneticAngularVelocity::from_tesla_rad_per_second(
+                -cross_product.z.as_tesla_rad_per_second(),
+            ),
         );
-        
+
         let k = AngularMomentum::from_nms(1.0); // k_mmg = 1.0
 
         let result = w.to_magnetic_moment(&k, &b);
@@ -1427,12 +1457,30 @@ mod tests {
 
         println!("=== to_magnetic_moment 等价性测试（陀螺模式非零叉积） ===");
         println!("输入参数（与旧版本一致）:");
-        println!("  ω (magnetic_angular_velocity): [{}, {}, {}] T·rad/s", w.x.as_tesla_rad_per_second(), w.y.as_tesla_rad_per_second(), w.z.as_tesla_rad_per_second());
-        println!("  B (magnetic_induction): [{}, {}, {}] T", b.x.as_tesla(), b.y.as_tesla(), b.z.as_tesla());
+        println!(
+            "  ω (magnetic_angular_velocity): [{}, {}, {}] T·rad/s",
+            w.x.as_tesla_rad_per_second(),
+            w.y.as_tesla_rad_per_second(),
+            w.z.as_tesla_rad_per_second()
+        );
+        println!(
+            "  B (magnetic_induction): [{}, {}, {}] T",
+            b.x.as_tesla(),
+            b.y.as_tesla(),
+            b.z.as_tesla()
+        );
         println!("  k (angular_momentum): {} N·m·s", k.as_nms());
         println!("旧版本输出: [-0.0, 0.3, -0.2] T");
-        println!("新版本输出: [{}, {}, {}] A·m²", result.x.as_am2(), result.y.as_am2(), result.z.as_am2());
-        println!("预期结果: [{}, {}, {}] A·m²", expected_result[0], expected_result[1], expected_result[2]);
+        println!(
+            "新版本输出: [{}, {}, {}] A·m²",
+            result.x.as_am2(),
+            result.y.as_am2(),
+            result.z.as_am2()
+        );
+        println!(
+            "预期结果: [{}, {}, {}] A·m²",
+            expected_result[0], expected_result[1], expected_result[2]
+        );
         println!();
 
         // 验证结果
@@ -1446,27 +1494,33 @@ mod tests {
         // 测试与旧版本小磁场保护机制的等价性
         // 旧版本输入：B = [1e-6, 1e-6, 1e-6] T, ω = [0.1, 0.2, 0.3] rad/s, k_mmg = 1.0
         // 旧版本输出：[-33333.336, 66666.67, -33333.332] T
-        
+
         // 计算 B × ω
         let b = Vector3::new(
-            MagneticInduction::from_tesla(1e-6),  // B_x = 1e-6 T
-            MagneticInduction::from_tesla(1e-6),  // B_y = 1e-6 T
-            MagneticInduction::from_tesla(1e-6),  // B_z = 1e-6 T
+            MagneticInduction::from_tesla(1e-6), // B_x = 1e-6 T
+            MagneticInduction::from_tesla(1e-6), // B_y = 1e-6 T
+            MagneticInduction::from_tesla(1e-6), // B_z = 1e-6 T
         );
         let omega = Vector3::new(
-            AngularVelocity::from_rad_per_second(0.1),  // ω_x = 0.1 rad/s
-            AngularVelocity::from_rad_per_second(0.2),  // ω_y = 0.2 rad/s
-            AngularVelocity::from_rad_per_second(0.3),  // ω_z = 0.3 rad/s
+            AngularVelocity::from_rad_per_second(0.1), // ω_x = 0.1 rad/s
+            AngularVelocity::from_rad_per_second(0.2), // ω_y = 0.2 rad/s
+            AngularVelocity::from_rad_per_second(0.3), // ω_z = 0.3 rad/s
         );
-        
+
         // 计算 B × ω，然后取负号以匹配旧版本的逻辑
         let cross_product = b.cross(&omega);
         let w = Vector3::new(
-            MagneticAngularVelocity::from_tesla_rad_per_second(-cross_product.x.as_tesla_rad_per_second()),
-            MagneticAngularVelocity::from_tesla_rad_per_second(-cross_product.y.as_tesla_rad_per_second()),
-            MagneticAngularVelocity::from_tesla_rad_per_second(-cross_product.z.as_tesla_rad_per_second()),
+            MagneticAngularVelocity::from_tesla_rad_per_second(
+                -cross_product.x.as_tesla_rad_per_second(),
+            ),
+            MagneticAngularVelocity::from_tesla_rad_per_second(
+                -cross_product.y.as_tesla_rad_per_second(),
+            ),
+            MagneticAngularVelocity::from_tesla_rad_per_second(
+                -cross_product.z.as_tesla_rad_per_second(),
+            ),
         );
-        
+
         let k = AngularMomentum::from_nms(1.0); // k_mmg = 1.0
 
         let result = w.to_magnetic_moment(&k, &b);
@@ -1476,17 +1530,59 @@ mod tests {
 
         println!("=== to_magnetic_moment 等价性测试（小磁场保护） ===");
         println!("输入参数（与旧版本一致）:");
-        println!("  ω (magnetic_angular_velocity): [{}, {}, {}] T·rad/s", w.x.as_tesla_rad_per_second(), w.y.as_tesla_rad_per_second(), w.z.as_tesla_rad_per_second());
-        println!("  B (magnetic_induction): [{}, {}, {}] T", b.x.as_tesla(), b.y.as_tesla(), b.z.as_tesla());
+        println!(
+            "  ω (magnetic_angular_velocity): [{}, {}, {}] T·rad/s",
+            w.x.as_tesla_rad_per_second(),
+            w.y.as_tesla_rad_per_second(),
+            w.z.as_tesla_rad_per_second()
+        );
+        println!(
+            "  B (magnetic_induction): [{}, {}, {}] T",
+            b.x.as_tesla(),
+            b.y.as_tesla(),
+            b.z.as_tesla()
+        );
         println!("  k (angular_momentum): {} N·m·s", k.as_nms());
         println!("旧版本输出: [-33333.336, 66666.67, -33333.332] T");
-        println!("新版本输出: [{}, {}, {}] A·m²", result.x.as_am2(), result.y.as_am2(), result.z.as_am2());
-        println!("预期结果: [{}, {}, {}] A·m²", expected_result[0], expected_result[1], expected_result[2]);
+        println!(
+            "新版本输出: [{}, {}, {}] A·m²",
+            result.x.as_am2(),
+            result.y.as_am2(),
+            result.z.as_am2()
+        );
+        println!(
+            "预期结果: [{}, {}, {}] A·m²",
+            expected_result[0], expected_result[1], expected_result[2]
+        );
         println!();
 
         // 验证结果
         assert_relative_eq!(result.x.as_am2(), expected_result[0], epsilon = 1e-6);
         assert_relative_eq!(result.y.as_am2(), expected_result[1], epsilon = 1e-6);
         assert_relative_eq!(result.z.as_am2(), expected_result[2], epsilon = 1e-6);
+    }
+
+    #[test]
+    fn test_mag_speed_damp_calc_magmeter_mode() {
+        let b: Vector3<MagneticInduction> = Vector3::new(
+            MagneticInduction::from_micro_tesla(2.0),
+            MagneticInduction::from_micro_tesla(3.0),
+            MagneticInduction::from_micro_tesla(4.0),
+        );
+        let b_prev: Vector3<MagneticInduction> = Vector3::new(
+            MagneticInduction::from_micro_tesla(1.0),
+            MagneticInduction::from_micro_tesla(2.0),
+            MagneticInduction::from_micro_tesla(3.0),
+        );
+        let w: AngularVelocity = AngularVelocity::from_rad_per_second(1.0 / 0.2);
+        let delta_B = b - b_prev;
+        let cross = (delta_B * w) / -4.0;
+        let angular_momentum = AngularMomentum::from_nms(0.3);
+        let result = cross.to_magnetic_moment(&angular_momentum, &b);
+        println!("输出结果(μT级入参): {:?}", result.to_array());
+        assert_relative_eq!(-12931.0344827,result.x.as_am2(),epsilon = 1e-4);
+        assert_relative_eq!(-12931.0344827,result.y.as_am2(),epsilon = 1e-4);
+        assert_relative_eq!(-12931.0344827,result.z.as_am2(),epsilon = 1e-4);
+
     }
 }

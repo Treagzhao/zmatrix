@@ -546,6 +546,8 @@ mod tests {
         assert_relative_eq!(result.x.get_value(), expected[0], epsilon = 0.00001);
         assert_relative_eq!(result.y.get_value(), expected[1], epsilon = 0.00001);
         assert_relative_eq!(result.z.get_value(), expected[2], epsilon = 0.00001);
+
+
     }
 
     #[test]

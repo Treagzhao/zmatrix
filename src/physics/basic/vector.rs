@@ -117,6 +117,37 @@ impl<T: VectorQuantity + Default> Vector3<T> {
         );
         result
     }
+
+    // 计算两个三维向量的夹角，返回 Angular。
+    // 对于任意可作为三维向量分量的物理量（同/不同量纲均可），
+    // 该实现使用无量化的默认单位值进行计算，不影响量纲系统。
+    pub fn angle_with<B>(&self, rhs: &Vector3<B>) -> Angular
+    where
+        B: VectorQuantity + Default,
+    {
+        let ax = self.x.default_unit_value();
+        let ay = self.y.default_unit_value();
+        let az = self.z.default_unit_value();
+        let bx = rhs.x.default_unit_value();
+        let by = rhs.y.default_unit_value();
+        let bz = rhs.z.default_unit_value();
+
+        let dot = ax * bx + ay * by + az * bz;
+        let a_norm = (ax * ax + ay * ay + az * az).sqrt();
+        let b_norm = (bx * bx + by * by + bz * bz).sqrt();
+
+        if a_norm == 0.0 || b_norm == 0.0 {
+            return Angular::from_rad(f64::NAN);
+        }
+
+        let mut cos_theta = dot / (a_norm * b_norm);
+        if cos_theta > 1.0 {
+            cos_theta = 1.0;
+        } else if cos_theta < -1.0 {
+            cos_theta = -1.0;
+        }
+        Angular::acos(cos_theta)
+    }
 }
 
 impl<T: VectorQuantity + Default> Vector3<T> {
@@ -565,6 +596,50 @@ mod tests {
         let b: Vector3<Coef> = Vector3::new(Coef::new(2.0), Coef::new(6.0), Coef::new(8.0));
         let result = a.dot(&b);
         assert_eq!(result.get_value(), 52.0);
+    }
+
+    #[test]
+    fn test_angle_with_basic_cases() {
+        // 同向
+        let a: Vector3<Coef> = Vector3::new(Coef::new(1.0), Coef::new(0.0), Coef::new(0.0));
+        let b: Vector3<Coef> = Vector3::new(Coef::new(2.0), Coef::new(0.0), Coef::new(0.0));
+        let theta = a.angle_with(&b);
+        assert_relative_eq!(theta.as_rad(), 0.0, epsilon = 1e-10);
+
+        // 反向
+        let a: Vector3<Coef> = Vector3::new(Coef::new(1.0), Coef::new(0.0), Coef::new(0.0));
+        let b: Vector3<Coef> = Vector3::new(Coef::new(-2.0), Coef::new(0.0), Coef::new(0.0));
+        let theta = a.angle_with(&b);
+        assert_relative_eq!(theta.as_deg(), 180.0, epsilon = 1e-8);
+
+        // 正交
+        let a: Vector3<Coef> = Vector3::new(Coef::new(1.0), Coef::new(0.0), Coef::new(0.0));
+        let b: Vector3<Coef> = Vector3::new(Coef::new(0.0), Coef::new(2.0), Coef::new(0.0));
+        let theta = a.angle_with(&b);
+        assert_relative_eq!(theta.as_deg(), 90.0, epsilon = 1e-8);
+
+        // 任一零向量 -> NaN
+        let a: Vector3<Coef> = Vector3::new(Coef::new(0.0), Coef::new(0.0), Coef::new(0.0));
+        let b: Vector3<Coef> = Vector3::new(Coef::new(1.0), Coef::new(2.0), Coef::new(3.0));
+        let theta = a.angle_with(&b);
+        assert!(theta.as_rad().is_nan());
+    }
+
+    #[test]
+    fn test_angle_with_cross_dimension() {
+        // 不同量纲也允许计算夹角（使用默认单位值进行计算）
+        let a: Vector3<Distance> = Vector3::new(
+            Distance::from_m(1.0),
+            Distance::from_m(0.0),
+            Distance::from_m(0.0),
+        );
+        let b: Vector3<MagneticInduction> = Vector3::new(
+            MagneticInduction::from_tesla(0.0),
+            MagneticInduction::from_tesla(1.0),
+            MagneticInduction::from_tesla(0.0),
+        );
+        let theta = a.angle_with(&b);
+        assert_relative_eq!(theta.as_deg(), 90.0, epsilon = 1e-8);
     }
 
     #[test]

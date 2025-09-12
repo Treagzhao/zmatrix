@@ -19,6 +19,17 @@ use crate::dense::Matrix;
 use crate::utils::float;
 use std::ops::{Add, Mul, Sub};
 
+// 将值限制在 [-1, 1] 区间内，供角度计算使用
+pub(crate) fn clamp_to_unit_interval(v: f64) -> f64 {
+    if v > 1.0 {
+        1.0
+    } else if v < -1.0 {
+        -1.0
+    } else {
+        v
+    }
+}
+
 impl<T: VectorQuantity + Default> Vector3<T> {
     pub fn new(x: T, y: T, z: T) -> Self {
         Self { x, y, z }
@@ -140,12 +151,7 @@ impl<T: VectorQuantity + Default> Vector3<T> {
             return Angular::from_rad(f64::NAN);
         }
 
-        let mut cos_theta = dot / (a_norm * b_norm);
-        if cos_theta > 1.0 {
-            cos_theta = 1.0;
-        } else if cos_theta < -1.0 {
-            cos_theta = -1.0;
-        }
+        let cos_theta = clamp_to_unit_interval(dot / (a_norm * b_norm));
         Angular::acos(cos_theta)
     }
 }
@@ -640,6 +646,20 @@ mod tests {
         );
         let theta = a.angle_with(&b);
         assert_relative_eq!(theta.as_deg(), 90.0, epsilon = 1e-8);
+    }
+
+    #[test]
+    fn test_clamp_to_unit_interval_branches() {
+        // 命中 > 1.0 分支
+        assert_relative_eq!(clamp_to_unit_interval(1.0000001), 1.0, epsilon = 0.0);
+        // 命中 < -1.0 分支
+        assert_relative_eq!(clamp_to_unit_interval(-1.0000001), -1.0, epsilon = 0.0);
+        // 中间值保持不变
+        assert_relative_eq!(clamp_to_unit_interval(0.5), 0.5, epsilon = 0.0);
+        assert_relative_eq!(clamp_to_unit_interval(-0.5), -0.5, epsilon = 0.0);
+        // 边界值
+        assert_relative_eq!(clamp_to_unit_interval(1.0), 1.0, epsilon = 0.0);
+        assert_relative_eq!(clamp_to_unit_interval(-1.0), -1.0, epsilon = 0.0);
     }
 
     #[test]

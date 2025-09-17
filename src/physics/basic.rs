@@ -49,17 +49,50 @@ pub enum VelocityType {
     KmPerSecond,
     LightSpeed,
 }
+/// 距离物理量结构体
+/// 
+/// 表示空间中的距离，支持多种单位制
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Distance;
+/// 
+/// let distance = Distance::from_m(100.0);
+/// println!("距离: {} 米", distance.as_m());
+/// ```
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct Distance {
     default_type: DistanceType,
     v: f64,
 }
+/// 速度物理量结构体
+/// 
+/// 表示物体运动的快慢和方向，支持多种单位制
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Velocity;
+/// 
+/// let velocity = Velocity::from_m_per_sec(10.0);
+/// println!("速度: {} m/s", velocity.as_m_per_sec());
+/// ```
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct Velocity {
     default_type: VelocityType,
     v: f64,
 }
 
+/// 加速度物理量结构体
+/// 
+/// 表示速度变化的快慢，支持多种单位制
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Acceleration;
+/// 
+/// let acceleration = Acceleration::from_g(1.0);
+/// println!("加速度: {} g", acceleration.as_g());
+/// ```
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct Acceleration {
     default_type: AccelerationType,
@@ -78,6 +111,17 @@ pub enum AngularType {
     Deg,
 }
 
+/// 角度物理量结构体
+/// 
+/// 表示角度大小，支持弧度和度数单位
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Angular;
+/// 
+/// let angle = Angular::from_rad(std::f64::consts::PI);
+/// println!("角度: {} 弧度", angle.as_rad());
+/// ```
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct Angular {
     default_type: AngularType,
@@ -92,6 +136,17 @@ pub enum AngularVelocityType {
     DegperHour,
 }
 
+/// 角速度物理量结构体
+/// 
+/// 表示角度变化的快慢，支持多种单位制
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::AngularVelocity;
+/// 
+/// let angular_velocity = AngularVelocity::from_rad_per_second(1.0);
+/// println!("角速度: {} rad/s", angular_velocity.as_rad_per_second());
+/// ```
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct AngularVelocity {
     default_type: AngularVelocityType,
@@ -104,11 +159,33 @@ pub enum AngularAccelerationType {
     DegPerSecond2,
 }
 
+/// 角加速度物理量结构体
+/// 
+/// 表示角速度变化的快慢，支持多种单位制
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::AngularAcceleration;
+/// 
+/// let angular_acceleration = AngularAcceleration::from_rad_per_second2(1.0);
+/// println!("角加速度: {} rad/s²", angular_acceleration.as_rad_per_second2());
+/// ```
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct AngularAcceleration {
     default_type: AngularAccelerationType,
     v: f64,
 }
+/// 系数物理量结构体
+/// 
+/// 表示无量纲的系数或比例因子
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Coef;
+/// 
+/// let coefficient = Coef::new(0.5);
+/// println!("系数: {}", coefficient.get_value());
+/// ```
 #[derive(Clone, Debug, PartialEq, PartialOrd, Copy)]
 pub struct Coef {
     v: f64,
@@ -119,6 +196,17 @@ pub enum MassType {
     g,
 }
 
+/// 质量物理量结构体
+/// 
+/// 表示物体的质量，支持千克和克单位
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Mass;
+/// 
+/// let mass = Mass::from_kg(1.0);
+/// println!("质量: {} kg", mass.as_kg());
+/// ```
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct Mass {
     default_type: MassType,
@@ -133,7 +221,17 @@ pub enum AngularMomentumType {
     MicroNms,       // 微牛顿·米·秒 (μN·m·s)
     NanoNms,        // 纳牛顿·米·秒 (nN·m·s)
 }
-//角动量
+/// 角动量物理量结构体
+/// 
+/// 表示物体绕轴旋转的动量，是质量、速度和距离的乘积
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::AngularMomentum;
+/// 
+/// let angular_momentum = AngularMomentum::from_kg_m2_per_second(1.0);
+/// println!("角动量: {} kg·m²/s", angular_momentum.as_kg_m2_per_second());
+/// ```
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct AngularMomentum {
     default_type: AngularMomentumType,
@@ -144,13 +242,41 @@ pub enum MomentumType {
     KgMperSecond,  // 每秒1千克1米
     KgKmperSecond, // 每秒1千克1千米
 }
-//动量
+/// 动量物理量结构体
+/// 
+/// 表示物体运动的动量，是质量和速度的乘积
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Momentum;
+/// 
+/// let momentum = Momentum::from_kg_m_s(1.0);
+/// println!("动量: {} kg·m/s", momentum.as_kg_m_s());
+/// ```
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct Momentum {
     default_type: MomentumType,
     pub v: f64,
 }
 
+/// 三维向量结构体
+/// 
+/// 表示三维空间中的向量，包含x、y、z三个分量
+/// 
+/// # 类型参数
+/// * `T` - 向量分量的物理量类型，必须实现 `VectorQuantity` 和 `Default` trait
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Vector3, Distance};
+/// 
+/// let position = Vector3 {
+///     x: Distance::from_m(1.0),
+///     y: Distance::from_m(2.0),
+///     z: Distance::from_m(3.0),
+/// };
+/// println!("位置: ({}, {}, {})", position.x.as_m(), position.y.as_m(), position.z.as_m());
+/// ```
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct Vector3<T: VectorQuantity + Default> {
     pub x: T,
@@ -164,6 +290,17 @@ pub enum AreaType {
     KM2,
 }
 
+/// 面积物理量结构体
+/// 
+/// 表示二维空间的面积大小，支持平方米和平方千米单位
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Area;
+/// 
+/// let area = Area::from_m2(100.0);
+/// println!("面积: {} m²", area.as_m2());
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Area {
     default_type: AreaType,
@@ -180,7 +317,17 @@ pub enum MagneticInductionType {
     MillGauss,  // 毫
     KiloGauss,  // 千
 }
-//磁感应强度B，单位是特斯拉或者高斯
+/// 磁感应强度物理量结构体
+/// 
+/// 表示磁场强度，单位是特斯拉或高斯
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::MagneticInduction;
+/// 
+/// let magnetic_field = MagneticInduction::from_tesla(1.0);
+/// println!("磁感应强度: {} T", magnetic_field.as_tesla());
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MagneticInduction {
     default_type: MagneticInductionType,
@@ -199,7 +346,17 @@ pub enum MagneticMomentType {
     NanoJPerTesla,  // 纳焦耳/特斯拉 (nJ/T)
 }
 
-// 磁矩，单位是安培·平方米或焦耳/特斯拉
+/// 磁矩物理量结构体
+/// 
+/// 表示磁偶极子的磁矩，单位是安培·平方米或焦耳/特斯拉
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::MagneticMoment;
+/// 
+/// let magnetic_moment = MagneticMoment::from_am2(1.0);
+/// println!("磁矩: {} A·m²", magnetic_moment.as_am2());
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MagneticMoment {
     default_type: MagneticMomentType,
@@ -216,7 +373,17 @@ pub enum TorqueType {
     MNM,     // 兆牛顿·米 (MN·m)
 }
 
-// 力矩，单位是牛顿·米
+/// 力矩物理量结构体
+/// 
+/// 表示力对物体产生的转动效应，单位是牛顿·米
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Torque;
+/// 
+/// let torque = Torque::from_nm(10.0);
+/// println!("力矩: {} N·m", torque.as_nm());
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Torque {
     default_type: TorqueType,
@@ -236,7 +403,17 @@ pub enum EnergyType {
     MegaElectronVolt, // 兆电子伏特 (MeV)
 }
 
-// 能量，单位是焦耳
+/// 能量物理量结构体
+/// 
+/// 表示物体做功的能力，单位是焦耳
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Energy;
+/// 
+/// let energy = Energy::from_joule(100.0);
+/// println!("能量: {} J", energy.as_joule());
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Energy {
     default_type: EnergyType,
@@ -253,7 +430,17 @@ pub enum ForceType {
     MegaNewton,  // 兆牛顿 (MN)
 }
 
-// 力，单位是牛顿
+/// 力物理量结构体
+/// 
+/// 表示物体间的相互作用，单位是牛顿
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Force;
+/// 
+/// let force = Force::from_newton(10.0);
+/// println!("力: {} N", force.as_newton());
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Force {
     default_type: ForceType,
@@ -271,7 +458,17 @@ pub enum PowerType {
     HorsePower, // 马力 (hp)
 }
 
-// 功率，单位是瓦特
+/// 功率物理量结构体
+/// 
+/// 表示单位时间内做功的多少，单位是瓦特
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Power;
+/// 
+/// let power = Power::from_watt(100.0);
+/// println!("功率: {} W", power.as_watt());
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Power {
     default_type: PowerType,
@@ -289,7 +486,17 @@ pub enum MagneticAngularVelocityType {
     KiloGaussRadPerSecond,  // 千高斯·弧度/秒 (kG·rad/s)
 }
 
-// 磁角速度，单位是特斯拉·弧度/秒或高斯·弧度/秒
+/// 磁角速度物理量结构体
+/// 
+/// 表示磁场中的角速度，单位是特斯拉·弧度/秒或高斯·弧度/秒
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::MagneticAngularVelocity;
+/// 
+/// let magnetic_angular_velocity = MagneticAngularVelocity::from_tesla_rad_per_second(1.0);
+/// println!("磁角速度: {} T·rad/s", magnetic_angular_velocity.as_tesla_rad_per_second());
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MagneticAngularVelocity {
     default_type: MagneticAngularVelocityType,
@@ -301,7 +508,17 @@ pub enum VolumeType {
     M3,
     KM3,
 }
-//体积
+/// 体积物理量结构体
+/// 
+/// 表示三维空间的体积大小，支持立方米和立方千米单位
+/// 
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Volume;
+/// 
+/// let volume = Volume::from_m3(1000.0);
+/// println!("体积: {} m³", volume.as_m3());
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Volume {
     default_type: VolumeType,

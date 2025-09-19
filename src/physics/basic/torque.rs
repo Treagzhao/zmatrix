@@ -146,12 +146,40 @@ impl Add for Torque {
     }
 }
 
+// 引用-引用 与 混合引用：Torque 加法
+impl<'a, 'b> Add<&'b Torque> for &'a Torque {
+    type Output = Torque;
+    fn add(self, rhs: &'b Torque) -> Self::Output { Torque::from_nm(self.as_nm() + rhs.as_nm()) }
+}
+impl<'a> Add<&'a Torque> for Torque {
+    type Output = Torque;
+    fn add(self, rhs: &'a Torque) -> Self::Output { Torque::from_nm(self.as_nm() + rhs.as_nm()) }
+}
+impl<'a> Add<Torque> for &'a Torque {
+    type Output = Torque;
+    fn add(self, rhs: Torque) -> Self::Output { Torque::from_nm(self.as_nm() + rhs.as_nm()) }
+}
+
 impl Sub for Torque {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
         let v = self.as_nm() - rhs.as_nm();
         Self::from_nm(v)
     }
+}
+
+// 引用-引用 与 混合引用：Torque 减法
+impl<'a, 'b> Sub<&'b Torque> for &'a Torque {
+    type Output = Torque;
+    fn sub(self, rhs: &'b Torque) -> Self::Output { Torque::from_nm(self.as_nm() - rhs.as_nm()) }
+}
+impl<'a> Sub<&'a Torque> for Torque {
+    type Output = Torque;
+    fn sub(self, rhs: &'a Torque) -> Self::Output { Torque::from_nm(self.as_nm() - rhs.as_nm()) }
+}
+impl<'a> Sub<Torque> for &'a Torque {
+    type Output = Torque;
+    fn sub(self, rhs: Torque) -> Self::Output { Torque::from_nm(self.as_nm() - rhs.as_nm()) }
 }
 
 // 力矩与标量的运算
@@ -257,6 +285,20 @@ impl Div<AngularVelocity> for Torque {
     }
 }
 
+// 引用版本：Torque / AngularVelocity -> AngularMomentum
+impl<'a, 'b> Div<&'b AngularVelocity> for &'a Torque {
+    type Output = AngularMomentum;
+    fn div(self, rhs: &'b AngularVelocity) -> Self::Output { AngularMomentum::from_kg_m2_per_second(self.as_nm() / rhs.as_rad_per_second()) }
+}
+impl<'a> Div<&'a AngularVelocity> for Torque {
+    type Output = AngularMomentum;
+    fn div(self, rhs: &'a AngularVelocity) -> Self::Output { AngularMomentum::from_kg_m2_per_second(self.as_nm() / rhs.as_rad_per_second()) }
+}
+impl<'a> Div<AngularVelocity> for &'a Torque {
+    type Output = AngularMomentum;
+    fn div(self, rhs: AngularVelocity) -> Self::Output { AngularMomentum::from_kg_m2_per_second(self.as_nm() / rhs.as_rad_per_second()) }
+}
+
 // 力矩 ÷ 距离 = 力
 impl Div<Distance> for Torque {
     type Output = Force;
@@ -264,6 +306,20 @@ impl Div<Distance> for Torque {
         let force_value = self.as_nm() / rhs.as_m();
         Force::from_newton(force_value)
     }
+}
+
+// 引用版本：Torque / Distance -> Force
+impl<'a, 'b> Div<&'b Distance> for &'a Torque {
+    type Output = Force;
+    fn div(self, rhs: &'b Distance) -> Self::Output { Force::from_newton(self.as_nm() / rhs.as_m()) }
+}
+impl<'a> Div<&'a Distance> for Torque {
+    type Output = Force;
+    fn div(self, rhs: &'a Distance) -> Self::Output { Force::from_newton(self.as_nm() / rhs.as_m()) }
+}
+impl<'a> Div<Distance> for &'a Torque {
+    type Output = Force;
+    fn div(self, rhs: Distance) -> Self::Output { Force::from_newton(self.as_nm() / rhs.as_m()) }
 }
 
 // 力矩 × 角速度 = 功率
@@ -275,6 +331,20 @@ impl Mul<AngularVelocity> for Torque {
     }
 }
 
+// 引用版本：Torque * AngularVelocity -> Power
+impl<'a, 'b> Mul<&'b AngularVelocity> for &'a Torque {
+    type Output = Power;
+    fn mul(self, rhs: &'b AngularVelocity) -> Self::Output { Power::from_watt(self.as_nm() * rhs.as_rad_per_second()) }
+}
+impl<'a> Mul<&'a AngularVelocity> for Torque {
+    type Output = Power;
+    fn mul(self, rhs: &'a AngularVelocity) -> Self::Output { Power::from_watt(self.as_nm() * rhs.as_rad_per_second()) }
+}
+impl<'a> Mul<AngularVelocity> for &'a Torque {
+    type Output = Power;
+    fn mul(self, rhs: AngularVelocity) -> Self::Output { Power::from_watt(self.as_nm() * rhs.as_rad_per_second()) }
+}
+
 // 力矩与距离的乘积得到功（能量）
 impl Mul<Distance> for Torque {
     type Output = Energy; // 功，单位：焦耳
@@ -282,6 +352,20 @@ impl Mul<Distance> for Torque {
         let energy_value = self.as_nm() * rhs.as_m();
         Energy::from_joule(energy_value)
     }
+}
+
+// 引用版本：Torque * Distance -> Energy
+impl<'a, 'b> Mul<&'b Distance> for &'a Torque {
+    type Output = Energy;
+    fn mul(self, rhs: &'b Distance) -> Self::Output { Energy::from_joule(self.as_nm() * rhs.as_m()) }
+}
+impl<'a> Mul<&'a Distance> for Torque {
+    type Output = Energy;
+    fn mul(self, rhs: &'a Distance) -> Self::Output { Energy::from_joule(self.as_nm() * rhs.as_m()) }
+}
+impl<'a> Mul<Distance> for &'a Torque {
+    type Output = Energy;
+    fn mul(self, rhs: Distance) -> Self::Output { Energy::from_joule(self.as_nm() * rhs.as_m()) }
 }
 
 #[cfg(test)]
@@ -614,6 +698,73 @@ mod tests {
         let t_mnm = Torque::from_mnm(0.00002);
         let result = t_mnm - 0.000005;
         assert_relative_eq!(result.as_mnm(), 0.000015);
+    }
+
+    #[test]
+    fn test_torque_ref_ops() {
+        let t1 = Torque::from_nm(2.0);
+        let t2 = Torque::from_mill_nm(1000.0); // 1 N·m
+        let s = &t1 + &t2;
+        assert_relative_eq!(s.as_nm(), 3.0);
+
+        let d = &t1 - &t2;
+        assert_relative_eq!(d.as_nm(), 1.0);
+
+        let am = &t1 / &AngularVelocity::from_rad_per_second(2.0);
+        assert_relative_eq!(am.as_kg_m2_per_second(), 1.0);
+
+        let f = &t1 / &Distance::from_m(0.5);
+        assert_relative_eq!(f.as_newton(), 4.0);
+
+        let p = &t1 * &AngularVelocity::from_rad_per_second(3.0);
+        assert_relative_eq!(p.as_watt(), 6.0);
+
+        let e = &t1 * &Distance::from_m(3.0);
+        assert_relative_eq!(e.as_joule(), 6.0);
+
+        // 混合引用：加/减
+        let s2 = t1 + &t2;
+        assert_relative_eq!(s2.as_nm(), 3.0);
+        let t1b = Torque::from_nm(2.0);
+        let s3 = &t1b + t2;
+        assert_relative_eq!(s3.as_nm(), 3.0);
+
+        let t1c = Torque::from_nm(2.0);
+        let t2c = Torque::from_mill_nm(1000.0);
+        let d2 = t1c - &t2c;
+        assert_relative_eq!(d2.as_nm(), 1.0);
+        let t1d = Torque::from_nm(2.0);
+        let t2d = Torque::from_mill_nm(1000.0);
+        let d3 = &t1d - t2d;
+        assert_relative_eq!(d3.as_nm(), 1.0);
+
+        // 混合引用：/ AngularVelocity
+        let am2 = t1 / &AngularVelocity::from_rad_per_second(2.0);
+        assert_relative_eq!(am2.as_kg_m2_per_second(), 1.0);
+        let t1e = Torque::from_nm(2.0);
+        let am3 = &t1e / AngularVelocity::from_rad_per_second(2.0);
+        assert_relative_eq!(am3.as_kg_m2_per_second(), 1.0);
+
+        // 混合引用：/ Distance
+        let f2 = t1 / &Distance::from_m(0.5);
+        assert_relative_eq!(f2.as_newton(), 4.0);
+        let t1f = Torque::from_nm(2.0);
+        let f3 = &t1f / Distance::from_m(0.5);
+        assert_relative_eq!(f3.as_newton(), 4.0);
+
+        // 混合引用：* AngularVelocity
+        let p2 = t1 * &AngularVelocity::from_rad_per_second(3.0);
+        assert_relative_eq!(p2.as_watt(), 6.0);
+        let t1g = Torque::from_nm(2.0);
+        let p3 = &t1g * AngularVelocity::from_rad_per_second(3.0);
+        assert_relative_eq!(p3.as_watt(), 6.0);
+
+        // 混合引用：* Distance
+        let e2 = t1 * &Distance::from_m(3.0);
+        assert_relative_eq!(e2.as_joule(), 6.0);
+        let t1h = Torque::from_nm(2.0);
+        let e3 = &t1h * Distance::from_m(3.0);
+        assert_relative_eq!(e3.as_joule(), 6.0);
     }
 
     #[test]

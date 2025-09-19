@@ -68,6 +68,20 @@ impl Add for Distance {
     }
 }
 
+// 引用-引用 与 混合引用：Distance 加法
+impl<'a, 'b> Add<&'b Distance> for &'a Distance {
+    type Output = Distance;
+    fn add(self, rhs: &'b Distance) -> Self::Output { Distance::from_m(self.as_m() + rhs.as_m()) }
+}
+impl<'a> Add<&'a Distance> for Distance {
+    type Output = Distance;
+    fn add(self, rhs: &'a Distance) -> Self::Output { Distance::from_m(self.as_m() + rhs.as_m()) }
+}
+impl<'a> Add<Distance> for &'a Distance {
+    type Output = Distance;
+    fn add(self, rhs: Distance) -> Self::Output { Distance::from_m(self.as_m() + rhs.as_m()) }
+}
+
 impl Add<f64> for Distance {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -85,6 +99,20 @@ impl Sub for Distance {
         let v = self.as_m() - rhs.as_m();
         Self::from_m(v)
     }
+}
+
+// 引用-引用 与 混合引用：Distance 减法
+impl<'a, 'b> Sub<&'b Distance> for &'a Distance {
+    type Output = Distance;
+    fn sub(self, rhs: &'b Distance) -> Self::Output { Distance::from_m(self.as_m() - rhs.as_m()) }
+}
+impl<'a> Sub<&'a Distance> for Distance {
+    type Output = Distance;
+    fn sub(self, rhs: &'a Distance) -> Self::Output { Distance::from_m(self.as_m() - rhs.as_m()) }
+}
+impl<'a> Sub<Distance> for &'a Distance {
+    type Output = Distance;
+    fn sub(self, rhs: Distance) -> Self::Output { Distance::from_m(self.as_m() - rhs.as_m()) }
 }
 
 impl Sub<f64> for Distance {
@@ -120,6 +148,20 @@ impl Mul for Distance {
         let v = self.as_m() * rhs.as_m();
         Area::from_m2(v)
     }
+}
+
+// 引用-引用 与 混合引用：Distance * Distance -> Area
+impl<'a, 'b> Mul<&'b Distance> for &'a Distance {
+    type Output = Area;
+    fn mul(self, rhs: &'b Distance) -> Self::Output { Area::from_m2(self.as_m() * rhs.as_m()) }
+}
+impl<'a> Mul<&'a Distance> for Distance {
+    type Output = Area;
+    fn mul(self, rhs: &'a Distance) -> Self::Output { Area::from_m2(self.as_m() * rhs.as_m()) }
+}
+impl<'a> Mul<Distance> for &'a Distance {
+    type Output = Area;
+    fn mul(self, rhs: Distance) -> Self::Output { Area::from_m2(self.as_m() * rhs.as_m()) }
 }
 impl Div<f64> for Distance {
     type Output = Self;
@@ -178,6 +220,20 @@ impl Div for Distance {
         let v = self.as_m() / rhs.as_m();
         Coef::new(v)
     }
+}
+
+// 引用-引用 与 混合引用：Distance / Distance -> Coef
+impl<'a, 'b> Div<&'b Distance> for &'a Distance {
+    type Output = Coef;
+    fn div(self, rhs: &'b Distance) -> Self::Output { Coef::new(self.as_m() / rhs.as_m()) }
+}
+impl<'a> Div<&'a Distance> for Distance {
+    type Output = Coef;
+    fn div(self, rhs: &'a Distance) -> Self::Output { Coef::new(self.as_m() / rhs.as_m()) }
+}
+impl<'a> Div<Distance> for &'a Distance {
+    type Output = Coef;
+    fn div(self, rhs: Distance) -> Self::Output { Coef::new(self.as_m() / rhs.as_m()) }
 }
 
 // 距离 ÷ 速度 = 时间
@@ -392,5 +448,45 @@ mod tests {
         let time = distance / velocity; // 5 s
         
         assert_relative_eq!(time.as_secs_f64(), 5.0);
+    }
+
+    #[test]
+    fn test_distance_ref_ops() {
+        let d1 = Distance::from_m(2.0);
+        let d2 = Distance::from_km(1.0); // 1000 m
+        let s = &d1 + &d2;
+        assert_relative_eq!(s.as_m(), 1002.0);
+
+        let sub = &d2 - &d1;
+        assert_relative_eq!(sub.as_m(), 998.0);
+
+        let area = &d1 * &d2;
+        assert_relative_eq!(area.as_m2(), 2000.0);
+
+        let coef = &d2 / &d1;
+        assert_relative_eq!(coef.get_value(), 500.0);
+
+        // 混合引用：加/减/乘/除
+        let s2 = d1 + &d2;
+        assert_relative_eq!(s2.as_m(), 1002.0);
+        let s3 = &d1 + d2;
+        assert_relative_eq!(s3.as_m(), 1002.0);
+
+        let d2b = Distance::from_km(1.0);
+        let sub2 = d2b - &d1;
+        assert_relative_eq!(sub2.as_m(), 998.0);
+        let sub3 = &d2b - d1;
+        assert_relative_eq!(sub3.as_m(), 998.0);
+
+        let d1b = Distance::from_m(2.0);
+        let a2 = d1b * &Distance::from_km(1.0);
+        assert_relative_eq!(a2.as_m2(), 2000.0);
+        let a3 = &d1b * Distance::from_km(1.0);
+        assert_relative_eq!(a3.as_m2(), 2000.0);
+
+        let c2 = d2b / &Distance::from_m(2.0);
+        assert_relative_eq!(c2.get_value(), 500.0);
+        let c3 = &d2b / Distance::from_m(2.0);
+        assert_relative_eq!(c3.get_value(), 500.0);
     }
 }

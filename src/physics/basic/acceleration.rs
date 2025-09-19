@@ -64,6 +64,20 @@ impl Mul<Duration> for Acceleration {
     }
 }
 
+// 引用版本：Acceleration * Duration -> Velocity
+impl<'a> Mul<Duration> for &'a Acceleration {
+    type Output = Velocity;
+    fn mul(self, rhs: Duration) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_s2() * rhs.as_secs_f64()) }
+}
+impl<'a> Mul<&'a Duration> for Acceleration {
+    type Output = Velocity;
+    fn mul(self, rhs: &'a Duration) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_s2() * rhs.as_secs_f64()) }
+}
+impl<'a, 'b> Mul<&'b Duration> for &'a Acceleration {
+    type Output = Velocity;
+    fn mul(self, rhs: &'b Duration) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_s2() * rhs.as_secs_f64()) }
+}
+
 
 impl Sub for Acceleration {
     type Output = Self;
@@ -71,6 +85,20 @@ impl Sub for Acceleration {
         let v = self.as_m_per_s2() - rhs.as_m_per_s2();
         Self::from_m_per_s2(v)
     }
+}
+
+// 引用-引用 与 混合引用：Acceleration 减法
+impl<'a, 'b> Sub<&'b Acceleration> for &'a Acceleration {
+    type Output = Acceleration;
+    fn sub(self, rhs: &'b Acceleration) -> Self::Output { Acceleration::from_m_per_s2(self.as_m_per_s2() - rhs.as_m_per_s2()) }
+}
+impl<'a> Sub<&'a Acceleration> for Acceleration {
+    type Output = Acceleration;
+    fn sub(self, rhs: &'a Acceleration) -> Self::Output { Acceleration::from_m_per_s2(self.as_m_per_s2() - rhs.as_m_per_s2()) }
+}
+impl<'a> Sub<Acceleration> for &'a Acceleration {
+    type Output = Acceleration;
+    fn sub(self, rhs: Acceleration) -> Self::Output { Acceleration::from_m_per_s2(self.as_m_per_s2() - rhs.as_m_per_s2()) }
 }
 
 impl Sub<f64> for Acceleration {
@@ -90,6 +118,20 @@ impl Add for Acceleration {
         let v = self.as_m_per_s2() + rhs.as_m_per_s2();
         Self::from_m_per_s2(v)
     }
+}
+
+// 引用-引用 与 混合引用：Acceleration 加法
+impl<'a, 'b> Add<&'b Acceleration> for &'a Acceleration {
+    type Output = Acceleration;
+    fn add(self, rhs: &'b Acceleration) -> Self::Output { Acceleration::from_m_per_s2(self.as_m_per_s2() + rhs.as_m_per_s2()) }
+}
+impl<'a> Add<&'a Acceleration> for Acceleration {
+    type Output = Acceleration;
+    fn add(self, rhs: &'a Acceleration) -> Self::Output { Acceleration::from_m_per_s2(self.as_m_per_s2() + rhs.as_m_per_s2()) }
+}
+impl<'a> Add<Acceleration> for &'a Acceleration {
+    type Output = Acceleration;
+    fn add(self, rhs: Acceleration) -> Self::Output { Acceleration::from_m_per_s2(self.as_m_per_s2() + rhs.as_m_per_s2()) }
 }
 
 impl Add<f64> for Acceleration {
@@ -358,5 +400,37 @@ mod tests {
         let a = Acceleration::from_g(2.0);
         let result = 4.0 / a;
         assert_relative_eq!(result.as_g(), 2.0);
+    }
+
+    #[test]
+    fn test_acceleration_ref_ops() {
+        let a1 = Acceleration::from_m_per_s2(2.0);
+        let a2 = Acceleration::from_km_per_h2(12960.0); // 1 m/s2
+        let s = &a1 + &a2;
+        assert_relative_eq!(s.as_m_per_s2(), 3.0);
+
+        let d = &a1 - &a2;
+        assert_relative_eq!(d.as_m_per_s2(), 1.0);
+
+        let v = &a1 * &std::time::Duration::from_secs(2);
+        assert_relative_eq!(v.as_m_per_sec(), 4.0);
+
+        // 混合引用：加/减
+        let s2 = a1 + &a2;
+        assert_relative_eq!(s2.as_m_per_s2(), 3.0);
+        let s3 = &a1 + a2;
+        assert_relative_eq!(s3.as_m_per_s2(), 3.0);
+        let a2b = Acceleration::from_km_per_h2(12960.0);
+        let d2 = a1 - &a2b;
+        assert_relative_eq!(d2.as_m_per_s2(), 1.0);
+        let d3 = &a1 - a2b;
+        assert_relative_eq!(d3.as_m_per_s2(), 1.0);
+
+        // 混合引用：* Duration
+        let dur = std::time::Duration::from_secs(2);
+        let v2 = a1 * &dur;
+        assert_relative_eq!(v2.as_m_per_sec(), 4.0);
+        let v3 = &a1 * dur;
+        assert_relative_eq!(v3.as_m_per_sec(), 4.0);
     }
 }

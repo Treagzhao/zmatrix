@@ -203,6 +203,20 @@ impl Add for MagneticInduction {
     }
 }
 
+// 引用-引用 与 混合引用：MagneticInduction 加法
+impl<'a, 'b> Add<&'b MagneticInduction> for &'a MagneticInduction {
+    type Output = MagneticInduction;
+    fn add(self, rhs: &'b MagneticInduction) -> Self::Output { MagneticInduction::from_tesla(self.as_tesla() + rhs.as_tesla()) }
+}
+impl<'a> Add<&'a MagneticInduction> for MagneticInduction {
+    type Output = MagneticInduction;
+    fn add(self, rhs: &'a MagneticInduction) -> Self::Output { MagneticInduction::from_tesla(self.as_tesla() + rhs.as_tesla()) }
+}
+impl<'a> Add<MagneticInduction> for &'a MagneticInduction {
+    type Output = MagneticInduction;
+    fn add(self, rhs: MagneticInduction) -> Self::Output { MagneticInduction::from_tesla(self.as_tesla() + rhs.as_tesla()) }
+}
+
 impl Add<f64> for MagneticInduction {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -220,6 +234,20 @@ impl Sub for MagneticInduction {
         let v = self.as_tesla() - rhs.as_tesla();
         MagneticInduction::from_tesla(v)
     }
+}
+
+// 引用-引用 与 混合引用：MagneticInduction 减法
+impl<'a, 'b> Sub<&'b MagneticInduction> for &'a MagneticInduction {
+    type Output = MagneticInduction;
+    fn sub(self, rhs: &'b MagneticInduction) -> Self::Output { MagneticInduction::from_tesla(self.as_tesla() - rhs.as_tesla()) }
+}
+impl<'a> Sub<&'a MagneticInduction> for MagneticInduction {
+    type Output = MagneticInduction;
+    fn sub(self, rhs: &'a MagneticInduction) -> Self::Output { MagneticInduction::from_tesla(self.as_tesla() - rhs.as_tesla()) }
+}
+impl<'a> Sub<MagneticInduction> for &'a MagneticInduction {
+    type Output = MagneticInduction;
+    fn sub(self, rhs: MagneticInduction) -> Self::Output { MagneticInduction::from_tesla(self.as_tesla() - rhs.as_tesla()) }
 }
 
 impl Sub<f64> for MagneticInduction {
@@ -272,6 +300,20 @@ impl Mul<AngularVelocity> for MagneticInduction {
         let result_value = tesla_value * rad_per_second_value;
         MagneticAngularVelocity::from_tesla_rad_per_second(result_value)
     }
+}
+
+// 引用版本：MagneticInduction * AngularVelocity -> MagneticAngularVelocity
+impl<'a, 'b> Mul<&'b AngularVelocity> for &'a MagneticInduction {
+    type Output = MagneticAngularVelocity;
+    fn mul(self, rhs: &'b AngularVelocity) -> Self::Output { MagneticAngularVelocity::from_tesla_rad_per_second(self.as_tesla() * rhs.as_rad_per_second()) }
+}
+impl<'a> Mul<&'a AngularVelocity> for MagneticInduction {
+    type Output = MagneticAngularVelocity;
+    fn mul(self, rhs: &'a AngularVelocity) -> Self::Output { MagneticAngularVelocity::from_tesla_rad_per_second(self.as_tesla() * rhs.as_rad_per_second()) }
+}
+impl<'a> Mul<AngularVelocity> for &'a MagneticInduction {
+    type Output = MagneticAngularVelocity;
+    fn mul(self, rhs: AngularVelocity) -> Self::Output { MagneticAngularVelocity::from_tesla_rad_per_second(self.as_tesla() * rhs.as_rad_per_second()) }
 }
 
 
@@ -907,5 +949,43 @@ mod tests {
         let result1 = magnetic_induction * angular_velocity;
         let result2 = angular_velocity * magnetic_induction;
         assert_relative_eq!(result1.as_tesla_rad_per_second(), result2.as_tesla_rad_per_second());
+    }
+
+    #[test]
+    fn test_magnetic_induction_ref_ops() {
+        let b1 = MagneticInduction::from_tesla(2.0);
+        let b2 = MagneticInduction::from_gauss(10_000.0); // 1 T
+        let s = &b1 + &b2;
+        assert_relative_eq!(s.as_tesla(), 3.0);
+
+        let d = &b1 - &b2;
+        assert_relative_eq!(d.as_tesla(), 1.0);
+
+        let mav = &b1 * &AngularVelocity::from_rad_per_second(3.0);
+        assert_relative_eq!(mav.as_tesla_rad_per_second(), 6.0);
+
+        // 混合引用：加/减
+        let s2 = b1 + &b2;
+        assert_relative_eq!(s2.as_tesla(), 3.0);
+        let b1b = MagneticInduction::from_tesla(2.0);
+        let s3 = &b1b + b2;
+        assert_relative_eq!(s3.as_tesla(), 3.0);
+
+        let b1c = MagneticInduction::from_tesla(2.0);
+        let b2c = MagneticInduction::from_gauss(10_000.0);
+        let d2 = b1c - &b2c;
+        assert_relative_eq!(d2.as_tesla(), 1.0);
+        let b1d = MagneticInduction::from_tesla(2.0);
+        let b2d = MagneticInduction::from_gauss(10_000.0);
+        let d3 = &b1d - b2d;
+        assert_relative_eq!(d3.as_tesla(), 1.0);
+
+        // 混合引用：* AngularVelocity
+        let b1e = MagneticInduction::from_tesla(2.0);
+        let mav2 = b1e * &AngularVelocity::from_rad_per_second(3.0);
+        assert_relative_eq!(mav2.as_tesla_rad_per_second(), 6.0);
+        let b1f = MagneticInduction::from_tesla(2.0);
+        let mav3 = &b1f * AngularVelocity::from_rad_per_second(3.0);
+        assert_relative_eq!(mav3.as_tesla_rad_per_second(), 6.0);
     }
 }

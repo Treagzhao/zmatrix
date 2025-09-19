@@ -145,6 +145,20 @@ impl Add for Force {
     }
 }
 
+// 引用-引用 与 混合引用：Force 加法
+impl<'a, 'b> Add<&'b Force> for &'a Force {
+    type Output = Force;
+    fn add(self, rhs: &'b Force) -> Self::Output { Force::from_newton(self.as_newton() + rhs.as_newton()) }
+}
+impl<'a> Add<&'a Force> for Force {
+    type Output = Force;
+    fn add(self, rhs: &'a Force) -> Self::Output { Force::from_newton(self.as_newton() + rhs.as_newton()) }
+}
+impl<'a> Add<Force> for &'a Force {
+    type Output = Force;
+    fn add(self, rhs: Force) -> Self::Output { Force::from_newton(self.as_newton() + rhs.as_newton()) }
+}
+
 impl Add<f64> for Force {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -162,6 +176,20 @@ impl Sub for Force {
         let v = self.as_newton() - rhs.as_newton();
         Self::from_newton(v)
     }
+}
+
+// 引用-引用 与 混合引用：Force 减法
+impl<'a, 'b> Sub<&'b Force> for &'a Force {
+    type Output = Force;
+    fn sub(self, rhs: &'b Force) -> Self::Output { Force::from_newton(self.as_newton() - rhs.as_newton()) }
+}
+impl<'a> Sub<&'a Force> for Force {
+    type Output = Force;
+    fn sub(self, rhs: &'a Force) -> Self::Output { Force::from_newton(self.as_newton() - rhs.as_newton()) }
+}
+impl<'a> Sub<Force> for &'a Force {
+    type Output = Force;
+    fn sub(self, rhs: Force) -> Self::Output { Force::from_newton(self.as_newton() - rhs.as_newton()) }
 }
 
 impl Sub<f64> for Force {
@@ -232,6 +260,20 @@ impl Mul<Distance> for Force {
     }
 }
 
+// 引用版本：Force * Distance -> Energy
+impl<'a, 'b> Mul<&'b Distance> for &'a Force {
+    type Output = Energy;
+    fn mul(self, rhs: &'b Distance) -> Self::Output { Energy::from_joule(self.as_newton() * rhs.as_m()) }
+}
+impl<'a> Mul<&'a Distance> for Force {
+    type Output = Energy;
+    fn mul(self, rhs: &'a Distance) -> Self::Output { Energy::from_joule(self.as_newton() * rhs.as_m()) }
+}
+impl<'a> Mul<Distance> for &'a Force {
+    type Output = Energy;
+    fn mul(self, rhs: Distance) -> Self::Output { Energy::from_joule(self.as_newton() * rhs.as_m()) }
+}
+
 // 距离与力的乘积（得到能量，满足交换律）
 impl Mul<Force> for Distance {
     type Output = Energy; // 能量，单位：焦耳
@@ -239,6 +281,20 @@ impl Mul<Force> for Distance {
         let energy_value = self.as_m() * rhs.as_newton();
         Energy::from_joule(energy_value)
     }
+}
+
+// 引用版本：Distance * Force -> Energy
+impl<'a, 'b> Mul<&'b Force> for &'a Distance {
+    type Output = Energy;
+    fn mul(self, rhs: &'b Force) -> Self::Output { Energy::from_joule(self.as_m() * rhs.as_newton()) }
+}
+impl<'a> Mul<&'a Force> for Distance {
+    type Output = Energy;
+    fn mul(self, rhs: &'a Force) -> Self::Output { Energy::from_joule(self.as_m() * rhs.as_newton()) }
+}
+impl<'a> Mul<Force> for &'a Distance {
+    type Output = Energy;
+    fn mul(self, rhs: Force) -> Self::Output { Energy::from_joule(self.as_m() * rhs.as_newton()) }
 }
 
 // 质量与加速度的乘积（得到力）
@@ -515,6 +571,44 @@ mod tests {
         // 测试与 f64 的减法
         let result = f - 3.0;
         assert_relative_eq!(result.as_newton(), 7.0);
+    }
+
+    #[test]
+    fn test_force_ref_ops() {
+        let f1 = Force::from_newton(2.0);
+        let f2 = Force::from_kilo_newton(0.001); // 1 N
+        let s = &f1 + &f2;
+        assert_relative_eq!(s.as_newton(), 3.0);
+
+        let d = &f1 - &f2;
+        assert_relative_eq!(d.as_newton(), 1.0);
+
+        let e1 = &f1 * &Distance::from_m(3.0);
+        assert_relative_eq!(e1.as_joule(), 6.0);
+
+        let e2 = &Distance::from_m(3.0) * &f1;
+        assert_relative_eq!(e2.as_joule(), 6.0);
+
+        // 混合引用：加/减
+        let s2 = f1 + &f2;
+        assert_relative_eq!(s2.as_newton(), 3.0);
+        let s3 = &f1 + f2;
+        assert_relative_eq!(s3.as_newton(), 3.0);
+        let f2b = Force::from_kilo_newton(0.001);
+        let d2 = f1 - &f2b;
+        assert_relative_eq!(d2.as_newton(), 1.0);
+        let d3 = &f1 - f2b;
+        assert_relative_eq!(d3.as_newton(), 1.0);
+
+        // 混合引用：与 Distance 双向
+        let e3 = f1 * &Distance::from_m(3.0);
+        assert_relative_eq!(e3.as_joule(), 6.0);
+        let e4 = &f1 * Distance::from_m(3.0);
+        assert_relative_eq!(e4.as_joule(), 6.0);
+        let e5 = Distance::from_m(3.0) * &f1;
+        assert_relative_eq!(e5.as_joule(), 6.0);
+        let e6 = &Distance::from_m(3.0) * f1;
+        assert_relative_eq!(e6.as_joule(), 6.0);
     }
 
     #[test]

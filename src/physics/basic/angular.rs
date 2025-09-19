@@ -70,7 +70,7 @@ impl Angular {
         Self::from_rad(rad)
     }
 
-    pub fn acos(v:f64) ->   Self{
+    pub fn acos(v: f64) -> Self {
         let rad = f64::acos(v);
         Self::from_rad(rad)
     }
@@ -88,6 +88,26 @@ impl Add for Angular {
     fn add(self, rhs: Self) -> Self::Output {
         let v = self.as_deg() + rhs.as_deg();
         Angular::from_deg(v)
+    }
+}
+
+// 引用-引用 与 混合引用：Angular 加法
+impl<'a, 'b> Add<&'b Angular> for &'a Angular {
+    type Output = Angular;
+    fn add(self, rhs: &'b Angular) -> Self::Output {
+        Angular::from_deg(self.as_deg() + rhs.as_deg())
+    }
+}
+impl<'a> Add<&'a Angular> for Angular {
+    type Output = Angular;
+    fn add(self, rhs: &'a Angular) -> Self::Output {
+        Angular::from_deg(self.as_deg() + rhs.as_deg())
+    }
+}
+impl<'a> Add<Angular> for &'a Angular {
+    type Output = Angular;
+    fn add(self, rhs: Angular) -> Self::Output {
+        Angular::from_deg(self.as_deg() + rhs.as_deg())
     }
 }
 
@@ -110,6 +130,26 @@ impl Sub for Angular {
     }
 }
 
+// 引用-引用 与 混合引用：Angular 减法
+impl<'a, 'b> Sub<&'b Angular> for &'a Angular {
+    type Output = Angular;
+    fn sub(self, rhs: &'b Angular) -> Self::Output {
+        Angular::from_deg(self.as_deg() - rhs.as_deg())
+    }
+}
+impl<'a> Sub<&'a Angular> for Angular {
+    type Output = Angular;
+    fn sub(self, rhs: &'a Angular) -> Self::Output {
+        Angular::from_deg(self.as_deg() - rhs.as_deg())
+    }
+}
+impl<'a> Sub<Angular> for &'a Angular {
+    type Output = Angular;
+    fn sub(self, rhs: Angular) -> Self::Output {
+        Angular::from_deg(self.as_deg() - rhs.as_deg())
+    }
+}
+
 impl Sub<f64> for Angular {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
@@ -126,6 +166,26 @@ impl Div<Duration> for Angular {
     fn div(self, rhs: Duration) -> Self::Output {
         let v = self.as_rad() / rhs.as_secs_f64();
         AngularVelocity::from_rad_per_second(v)
+    }
+}
+
+// 引用版本：Angular / Duration -> AngularVelocity
+impl<'a> Div<Duration> for &'a Angular {
+    type Output = AngularVelocity;
+    fn div(self, rhs: Duration) -> Self::Output {
+        AngularVelocity::from_rad_per_second(self.as_rad() / rhs.as_secs_f64())
+    }
+}
+impl<'a> Div<&'a Duration> for Angular {
+    type Output = AngularVelocity;
+    fn div(self, rhs: &'a Duration) -> Self::Output {
+        AngularVelocity::from_rad_per_second(self.as_rad() / rhs.as_secs_f64())
+    }
+}
+impl<'a, 'b> Div<&'b Duration> for &'a Angular {
+    type Output = AngularVelocity;
+    fn div(self, rhs: &'b Duration) -> Self::Output {
+        AngularVelocity::from_rad_per_second(self.as_rad() / rhs.as_secs_f64())
     }
 }
 
@@ -181,8 +241,8 @@ impl Div<Coef> for Angular {
 
 #[cfg(test)]
 mod tests {
-    use approx::assert_relative_eq;
     use super::*;
+    use approx::assert_relative_eq;
     #[test]
     fn test_angular() {
         let angular = Angular::from_rad(1.0);
@@ -191,7 +251,7 @@ mod tests {
 
         let angular = Angular::from_rad(6.15 * PI);
         assert_eq!(angular.default_type, AngularType::Rad);
-        assert_relative_eq!(angular.v, 6.15 *PI, epsilon = 1.0e-6);
+        assert_relative_eq!(angular.v, 6.15 * PI, epsilon = 1.0e-6);
 
         let angular = Angular::from_deg(1.0);
         assert_eq!(angular.default_type, AngularType::Deg);
@@ -200,30 +260,30 @@ mod tests {
     #[test]
     fn test_angular_convert() {
         let angular = Angular::from_deg(1.0);
-        assert_relative_eq!(angular.as_deg(),1.0);
-        assert_relative_eq!(angular.as_rad(),0.0174532925,epsilon = 1e-8);
+        assert_relative_eq!(angular.as_deg(), 1.0);
+        assert_relative_eq!(angular.as_rad(), 0.0174532925, epsilon = 1e-8);
 
         let angular = Angular::from_rad(2.0 * PI);
-        assert_relative_eq!(angular.as_deg(),360.0);
-        assert_relative_eq!(angular.as_rad(),2.0*PI,epsilon = 1e-8);
+        assert_relative_eq!(angular.as_deg(), 360.0);
+        assert_relative_eq!(angular.as_rad(), 2.0 * PI, epsilon = 1e-8);
 
         let c: Coef = Coef::new(0.5 * PI);
         let angular: Angular = Angular::from(c);
-        assert_relative_eq!(angular.as_deg(),90.0);
+        assert_relative_eq!(angular.as_deg(), 90.0);
     }
 
     #[test]
     fn test_angular_sin_cos() {
         let angular = Angular::from_deg(30.0);
-        assert_relative_eq!(angular.sin(),0.5,epsilon = 1e-8);
-        assert_relative_eq!(angular.cos(),0.866025403784,epsilon = 1e-8);
+        assert_relative_eq!(angular.sin(), 0.5, epsilon = 1e-8);
+        assert_relative_eq!(angular.cos(), 0.866025403784, epsilon = 1e-8);
 
         let angular = Angular::from_rad(PI / 6.0);
-        assert_relative_eq!(angular.sin(),0.5,epsilon = 1e-8);
-        assert_relative_eq!(angular.cos(),0.866025403784,epsilon = 1e-8);
+        assert_relative_eq!(angular.sin(), 0.5, epsilon = 1e-8);
+        assert_relative_eq!(angular.cos(), 0.866025403784, epsilon = 1e-8);
 
         let angular = Angular::from_rad(PI / 4.0);
-        assert_relative_eq!(angular.tan(),1.0,epsilon = 1e-8);
+        assert_relative_eq!(angular.tan(), 1.0, epsilon = 1e-8);
     }
 
     #[test]
@@ -232,31 +292,31 @@ mod tests {
             let theta1 = Angular::from_rad(PI * 0.5);
             let theta2 = Angular::from_rad(PI * 0.5);
             let theta3 = theta1 + theta2;
-            assert_relative_eq!(PI,theta3.as_rad(),epsilon = 1e-8);
+            assert_relative_eq!(PI, theta3.as_rad(), epsilon = 1e-8);
 
             let theta1 = Angular::from_deg(30.0);
             let theta2 = Angular::from_rad(PI / 6.0);
             let theta3 = theta1 + theta2;
-            assert_relative_eq!(60.0,theta3.as_deg(),epsilon = 1e-8);
+            assert_relative_eq!(60.0, theta3.as_deg(), epsilon = 1e-8);
 
             let theta1 = Angular::from_rad(PI / 6.0);
             let theta2 = Angular::from_deg(30.0);
             let theta3 = theta1 + theta2;
-            assert_relative_eq!(60.0,theta3.as_deg(),epsilon = 1e-8);
+            assert_relative_eq!(60.0, theta3.as_deg(), epsilon = 1e-8);
 
             let theta1 = Angular::from_deg(30.0);
             let theta2 = Angular::from_deg(90.0);
             let theta3 = theta1 + theta2;
-            assert_relative_eq!(2.0*PI / 3.0,theta3.as_rad(),epsilon = 1e-8);
+            assert_relative_eq!(2.0 * PI / 3.0, theta3.as_rad(), epsilon = 1e-8);
         }
         {
             let theta1 = Angular::from_deg(30.0);
             let theta2 = theta1 + 30.0;
-            assert_relative_eq!(60.0,theta2.as_deg(),epsilon = 1e-8);
+            assert_relative_eq!(60.0, theta2.as_deg(), epsilon = 1e-8);
 
             let theta1 = Angular::from_rad(PI * 0.25);
             let theta2 = theta1 + PI * 0.25;
-            assert_relative_eq!(90.0,theta2.as_deg(),epsilon = 1e-8);
+            assert_relative_eq!(90.0, theta2.as_deg(), epsilon = 1e-8);
         }
     }
 
@@ -266,31 +326,31 @@ mod tests {
             let theta1 = Angular::from_rad(PI * 1.0);
             let theta2 = Angular::from_rad(PI * 0.5);
             let theta3 = theta1 - theta2;
-            assert_relative_eq!(PI*0.5,theta3.as_rad(),epsilon = 1e-8);
+            assert_relative_eq!(PI * 0.5, theta3.as_rad(), epsilon = 1e-8);
 
             let theta1 = Angular::from_deg(60.0);
             let theta2 = Angular::from_rad(PI / 6.0);
             let theta3 = theta1 - theta2;
-            assert_relative_eq!(30.0,theta3.as_deg(),epsilon = 1e-8);
+            assert_relative_eq!(30.0, theta3.as_deg(), epsilon = 1e-8);
 
             let theta1 = Angular::from_rad(PI / 6.0);
             let theta2 = Angular::from_deg(15.0);
             let theta3 = theta1 - theta2;
-            assert_relative_eq!(15.0,theta3.as_deg(),epsilon = 1e-8);
+            assert_relative_eq!(15.0, theta3.as_deg(), epsilon = 1e-8);
 
             let theta1 = Angular::from_deg(90.0);
             let theta2 = Angular::from_deg(30.0);
             let theta3 = theta1 - theta2;
-            assert_relative_eq!(PI / 3.0,theta3.as_rad(),epsilon = 1e-8);
+            assert_relative_eq!(PI / 3.0, theta3.as_rad(), epsilon = 1e-8);
         }
         {
             let theta1 = Angular::from_deg(30.0);
             let theta2 = theta1 - 10.0;
-            assert_relative_eq!(20.0,theta2.as_deg(),epsilon = 1e-8);
+            assert_relative_eq!(20.0, theta2.as_deg(), epsilon = 1e-8);
 
             let theta1 = Angular::from_rad(PI * 0.5);
             let theta2 = theta1 - PI * 0.25;
-            assert_relative_eq!(45.0,theta2.as_deg(),epsilon = 1e-8);
+            assert_relative_eq!(45.0, theta2.as_deg(), epsilon = 1e-8);
         }
     }
 
@@ -298,19 +358,19 @@ mod tests {
     fn test_angular_mod_round() {
         let theta1 = Angular::from_deg(372.0);
         let theta2 = theta1.mod_to_round_half();
-        assert_relative_eq!(12.0, theta2.as_deg(),epsilon = 1e-8);
+        assert_relative_eq!(12.0, theta2.as_deg(), epsilon = 1e-8);
 
         let theta1 = Angular::from_deg(315.0);
         let theta2 = theta1.mod_to_round_half();
-        assert_relative_eq!(-1.0 * PI / 4.0, theta2.as_rad(),epsilon = 1e-8);
+        assert_relative_eq!(-1.0 * PI / 4.0, theta2.as_rad(), epsilon = 1e-8);
 
         let theta1 = Angular::from_deg(372.0);
         let theta2 = theta1.mod_to_round();
-        assert_relative_eq!(12.0, theta2.as_deg(),epsilon = 1e-8);
+        assert_relative_eq!(12.0, theta2.as_deg(), epsilon = 1e-8);
 
         let theta1 = Angular::from_deg(315.0);
         let theta2 = theta1.mod_to_round();
-        assert_relative_eq!(315.0, theta2.as_deg(),epsilon = 1e-8);
+        assert_relative_eq!(315.0, theta2.as_deg(), epsilon = 1e-8);
     }
 
     #[test]
@@ -346,26 +406,26 @@ mod tests {
         let sin = 0.5;
         let cos = 0.8660254037844386;
         let theta = Angular::atan2(sin, cos);
-        assert_relative_eq!(theta.as_deg(), 30.0,epsilon = 1e-8);
+        assert_relative_eq!(theta.as_deg(), 30.0, epsilon = 1e-8);
 
         let value = 1.0f64;
         let theta = Angular::atan(value);
-        assert_relative_eq!(theta.as_deg(), 45.0,epsilon = 1e-8);
+        assert_relative_eq!(theta.as_deg(), 45.0, epsilon = 1e-8);
 
         let value = 0.5f64;
         let theta = Angular::asin(value);
-        assert_relative_eq!(theta.as_deg(), 30.0,epsilon = 1e-8);
+        assert_relative_eq!(theta.as_deg(), 30.0, epsilon = 1e-8);
     }
 
     #[test]
     fn test_acos() {
         // Test normal cases
         let cases = vec![
-            (1.0, 0.0),   // acos(1) = 0 radians
-            (0.5, PI/3.0), // acos(0.5) = π/3 radians (60 degrees)
-            (0.0, PI/2.0), // acos(0) = π/2 radians (90 degrees)
-            (-0.5, 2.0*PI/3.0), // acos(-0.5) = 2π/3 radians (120 degrees)
-            (-1.0, PI),    // acos(-1) = π radians (180 degrees)
+            (1.0, 0.0),             // acos(1) = 0 radians
+            (0.5, PI / 3.0),        // acos(0.5) = π/3 radians (60 degrees)
+            (0.0, PI / 2.0),        // acos(0) = π/2 radians (90 degrees)
+            (-0.5, 2.0 * PI / 3.0), // acos(-0.5) = 2π/3 radians (120 degrees)
+            (-1.0, PI),             // acos(-1) = π radians (180 degrees)
         ];
 
         for (input, expected_rad) in cases {
@@ -390,9 +450,9 @@ mod tests {
         // Test invalid inputs (should panic as per f64::acos behavior)
         let invalid_cases = vec![1.00001, -1.00001, 2.0, -2.0, f64::NAN, f64::INFINITY];
         for invalid_input in invalid_cases {
-            println!("{:?}",invalid_input);
+            println!("{:?}", invalid_input);
             let angle = Angular::acos(invalid_input);
-            assert_eq!(true,angle.v.is_nan());
+            assert_eq!(true, angle.v.is_nan());
         }
 
         // Test precision cases (values very close to boundaries)
@@ -429,5 +489,37 @@ mod tests {
         let a = Angular::from_deg(180.0);
         let result = 180.0 / a;
         assert_relative_eq!(result.as_deg(), 1.0);
+    }
+
+    #[test]
+    fn test_angular_ref_ops() {
+        let a1 = Angular::from_deg(30.0);
+        let a2 = Angular::from_rad(std::f64::consts::PI / 6.0); // 30 deg
+        let s = &a1 + &a2;
+        assert_relative_eq!(s.as_deg(), 60.0);
+
+        let d = &a1 - &a2;
+        assert_relative_eq!(d.as_deg(), 0.0, epsilon = 1e-10);
+
+        let omg = &a1 / &std::time::Duration::from_secs(2);
+        assert_relative_eq!(omg.as_rad_per_second(), (std::f64::consts::PI / 12.0));
+
+        // 混合引用：加/减
+        let s2 = a1 + &a2;
+        assert_relative_eq!(s2.as_deg(), 60.0, epsilon = 1e-10);
+        let s3 = &a1 + a2;
+        assert_relative_eq!(s3.as_deg(), 60.0, epsilon = 1e-10);
+        let a2b = Angular::from_rad(std::f64::consts::PI / 6.0);
+        let d2 = a1 - &a2b;
+        assert_relative_eq!(d2.as_deg(), 0.0, epsilon = 1e-10);
+        let d3 = &a1 - a2b;
+        assert_relative_eq!(d3.as_deg(), 0.0, epsilon = 1e-10);
+
+        // 混合引用：/ Duration
+        let dur = std::time::Duration::from_secs(2);
+        let w2 = a1 / &dur;
+        assert_relative_eq!(w2.as_rad_per_second(), (std::f64::consts::PI / 12.0));
+        let w3 = &a1 / dur;
+        assert_relative_eq!(w3.as_rad_per_second(), (std::f64::consts::PI / 12.0));
     }
 }

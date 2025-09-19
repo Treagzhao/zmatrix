@@ -146,6 +146,20 @@ impl Add for AngularMomentum {
     }
 }
 
+// 引用-引用 与 混合引用：AngularMomentum 加法
+impl<'a, 'b> Add<&'b AngularMomentum> for &'a AngularMomentum {
+    type Output = AngularMomentum;
+    fn add(self, rhs: &'b AngularMomentum) -> Self::Output { AngularMomentum::from_nms(self.as_nms() + rhs.as_nms()) }
+}
+impl<'a> Add<&'a AngularMomentum> for AngularMomentum {
+    type Output = AngularMomentum;
+    fn add(self, rhs: &'a AngularMomentum) -> Self::Output { AngularMomentum::from_nms(self.as_nms() + rhs.as_nms()) }
+}
+impl<'a> Add<AngularMomentum> for &'a AngularMomentum {
+    type Output = AngularMomentum;
+    fn add(self, rhs: AngularMomentum) -> Self::Output { AngularMomentum::from_nms(self.as_nms() + rhs.as_nms()) }
+}
+
 impl Add<f64> for AngularMomentum {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -171,6 +185,20 @@ impl Sub for AngularMomentum {
         let v = self.as_nms() - rhs.as_nms();
         Self::from_nms(v)
     }
+}
+
+// 引用-引用 与 混合引用：AngularMomentum 减法
+impl<'a, 'b> Sub<&'b AngularMomentum> for &'a AngularMomentum {
+    type Output = AngularMomentum;
+    fn sub(self, rhs: &'b AngularMomentum) -> Self::Output { AngularMomentum::from_nms(self.as_nms() - rhs.as_nms()) }
+}
+impl<'a> Sub<&'a AngularMomentum> for AngularMomentum {
+    type Output = AngularMomentum;
+    fn sub(self, rhs: &'a AngularMomentum) -> Self::Output { AngularMomentum::from_nms(self.as_nms() - rhs.as_nms()) }
+}
+impl<'a> Sub<AngularMomentum> for &'a AngularMomentum {
+    type Output = AngularMomentum;
+    fn sub(self, rhs: AngularMomentum) -> Self::Output { AngularMomentum::from_nms(self.as_nms() - rhs.as_nms()) }
 }
 
 impl Sub<f64> for AngularMomentum {
@@ -243,6 +271,20 @@ impl Mul<AngularVelocity> for AngularMomentum {
     }
 }
 
+// 引用版本：AngularMomentum * AngularVelocity -> Torque
+impl<'a, 'b> Mul<&'b AngularVelocity> for &'a AngularMomentum {
+    type Output = Torque;
+    fn mul(self, rhs: &'b AngularVelocity) -> Self::Output { Torque::from_nm(self.as_nms() * rhs.as_rad_per_second()) }
+}
+impl<'a> Mul<&'a AngularVelocity> for AngularMomentum {
+    type Output = Torque;
+    fn mul(self, rhs: &'a AngularVelocity) -> Self::Output { Torque::from_nm(self.as_nms() * rhs.as_rad_per_second()) }
+}
+impl<'a> Mul<AngularVelocity> for &'a AngularMomentum {
+    type Output = Torque;
+    fn mul(self, rhs: AngularVelocity) -> Self::Output { Torque::from_nm(self.as_nms() * rhs.as_rad_per_second()) }
+}
+
 // 角动量 ÷ 角速度 = 转动惯量（系数）
 impl Div<AngularVelocity> for AngularMomentum {
     type Output = Coef;
@@ -250,6 +292,20 @@ impl Div<AngularVelocity> for AngularMomentum {
         let moment_of_inertia_value = self.as_nms() / rhs.as_rad_per_second();
         Coef::new(moment_of_inertia_value)
     }
+}
+
+// 引用版本：AngularMomentum / AngularVelocity -> Coef
+impl<'a, 'b> Div<&'b AngularVelocity> for &'a AngularMomentum {
+    type Output = Coef;
+    fn div(self, rhs: &'b AngularVelocity) -> Self::Output { Coef::new(self.as_nms() / rhs.as_rad_per_second()) }
+}
+impl<'a> Div<&'a AngularVelocity> for AngularMomentum {
+    type Output = Coef;
+    fn div(self, rhs: &'a AngularVelocity) -> Self::Output { Coef::new(self.as_nms() / rhs.as_rad_per_second()) }
+}
+impl<'a> Div<AngularVelocity> for &'a AngularMomentum {
+    type Output = Coef;
+    fn div(self, rhs: AngularVelocity) -> Self::Output { Coef::new(self.as_nms() / rhs.as_rad_per_second()) }
 }
 
 
@@ -527,5 +583,45 @@ mod tests {
         let omega = AngularVelocity::from_deg_per_second(360.0);
         let moment_of_inertia = l / omega;
         assert_relative_eq!(moment_of_inertia.get_value(), 1e6 / (2.0 * std::f64::consts::PI));
+    }
+
+    #[test]
+    fn test_angular_momentum_ref_ops() {
+        let l1 = AngularMomentum::from_nms(2.0);
+        let l2 = AngularMomentum::from_kg_km2_per_second(0.000001); // 1 Nms
+        let s = &l1 + &l2;
+        assert_relative_eq!(s.as_nms(), 3.0);
+
+        let d = &l1 - &l2;
+        assert_relative_eq!(d.as_nms(), 1.0);
+
+        let t = &l1 * &AngularVelocity::from_rad_per_second(2.0);
+        assert_relative_eq!(t.as_nm(), 4.0);
+
+        let coef = &l1 / &AngularVelocity::from_rad_per_second(2.0);
+        assert_relative_eq!(coef.get_value(), 1.0);
+
+        // 混合引用：加/减
+        let s2 = l1 + &l2;
+        assert_relative_eq!(s2.as_nms(), 3.0);
+        let s3 = &l1 + l2;
+        assert_relative_eq!(s3.as_nms(), 3.0);
+        let l2b = AngularMomentum::from_kg_km2_per_second(0.000001);
+        let d2 = l1 - &l2b;
+        assert_relative_eq!(d2.as_nms(), 1.0);
+        let d3 = &l1 - l2b;
+        assert_relative_eq!(d3.as_nms(), 1.0);
+
+        // 混合引用：* AngularVelocity
+        let t2 = l1 * &AngularVelocity::from_rad_per_second(2.0);
+        assert_relative_eq!(t2.as_nm(), 4.0);
+        let t3 = &l1 * AngularVelocity::from_rad_per_second(2.0);
+        assert_relative_eq!(t3.as_nm(), 4.0);
+
+        // 混合引用：/ AngularVelocity -> Coef
+        let c2 = l1 / &AngularVelocity::from_rad_per_second(2.0);
+        assert_relative_eq!(c2.get_value(), 1.0);
+        let c3 = &l1 / AngularVelocity::from_rad_per_second(2.0);
+        assert_relative_eq!(c3.get_value(), 1.0);
     }
 }

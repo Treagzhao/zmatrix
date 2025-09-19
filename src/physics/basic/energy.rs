@@ -229,12 +229,40 @@ impl Add for Energy {
     }
 }
 
+// 引用-引用 与 混合引用：Energy 加法
+impl<'a, 'b> Add<&'b Energy> for &'a Energy {
+    type Output = Energy;
+    fn add(self, rhs: &'b Energy) -> Self::Output { Energy::from_joule(self.as_joule() + rhs.as_joule()) }
+}
+impl<'a> Add<&'a Energy> for Energy {
+    type Output = Energy;
+    fn add(self, rhs: &'a Energy) -> Self::Output { Energy::from_joule(self.as_joule() + rhs.as_joule()) }
+}
+impl<'a> Add<Energy> for &'a Energy {
+    type Output = Energy;
+    fn add(self, rhs: Energy) -> Self::Output { Energy::from_joule(self.as_joule() + rhs.as_joule()) }
+}
+
 impl Sub for Energy {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
         let v = self.as_joule() - rhs.as_joule();
         Self::from_joule(v)
     }
+}
+
+// 引用-引用 与 混合引用：Energy 减法
+impl<'a, 'b> Sub<&'b Energy> for &'a Energy {
+    type Output = Energy;
+    fn sub(self, rhs: &'b Energy) -> Self::Output { Energy::from_joule(self.as_joule() - rhs.as_joule()) }
+}
+impl<'a> Sub<&'a Energy> for Energy {
+    type Output = Energy;
+    fn sub(self, rhs: &'a Energy) -> Self::Output { Energy::from_joule(self.as_joule() - rhs.as_joule()) }
+}
+impl<'a> Sub<Energy> for &'a Energy {
+    type Output = Energy;
+    fn sub(self, rhs: Energy) -> Self::Output { Energy::from_joule(self.as_joule() - rhs.as_joule()) }
 }
 
 // 能量与标量的运算
@@ -319,6 +347,20 @@ impl Div<std::time::Duration> for Energy {
     }
 }
 
+// 引用版本：Energy / Duration -> Power
+impl<'a> Div<std::time::Duration> for &'a Energy {
+    type Output = crate::physics::basic::Power;
+    fn div(self, rhs: std::time::Duration) -> Self::Output { crate::physics::basic::Power::from_watt(self.as_joule() / rhs.as_secs_f64()) }
+}
+impl<'a> Div<&'a std::time::Duration> for Energy {
+    type Output = crate::physics::basic::Power;
+    fn div(self, rhs: &'a std::time::Duration) -> Self::Output { crate::physics::basic::Power::from_watt(self.as_joule() / rhs.as_secs_f64()) }
+}
+impl<'a, 'b> Div<&'b std::time::Duration> for &'a Energy {
+    type Output = crate::physics::basic::Power;
+    fn div(self, rhs: &'b std::time::Duration) -> Self::Output { crate::physics::basic::Power::from_watt(self.as_joule() / rhs.as_secs_f64()) }
+}
+
 // 能量 ÷ 距离 = 力
 impl Div<Distance> for Energy {
     type Output = Force;
@@ -326,6 +368,20 @@ impl Div<Distance> for Energy {
         let force_value = self.as_joule() / rhs.as_m();
         Force::from_newton(force_value)
     }
+}
+
+// 引用版本：Energy / Distance -> Force
+impl<'a, 'b> Div<&'b Distance> for &'a Energy {
+    type Output = Force;
+    fn div(self, rhs: &'b Distance) -> Self::Output { Force::from_newton(self.as_joule() / rhs.as_m()) }
+}
+impl<'a> Div<&'a Distance> for Energy {
+    type Output = Force;
+    fn div(self, rhs: &'a Distance) -> Self::Output { Force::from_newton(self.as_joule() / rhs.as_m()) }
+}
+impl<'a> Div<Distance> for &'a Energy {
+    type Output = Force;
+    fn div(self, rhs: Distance) -> Self::Output { Force::from_newton(self.as_joule() / rhs.as_m()) }
 }
 
 #[cfg(test)]
@@ -911,5 +967,46 @@ mod tests {
         let force: Force = energy / distance; // 20 N
 
         assert_relative_eq!(force.as_newton(), 20.0);
+    }
+
+    #[test]
+    fn test_energy_ref_ops() {
+        let e1 = Energy::from_joule(10.0);
+        let e2 = Energy::from_kilo_joule(0.005); // 5 J
+        let s = &e1 + &e2;
+        assert_relative_eq!(s.as_joule(), 15.0);
+
+        let d = &e1 - &e2;
+        assert_relative_eq!(d.as_joule(), 5.0);
+
+        let p = &e1 / &std::time::Duration::from_secs(2);
+        assert_relative_eq!(p.as_watt(), 5.0);
+
+        let f = &e1 / &Distance::from_m(2.0);
+        assert_relative_eq!(f.as_newton(), 5.0);
+
+        // 混合引用：加/减
+        let s2 = e1 + &e2;
+        assert_relative_eq!(s2.as_joule(), 15.0);
+        let s3 = &e1 + e2;
+        assert_relative_eq!(s3.as_joule(), 15.0);
+        let e2b = Energy::from_kilo_joule(0.005);
+        let d2 = e1 - &e2b;
+        assert_relative_eq!(d2.as_joule(), 5.0);
+        let d3 = &e1 - e2b;
+        assert_relative_eq!(d3.as_joule(), 5.0);
+
+        // 混合引用：/ Duration
+        let dur = std::time::Duration::from_secs(2);
+        let p2 = e1 / &dur;
+        assert_relative_eq!(p2.as_watt(), 5.0);
+        let p3 = &e1 / dur;
+        assert_relative_eq!(p3.as_watt(), 5.0);
+
+        // 混合引用：/ Distance
+        let f2 = e1 / &Distance::from_m(2.0);
+        assert_relative_eq!(f2.as_newton(), 5.0);
+        let f3 = &e1 / Distance::from_m(2.0);
+        assert_relative_eq!(f3.as_newton(), 5.0);
     }
 }

@@ -248,6 +248,97 @@ impl<T: VectorQuantity + Add<T, Output = T> + Default> Add for Vector3<T> {
     }
 }
 
+// 引用-引用 与 混合引用 的加减法重载（不消耗操作数）
+impl<'a, 'b, T> Add<&'b Vector3<T>> for &'a Vector3<T>
+where
+    T: VectorQuantity + Add<T, Output = T> + Default + Copy,
+{
+    type Output = Vector3<T>;
+
+    fn add(self, rhs: &'b Vector3<T>) -> Self::Output {
+        Vector3 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl<'a, T> Add<&'a Vector3<T>> for Vector3<T>
+where
+    T: VectorQuantity + Add<T, Output = T> + Default + Copy,
+{
+    type Output = Vector3<T>;
+
+    fn add(self, rhs: &'a Vector3<T>) -> Self::Output {
+        Vector3 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl<'a, T> Add<Vector3<T>> for &'a Vector3<T>
+where
+    T: VectorQuantity + Add<T, Output = T> + Default + Copy,
+{
+    type Output = Vector3<T>;
+
+    fn add(self, rhs: Vector3<T>) -> Self::Output {
+        Vector3 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl<'a, 'b, T> Sub<&'b Vector3<T>> for &'a Vector3<T>
+where
+    T: VectorQuantity + Sub<T, Output = T> + Default + Copy,
+{
+    type Output = Vector3<T>;
+
+    fn sub(self, rhs: &'b Vector3<T>) -> Self::Output {
+        Vector3 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
+impl<'a, T> Sub<&'a Vector3<T>> for Vector3<T>
+where
+    T: VectorQuantity + Sub<T, Output = T> + Default + Copy,
+{
+    type Output = Vector3<T>;
+
+    fn sub(self, rhs: &'a Vector3<T>) -> Self::Output {
+        Vector3 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
+impl<'a, T> Sub<Vector3<T>> for &'a Vector3<T>
+where
+    T: VectorQuantity + Sub<T, Output = T> + Default + Copy,
+{
+    type Output = Vector3<T>;
+
+    fn sub(self, rhs: Vector3<T>) -> Self::Output {
+        Vector3 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
 impl<T: VectorQuantity + Div<f64, Output = T> + Default> Div<f64> for Vector3<T> {
     type Output = Vector3<T>;
 
@@ -297,7 +388,7 @@ impl<T> Vector3<T>
 where
     T: VectorQuantity + Default + Copy,
 {
-    pub fn cross<B, F>(self, rhs: &Vector3<B>) -> Vector3<F>
+    pub fn cross<B, F>(&self, rhs: &Vector3<B>) -> Vector3<F>
     where
         T: Mul<B, Output = F> + Sub<T, Output = T>,
         B: VectorQuantity + Default + Copy,
@@ -318,7 +409,7 @@ where
         Vector3::new(f_x, f_y, f_z)
     }
 
-    pub fn cross_unit<B, F>(self, rhs: &Vector3<B>) -> Vector3<F>
+    pub fn cross_unit<B, F>(&self, rhs: &Vector3<B>) -> Vector3<F>
     where
         T: Mul<B, Output = F> + Sub<T, Output = T>,
         B: VectorQuantity + Default + Copy,
@@ -585,6 +676,40 @@ mod tests {
         assert_relative_eq!(result.z.get_value(), expected[2], epsilon = 0.00001);
 
 
+    }
+
+    #[test]
+    fn test_vector_ref_ops() {
+        let a: Vector3<Coef> = Vector3::new(Coef::new(1.0), Coef::new(2.0), Coef::new(3.0));
+        let b: Vector3<Coef> = Vector3::new(Coef::new(4.0), Coef::new(5.0), Coef::new(6.0));
+        // &a + &b
+        let s = &a + &b;
+        assert_relative_eq!(s.x.get_value(), 5.0);
+        assert_relative_eq!(s.y.get_value(), 7.0);
+        assert_relative_eq!(s.z.get_value(), 9.0);
+
+        // &a - &b
+        let d = &a - &b;
+        assert_relative_eq!(d.x.get_value(), -3.0);
+        assert_relative_eq!(d.y.get_value(), -3.0);
+        assert_relative_eq!(d.z.get_value(), -3.0);
+
+        // (&a).cross(&b) 不消耗 a
+        let c: Vector3<Coef> = (&a).cross(&b);
+        let arr = c.to_array();
+        assert_relative_eq!(arr[0], -3.0);
+        assert_relative_eq!(arr[1], 6.0);
+        assert_relative_eq!(arr[2], -3.0);
+
+        // 混合引用形式
+        let s2 = &a + b;
+        assert_relative_eq!(s2.x.get_value(), 5.0);
+        let s3 = a + &b;
+        assert_relative_eq!(s3.y.get_value(), 7.0);
+        let d2 = &a - b;
+        assert_relative_eq!(d2.z.get_value(), -3.0);
+        let d3 = a - &b;
+        assert_relative_eq!(d3.x.get_value(), -3.0);
     }
 
     #[test]

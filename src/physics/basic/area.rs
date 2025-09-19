@@ -164,6 +164,72 @@ impl Div<Coef> for Area {
     }
 }
 
+// 引用-引用与混合引用支持
+impl<'a, 'b> Add<&'b Area> for &'a Area {
+    type Output = Area;
+    fn add(self, rhs: &'b Area) -> Self::Output { Area::from_m2(self.as_m2() + rhs.as_m2()) }
+}
+impl<'a> Add<&'a Area> for Area {
+    type Output = Area;
+    fn add(self, rhs: &'a Area) -> Self::Output { Area::from_m2(self.as_m2() + rhs.as_m2()) }
+}
+impl<'a> Add<Area> for &'a Area {
+    type Output = Area;
+    fn add(self, rhs: Area) -> Self::Output { Area::from_m2(self.as_m2() + rhs.as_m2()) }
+}
+
+impl<'a, 'b> Sub<&'b Area> for &'a Area {
+    type Output = Area;
+    fn sub(self, rhs: &'b Area) -> Self::Output { Area::from_m2(self.as_m2() - rhs.as_m2()) }
+}
+impl<'a> Sub<&'a Area> for Area {
+    type Output = Area;
+    fn sub(self, rhs: &'a Area) -> Self::Output { Area::from_m2(self.as_m2() - rhs.as_m2()) }
+}
+impl<'a> Sub<Area> for &'a Area {
+    type Output = Area;
+    fn sub(self, rhs: Area) -> Self::Output { Area::from_m2(self.as_m2() - rhs.as_m2()) }
+}
+
+impl<'a, 'b> Div<&'b Distance> for &'a Area {
+    type Output = Distance;
+    fn div(self, rhs: &'b Distance) -> Self::Output { Distance::from_m(self.as_m2() / rhs.as_m()) }
+}
+impl<'a> Div<&'a Distance> for Area {
+    type Output = Distance;
+    fn div(self, rhs: &'a Distance) -> Self::Output { Distance::from_m(self.as_m2() / rhs.as_m()) }
+}
+impl<'a> Div<Distance> for &'a Area {
+    type Output = Distance;
+    fn div(self, rhs: Distance) -> Self::Output { Distance::from_m(self.as_m2() / rhs.as_m()) }
+}
+
+impl<'a, 'b> Mul<&'b Distance> for &'a Area {
+    type Output = Volume;
+    fn mul(self, rhs: &'b Distance) -> Self::Output { Volume::from_m3(self.as_m2() * rhs.as_m()) }
+}
+impl<'a> Mul<&'a Distance> for Area {
+    type Output = Volume;
+    fn mul(self, rhs: &'a Distance) -> Self::Output { Volume::from_m3(self.as_m2() * rhs.as_m()) }
+}
+impl<'a> Mul<Distance> for &'a Area {
+    type Output = Volume;
+    fn mul(self, rhs: Distance) -> Self::Output { Volume::from_m3(self.as_m2() * rhs.as_m()) }
+}
+
+impl<'a, 'b> Div<&'b Area> for &'a Area {
+    type Output = Coef;
+    fn div(self, rhs: &'b Area) -> Self::Output { Coef::new(self.as_m2() / rhs.as_m2()) }
+}
+impl<'a> Div<&'a Area> for Area {
+    type Output = Coef;
+    fn div(self, rhs: &'a Area) -> Self::Output { Coef::new(self.as_m2() / rhs.as_m2()) }
+}
+impl<'a> Div<Area> for &'a Area {
+    type Output = Coef;
+    fn div(self, rhs: Area) -> Self::Output { Coef::new(self.as_m2() / rhs.as_m2()) }
+}
+
 #[cfg(test)]
 mod tests {
     use approx::assert_relative_eq;
@@ -274,6 +340,65 @@ mod tests {
         let area = Area::from_m2(100.0);
         let area2 = area / Coef::new(2.0);
         assert_eq!(area2.as_m2(), 50.0);
+    }
+
+    #[test]
+    fn test_area_ref_ops() {
+        let a = Area::from_m2(3.0);
+        let b = Area::from_km2(1.0); // 1e6 m2
+        let s = &a + &b;
+        assert_relative_eq!(s.as_m2(), 1_000_003.0);
+
+        let d = &b - &a;
+        assert_relative_eq!(d.as_m2(), 999_997.0);
+
+        let dist = &b / &Distance::from_m(1000.0);
+        assert_relative_eq!(dist.as_m(), 1000.0);
+
+        let vol = &b * &Distance::from_m(2.0);
+        assert_relative_eq!(vol.as_m3(), 2_000_000.0);
+
+        let coef = &b / &a;
+        assert_relative_eq!(coef.get_value(), 333_333.3333333333, epsilon = 1e-6);
+
+        // 混合引用覆盖：Area +/- &Area, &Area +/- Area, Area * &Distance, &Area * Distance
+        let s2 = a + &b;
+        assert_relative_eq!(s2.as_m2(), 1_000_003.0);
+        let a1 = Area::from_m2(3.0);
+        let b1 = Area::from_km2(1.0);
+        let s3 = &a1 + b1;
+        assert_relative_eq!(s3.as_m2(), 1_000_003.0);
+
+        let a2 = Area::from_m2(3.0);
+        let b2 = Area::from_km2(1.0);
+        let d2 = a2 - &b2;
+        assert_relative_eq!(d2.as_m2(), -999_997.0);
+        let a3 = Area::from_m2(3.0);
+        let b3 = Area::from_km2(1.0);
+        let d3 = &a3 - b3;
+        assert_relative_eq!(d3.as_m2(), -999_997.0);
+
+        let a4 = Area::from_km2(1.0);
+        let v2 = a4 * &Distance::from_m(1.0);
+        assert_relative_eq!(v2.as_m3(), 1_000_000.0);
+        let a5 = Area::from_km2(1.0);
+        let v3 = &a5 * Distance::from_m(1.0);
+        assert_relative_eq!(v3.as_m3(), 1_000_000.0);
+
+        let a6 = Area::from_km2(1.0);
+        let c2 = a6 / &Area::from_m2(2.0);
+        assert_relative_eq!(c2.get_value(), 500_000.0);
+        let a7 = Area::from_km2(1.0);
+        let c3 = &a7 / Area::from_m2(2.0);
+        assert_relative_eq!(c3.get_value(), 500_000.0);
+
+        // 覆盖：Area / &Distance 与 &Area / Distance
+        let a8 = Area::from_km2(1.0);
+        let dist2 = a8 / &Distance::from_m(1000.0);
+        assert_relative_eq!(dist2.as_m(), 1000.0);
+        let a9 = Area::from_km2(1.0);
+        let dist3 = &a9 / Distance::from_m(1000.0);
+        assert_relative_eq!(dist3.as_m(), 1000.0);
     }
 
     #[test]

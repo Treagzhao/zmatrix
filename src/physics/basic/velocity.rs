@@ -107,6 +107,20 @@ impl Sub for Velocity {
     }
 }
 
+// 引用-引用 与 混合引用：Velocity 减法
+impl<'a, 'b> Sub<&'b Velocity> for &'a Velocity {
+    type Output = Velocity;
+    fn sub(self, rhs: &'b Velocity) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_sec() - rhs.as_m_per_sec()) }
+}
+impl<'a> Sub<&'a Velocity> for Velocity {
+    type Output = Velocity;
+    fn sub(self, rhs: &'a Velocity) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_sec() - rhs.as_m_per_sec()) }
+}
+impl<'a> Sub<Velocity> for &'a Velocity {
+    type Output = Velocity;
+    fn sub(self, rhs: Velocity) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_sec() - rhs.as_m_per_sec()) }
+}
+
 impl Sub<f64> for Velocity {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
@@ -141,6 +155,20 @@ impl Add for Velocity {
     }
 }
 
+// 引用-引用 与 混合引用：Velocity 加法
+impl<'a, 'b> Add<&'b Velocity> for &'a Velocity {
+    type Output = Velocity;
+    fn add(self, rhs: &'b Velocity) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_sec() + rhs.as_m_per_sec()) }
+}
+impl<'a> Add<&'a Velocity> for Velocity {
+    type Output = Velocity;
+    fn add(self, rhs: &'a Velocity) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_sec() + rhs.as_m_per_sec()) }
+}
+impl<'a> Add<Velocity> for &'a Velocity {
+    type Output = Velocity;
+    fn add(self, rhs: Velocity) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_sec() + rhs.as_m_per_sec()) }
+}
+
 impl Add<f64> for Velocity {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -168,6 +196,20 @@ impl Mul<Mass> for Velocity {
         let v = self.as_m_per_sec() * rhs.as_kg();
         Momentum::from_kg_m_s(v)
     }
+}
+
+// 引用版本：Velocity * Mass -> Momentum
+impl<'a, 'b> Mul<&'b Mass> for &'a Velocity {
+    type Output = Momentum;
+    fn mul(self, rhs: &'b Mass) -> Self::Output { Momentum::from_kg_m_s(self.as_m_per_sec() * rhs.as_kg()) }
+}
+impl<'a> Mul<&'a Mass> for Velocity {
+    type Output = Momentum;
+    fn mul(self, rhs: &'a Mass) -> Self::Output { Momentum::from_kg_m_s(self.as_m_per_sec() * rhs.as_kg()) }
+}
+impl<'a> Mul<Mass> for &'a Velocity {
+    type Output = Momentum;
+    fn mul(self, rhs: Mass) -> Self::Output { Momentum::from_kg_m_s(self.as_m_per_sec() * rhs.as_kg()) }
 }
 
 impl Div<f64> for Velocity {
@@ -220,6 +262,20 @@ impl Div<Distance> for Velocity {
     }
 }
 
+// 引用版本：Velocity / Distance -> AngularVelocity
+impl<'a, 'b> Div<&'b Distance> for &'a Velocity {
+    type Output = AngularVelocity;
+    fn div(self, rhs: &'b Distance) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_m_per_sec() / rhs.as_m()) }
+}
+impl<'a> Div<&'a Distance> for Velocity {
+    type Output = AngularVelocity;
+    fn div(self, rhs: &'a Distance) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_m_per_sec() / rhs.as_m()) }
+}
+impl<'a> Div<Distance> for &'a Velocity {
+    type Output = AngularVelocity;
+    fn div(self, rhs: Distance) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_m_per_sec() / rhs.as_m()) }
+}
+
 // 速度 ÷ 加速度 = 时间
 impl Div<Acceleration> for Velocity {
     type Output = std::time::Duration;
@@ -227,6 +283,34 @@ impl Div<Acceleration> for Velocity {
         let time_value = self.as_m_per_sec() / rhs.as_m_per_s2();
         std::time::Duration::from_secs_f64(time_value)
     }
+}
+
+// 引用版本：Velocity / Acceleration -> Duration
+impl<'a, 'b> Div<&'b Acceleration> for &'a Velocity {
+    type Output = std::time::Duration;
+    fn div(self, rhs: &'b Acceleration) -> Self::Output { std::time::Duration::from_secs_f64(self.as_m_per_sec() / rhs.as_m_per_s2()) }
+}
+impl<'a> Div<&'a Acceleration> for Velocity {
+    type Output = std::time::Duration;
+    fn div(self, rhs: &'a Acceleration) -> Self::Output { std::time::Duration::from_secs_f64(self.as_m_per_sec() / rhs.as_m_per_s2()) }
+}
+impl<'a> Div<Acceleration> for &'a Velocity {
+    type Output = std::time::Duration;
+    fn div(self, rhs: Acceleration) -> Self::Output { std::time::Duration::from_secs_f64(self.as_m_per_sec() / rhs.as_m_per_s2()) }
+}
+
+// 引用版本：Velocity * Duration -> Distance
+impl<'a> Mul<std::time::Duration> for &'a Velocity {
+    type Output = Distance;
+    fn mul(self, duration: std::time::Duration) -> Self::Output { Distance::from_m(self.as_m_per_sec() * duration.as_secs_f64()) }
+}
+impl<'a> Mul<&'a std::time::Duration> for Velocity {
+    type Output = Distance;
+    fn mul(self, duration: &'a std::time::Duration) -> Self::Output { Distance::from_m(self.as_m_per_sec() * duration.as_secs_f64()) }
+}
+impl<'a, 'b> Mul<&'b std::time::Duration> for &'a Velocity {
+    type Output = Distance;
+    fn mul(self, duration: &'b std::time::Duration) -> Self::Output { Distance::from_m(self.as_m_per_sec() * duration.as_secs_f64()) }
 }
 
 #[cfg(test)]
@@ -483,5 +567,72 @@ mod tests {
         let time = velocity / acceleration; // 5 s
         
         assert_relative_eq!(time.as_secs_f64(), 5.0);
+    }
+
+    #[test]
+    fn test_velocity_ref_ops() {
+        let v1 = Velocity::from_m_per_sec(2.0);
+        let v2 = Velocity::from_km_per_h(3.6); // 1 m/s
+        let s = &v1 + &v2;
+        assert_relative_eq!(s.as_m_per_sec(), 3.0);
+
+        let d = &v1 - &v2;
+        assert_relative_eq!(d.as_m_per_sec(), 1.0);
+
+        let omg = &v1 / &Distance::from_m(2.0);
+        assert_relative_eq!(omg.as_rad_per_second(), 1.0);
+
+        let t = &v1 / &Acceleration::from_m_per_s2(2.0);
+        assert_relative_eq!(t.as_secs_f64(), 1.0);
+
+        let dist = &v1 * &std::time::Duration::from_secs(2);
+        assert_relative_eq!(dist.as_m(), 4.0);
+
+        // 混合引用：Velocity * Mass
+        let m = Mass::from_kg(3.0);
+        let p1 = &v1 * &m;
+        assert_relative_eq!(p1.as_kg_m_s(), 6.0);
+        let p2 = &v1 * m;
+        assert_relative_eq!(p2.as_kg_m_s(), 6.0);
+        let m2 = Mass::from_kg(3.0);
+        let p3 = v1 * &m2;
+        assert_relative_eq!(p3.as_kg_m_s(), 6.0);
+
+        // 混合引用：加/减
+        let s2 = v1 + &v2;
+        assert_relative_eq!(s2.as_m_per_sec(), 3.0);
+        let v1b = Velocity::from_m_per_sec(2.0);
+        let s3 = &v1b + v2;
+        assert_relative_eq!(s3.as_m_per_sec(), 3.0);
+
+        let v1c = Velocity::from_m_per_sec(2.0);
+        let v2c = Velocity::from_km_per_h(3.6);
+        let d2 = v1c - &v2c;
+        assert_relative_eq!(d2.as_m_per_sec(), 1.0);
+        let v1d = Velocity::from_m_per_sec(2.0);
+        let v2d = Velocity::from_km_per_h(3.6);
+        let d3 = &v1d - v2d;
+        assert_relative_eq!(d3.as_m_per_sec(), 1.0);
+
+        // 混合引用：/ Distance
+        let omg2 = v1 / &Distance::from_m(2.0);
+        assert_relative_eq!(omg2.as_rad_per_second(), 1.0);
+        let v1e = Velocity::from_m_per_sec(2.0);
+        let omg3 = &v1e / Distance::from_m(2.0);
+        assert_relative_eq!(omg3.as_rad_per_second(), 1.0);
+
+        // 混合引用：/ Acceleration
+        let t2 = v1 / &Acceleration::from_m_per_s2(2.0);
+        assert_relative_eq!(t2.as_secs_f64(), 1.0);
+        let v1f = Velocity::from_m_per_sec(2.0);
+        let t3 = &v1f / Acceleration::from_m_per_s2(2.0);
+        assert_relative_eq!(t3.as_secs_f64(), 1.0);
+
+        // 混合引用：* Duration
+        let d4 = v1 * &std::time::Duration::from_secs(2);
+        assert_relative_eq!(d4.as_m(), 4.0);
+        let v1g = Velocity::from_m_per_sec(2.0);
+        let d5 = &v1g * std::time::Duration::from_secs(2);
+        assert_relative_eq!(d5.as_m(), 4.0);
     }
 }

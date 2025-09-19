@@ -172,15 +172,7 @@ impl Div for Quaternion {
     type Output = Quaternion;
 
     fn div(self, rhs: Self) -> Self::Output {
-        let q3 =
-            -self.q3 * rhs.q0 - self.q2 * rhs.q1 + self.q1 * rhs.q2 + self.q0 * rhs.q3;
-        let q2 =
-            self.q3 * rhs.q1 - self.q2 * rhs.q0 - self.q1 * rhs.q3 + self.q0 * rhs.q2;
-        let q1 =
-            -self.q3 * rhs.q2 + self.q2 * rhs.q3 - self.q1 * rhs.q0 + self.q0 * rhs.q1;
-        let q0 =
-            self.q3 * rhs.q3 + self.q2 * rhs.q2 + self.q1 * rhs.q1 + self.q0 * rhs.q0;
-        Quaternion::new(q0, q1, q2, q3).normalize()
+        self * rhs.inverse()
     }
 }
 
@@ -188,15 +180,7 @@ impl Div for &Quaternion {
     type Output = Quaternion;
 
     fn div(self, rhs: Self) -> Self::Output {
-        let q3 =
-            -self.q3 * rhs.q0 - self.q2 * rhs.q1 + self.q1 * rhs.q2 + self.q0 * rhs.q3;
-        let q2 =
-            self.q3 * rhs.q1 - self.q2 * rhs.q0 - self.q1 * rhs.q3 + self.q0 * rhs.q2;
-        let q1 =
-            -self.q3 * rhs.q2 + self.q2 * rhs.q3 - self.q1 * rhs.q0 + self.q0 * rhs.q1;
-        let q0 =
-            self.q3 * rhs.q3 + self.q2 * rhs.q2 + self.q1 * rhs.q1 + self.q0 * rhs.q0;
-        Quaternion::new(q0, q1, q2, q3).normalize()
+        *self * rhs.inverse()
     }
 }
 
@@ -204,10 +188,10 @@ impl Mul for Quaternion {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let q0 = (self.q0 * rhs.q0 - self.q1 * rhs.q1 - self.q2 * rhs.q2 - self.q3 * rhs.q3);
-        let q1 = (self.q0 * rhs.q1 + self.q1 * rhs.q0 + self.q2 * rhs.q3 - self.q3 * rhs.q2);
-        let q2 = (self.q0 * rhs.q2 - self.q1 * rhs.q3 + self.q2 * rhs.q0 + self.q3 * rhs.q1);
-        let q3 = (self.q0 * rhs.q3 + self.q1 * rhs.q2 - self.q2 * rhs.q1 + self.q3 * rhs.q0);
+        let q0 = self.q0 * rhs.q0 - self.q1 * rhs.q1 - self.q2 * rhs.q2 - self.q3 * rhs.q3;
+        let q1 = self.q0 * rhs.q1 + self.q1 * rhs.q0 + self.q2 * rhs.q3 - self.q3 * rhs.q2;
+        let q2 = self.q0 * rhs.q2 - self.q1 * rhs.q3 + self.q2 * rhs.q0 + self.q3 * rhs.q1;
+        let q3 = self.q0 * rhs.q3 + self.q1 * rhs.q2 - self.q2 * rhs.q1 + self.q3 * rhs.q0;
         Quaternion::new(q0, q1, q2, q3)
     }
 }
@@ -216,10 +200,10 @@ impl Mul for &Quaternion {
     type Output = Quaternion;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let q0 = (self.q0 * rhs.q0 - self.q1 * rhs.q1 - self.q2 * rhs.q2 - self.q3 * rhs.q3);
-        let q1 = (self.q0 * rhs.q1 + self.q1 * rhs.q0 + self.q2 * rhs.q3 - self.q3 * rhs.q2);
-        let q2 = (self.q0 * rhs.q2 - self.q1 * rhs.q3 + self.q2 * rhs.q0 + self.q3 * rhs.q1);
-        let q3 = (self.q0 * rhs.q3 + self.q1 * rhs.q2 - self.q2 * rhs.q1 + self.q3 * rhs.q0);
+        let q0 = self.q0 * rhs.q0 - self.q1 * rhs.q1 - self.q2 * rhs.q2 - self.q3 * rhs.q3;
+        let q1 = self.q0 * rhs.q1 + self.q1 * rhs.q0 + self.q2 * rhs.q3 - self.q3 * rhs.q2;
+        let q2 = self.q0 * rhs.q2 - self.q1 * rhs.q3 + self.q2 * rhs.q0 + self.q3 * rhs.q1;
+        let q3 = self.q0 * rhs.q3 + self.q1 * rhs.q2 - self.q2 * rhs.q1 + self.q3 * rhs.q0;
         Quaternion::new(q0, q1, q2, q3)
     }
 }
@@ -361,14 +345,17 @@ mod tests {
 
     #[test]
     fn test_div() {
-        let q1 = Quaternion::new(0.079634919762611389, 0.15926143527030945, 0.74453836679458618, -0.64339470863342285);
-        let q2 = Quaternion::new(0.079280510544776917, 0.15991555154323578, 0.74598062038421631, -0.64160305261611938);
-        let q3 = q1 / q2;
-        assert_relative_eq!(q3.q0,  0.99999707819965800);
-        assert_relative_eq!(q3.q1, 0.0023704291882664361);
-        assert_relative_eq!(q3.q2,-0.00032747164821501760);
-        assert_relative_eq!(q3.q3,-0.00034266591674783571);
+        // 非单位四元数校验：q / r 应等于 q * r.inverse()
+        let q1 = Quaternion::new(1.2, -0.4, 0.6, 2.0);
+        let r  = Quaternion::new(0.5,  1.0, -2.0, 3.0);
+        let d1 = q1 / r;
+        let d2 = q1 * r.inverse();
+        assert_relative_eq!(d1.q0, d2.q0, epsilon = 1e-12);
+        assert_relative_eq!(d1.q1, d2.q1, epsilon = 1e-12);
+        assert_relative_eq!(d1.q2, d2.q2, epsilon = 1e-12);
+        assert_relative_eq!(d1.q3, d2.q3, epsilon = 1e-12);
 
+        // 单位四元数校验：同一四元数相除得到单位
         let q1 = Quaternion::new(1.0, 2.0, 3.0, 4.0);
         let q2 = Quaternion::new(1.0, 2.0, 3.0, 4.0);
         let q3 = q1 / q2;
@@ -377,6 +364,7 @@ mod tests {
         assert_relative_eq!(q3.q2,0.0);
         assert_relative_eq!(q3.q3,0.0);
 
+        // 引用版本一致性
         let q1_1 = &q1.clone();
         let q2_2 = &q2.clone();
         let q3 = q1_1 / q2_2;

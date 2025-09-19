@@ -197,6 +197,20 @@ impl Add for MagneticMoment {
     }
 }
 
+// 引用-引用 与 混合引用：MagneticMoment 加法
+impl<'a, 'b> Add<&'b MagneticMoment> for &'a MagneticMoment {
+    type Output = MagneticMoment;
+    fn add(self, rhs: &'b MagneticMoment) -> Self::Output { MagneticMoment::from_am2(self.as_am2() + rhs.as_am2()) }
+}
+impl<'a> Add<&'a MagneticMoment> for MagneticMoment {
+    type Output = MagneticMoment;
+    fn add(self, rhs: &'a MagneticMoment) -> Self::Output { MagneticMoment::from_am2(self.as_am2() + rhs.as_am2()) }
+}
+impl<'a> Add<MagneticMoment> for &'a MagneticMoment {
+    type Output = MagneticMoment;
+    fn add(self, rhs: MagneticMoment) -> Self::Output { MagneticMoment::from_am2(self.as_am2() + rhs.as_am2()) }
+}
+
 impl Add<f64> for MagneticMoment {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -214,6 +228,20 @@ impl Sub for MagneticMoment {
         let v = self.as_am2() - rhs.as_am2();
         Self::from_am2(v)
     }
+}
+
+// 引用-引用 与 混合引用：MagneticMoment 减法
+impl<'a, 'b> Sub<&'b MagneticMoment> for &'a MagneticMoment {
+    type Output = MagneticMoment;
+    fn sub(self, rhs: &'b MagneticMoment) -> Self::Output { MagneticMoment::from_am2(self.as_am2() - rhs.as_am2()) }
+}
+impl<'a> Sub<&'a MagneticMoment> for MagneticMoment {
+    type Output = MagneticMoment;
+    fn sub(self, rhs: &'a MagneticMoment) -> Self::Output { MagneticMoment::from_am2(self.as_am2() - rhs.as_am2()) }
+}
+impl<'a> Sub<MagneticMoment> for &'a MagneticMoment {
+    type Output = MagneticMoment;
+    fn sub(self, rhs: MagneticMoment) -> Self::Output { MagneticMoment::from_am2(self.as_am2() - rhs.as_am2()) }
 }
 
 impl Sub<f64> for MagneticMoment {
@@ -284,6 +312,20 @@ impl Mul<MagneticInduction> for MagneticMoment {
         let energy_value = self.as_j_per_tesla() * rhs.as_tesla();
         Energy::from_joule(energy_value)
     }
+}
+
+// 引用版本：MagneticMoment * MagneticInduction -> Energy
+impl<'a, 'b> Mul<&'b MagneticInduction> for &'a MagneticMoment {
+    type Output = Energy;
+    fn mul(self, rhs: &'b MagneticInduction) -> Self::Output { Energy::from_joule(self.as_j_per_tesla() * rhs.as_tesla()) }
+}
+impl<'a> Mul<&'a MagneticInduction> for MagneticMoment {
+    type Output = Energy;
+    fn mul(self, rhs: &'a MagneticInduction) -> Self::Output { Energy::from_joule(self.as_j_per_tesla() * rhs.as_tesla()) }
+}
+impl<'a> Mul<MagneticInduction> for &'a MagneticMoment {
+    type Output = Energy;
+    fn mul(self, rhs: MagneticInduction) -> Self::Output { Energy::from_joule(self.as_j_per_tesla() * rhs.as_tesla()) }
 }
 
 #[cfg(test)]
@@ -646,6 +688,44 @@ mod tests {
         let b_gauss = MagneticInduction::from_gauss(30000.0); // 3 T
         let energy = mm_j_per_t * b_gauss;
         assert_relative_eq!(energy.as_joule(), 6.0); // 2 J/T × 3 T = 6 J
+    }
+
+    #[test]
+    fn test_magnetic_moment_ref_ops() {
+        let mm1 = MagneticMoment::from_am2(2.0);
+        let mm2 = MagneticMoment::from_j_per_tesla(1.0); // 1 A·m2
+        let s = &mm1 + &mm2;
+        assert_relative_eq!(s.as_am2(), 3.0);
+
+        let d = &mm1 - &mm2;
+        assert_relative_eq!(d.as_am2(), 1.0);
+
+        let e = &mm1 * &MagneticInduction::from_tesla(3.0);
+        assert_relative_eq!(e.as_joule(), 6.0);
+
+        // 混合引用：加/减
+        let s2 = mm1 + &mm2;
+        assert_relative_eq!(s2.as_am2(), 3.0);
+        let mm1b = MagneticMoment::from_am2(2.0);
+        let s3 = &mm1b + mm2;
+        assert_relative_eq!(s3.as_am2(), 3.0);
+
+        let mm1c = MagneticMoment::from_am2(2.0);
+        let mm2c = MagneticMoment::from_j_per_tesla(1.0);
+        let d2 = mm1c - &mm2c;
+        assert_relative_eq!(d2.as_am2(), 1.0);
+        let mm1d = MagneticMoment::from_am2(2.0);
+        let mm2d = MagneticMoment::from_j_per_tesla(1.0);
+        let d3 = &mm1d - mm2d;
+        assert_relative_eq!(d3.as_am2(), 1.0);
+
+        // 混合引用：* MagneticInduction
+        let mm1e = MagneticMoment::from_am2(2.0);
+        let e2 = mm1e * &MagneticInduction::from_tesla(3.0);
+        assert_relative_eq!(e2.as_joule(), 6.0);
+        let mm1f = MagneticMoment::from_am2(2.0);
+        let e3 = &mm1f * MagneticInduction::from_tesla(3.0);
+        assert_relative_eq!(e3.as_joule(), 6.0);
     }
 
     #[test]

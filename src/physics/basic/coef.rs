@@ -18,6 +18,20 @@ impl Add for Coef {
     }
 }
 
+// 引用-引用 与 混合引用：Coef 加法
+impl<'a, 'b> Add<&'b Coef> for &'a Coef {
+    type Output = Coef;
+    fn add(self, rhs: &'b Coef) -> Self::Output { Coef { v: self.v + rhs.v } }
+}
+impl<'a> Add<&'a Coef> for Coef {
+    type Output = Coef;
+    fn add(self, rhs: &'a Coef) -> Self::Output { Coef { v: self.v + rhs.v } }
+}
+impl<'a> Add<Coef> for &'a Coef {
+    type Output = Coef;
+    fn add(self, rhs: Coef) -> Self::Output { Coef { v: self.v + rhs.v } }
+}
+
 impl Sub for Coef {
     type Output = Coef;
     fn sub(self, rhs: Self) -> Self::Output {
@@ -25,11 +39,39 @@ impl Sub for Coef {
     }
 }
 
+// 引用-引用 与 混合引用：Coef 减法
+impl<'a, 'b> Sub<&'b Coef> for &'a Coef {
+    type Output = Coef;
+    fn sub(self, rhs: &'b Coef) -> Self::Output { Coef { v: self.v - rhs.v } }
+}
+impl<'a> Sub<&'a Coef> for Coef {
+    type Output = Coef;
+    fn sub(self, rhs: &'a Coef) -> Self::Output { Coef { v: self.v - rhs.v } }
+}
+impl<'a> Sub<Coef> for &'a Coef {
+    type Output = Coef;
+    fn sub(self, rhs: Coef) -> Self::Output { Coef { v: self.v - rhs.v } }
+}
+
 impl Mul for Coef {
     type Output = Coef;
     fn mul(self, rhs: Self) -> Self::Output {
         Coef { v: self.v * rhs.v }
     }
+}
+
+// 引用-引用 与 混合引用：Coef 乘法
+impl<'a, 'b> Mul<&'b Coef> for &'a Coef {
+    type Output = Coef;
+    fn mul(self, rhs: &'b Coef) -> Self::Output { Coef { v: self.v * rhs.v } }
+}
+impl<'a> Mul<&'a Coef> for Coef {
+    type Output = Coef;
+    fn mul(self, rhs: &'a Coef) -> Self::Output { Coef { v: self.v * rhs.v } }
+}
+impl<'a> Mul<Coef> for &'a Coef {
+    type Output = Coef;
+    fn mul(self, rhs: Coef) -> Self::Output { Coef { v: self.v * rhs.v } }
 }
 impl Mul<Coef> for f64 {
     type Output = Coef;
@@ -78,6 +120,20 @@ impl Div for Coef {
     fn div(self, rhs: Self) -> Self::Output {
         Coef { v: self.v / rhs.v }
     }
+}
+
+// 引用-引用 与 混合引用：Coef 除法
+impl<'a, 'b> Div<&'b Coef> for &'a Coef {
+    type Output = Coef;
+    fn div(self, rhs: &'b Coef) -> Self::Output { Coef { v: self.v / rhs.v } }
+}
+impl<'a> Div<&'a Coef> for Coef {
+    type Output = Coef;
+    fn div(self, rhs: &'a Coef) -> Self::Output { Coef { v: self.v / rhs.v } }
+}
+impl<'a> Div<Coef> for &'a Coef {
+    type Output = Coef;
+    fn div(self, rhs: Coef) -> Self::Output { Coef { v: self.v / rhs.v } }
 }
 
 impl Div<f64> for Coef {
@@ -194,6 +250,7 @@ impl PartialOrd<f64> for Coef {
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_relative_eq;
     use super::*;
     #[test]
     fn test_new() {
@@ -560,5 +617,44 @@ mod tests {
         let min_coef = Coef::new(f64::MIN);
         let result = min_coef - f64::MAX;
         assert!(result.get_value().is_infinite());
+    }
+
+    #[test]
+    fn test_coef_ref_ops() {
+        let a = Coef::new(2.0);
+        let b = Coef::new(3.0);
+        let s = &a + &b;
+        assert_relative_eq!(s.get_value(), 5.0);
+
+        let d = &a - &b;
+        assert_relative_eq!(d.get_value(), -1.0);
+
+        let m = &a * &b;
+        assert_relative_eq!(m.get_value(), 6.0);
+
+        let q = &a / &Coef::new(0.5);
+        assert_relative_eq!(q.get_value(), 4.0);
+
+        // 混合引用：四则
+        let s2 = a + &b;
+        assert_relative_eq!(s2.get_value(), 5.0);
+        let s3 = &a + b;
+        assert_relative_eq!(s3.get_value(), 5.0);
+
+        let b2 = Coef::new(3.0);
+        let d2 = a - &b2;
+        assert_relative_eq!(d2.get_value(), -1.0);
+        let d3 = &a - b2;
+        assert_relative_eq!(d3.get_value(), -1.0);
+
+        let m2 = a * &Coef::new(3.0);
+        assert_relative_eq!(m2.get_value(), 6.0);
+        let m3 = &a * Coef::new(3.0);
+        assert_relative_eq!(m3.get_value(), 6.0);
+
+        let q2 = a / &Coef::new(0.5);
+        assert_relative_eq!(q2.get_value(), 4.0);
+        let q3 = &a / Coef::new(0.5);
+        assert_relative_eq!(q3.get_value(), 4.0);
     }
 }

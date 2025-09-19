@@ -67,6 +67,20 @@ impl Add for Mass {
     }
 }
 
+// 引用-引用 与 混合引用：Mass 加法
+impl<'a, 'b> Add<&'b Mass> for &'a Mass {
+    type Output = Mass;
+    fn add(self, rhs: &'b Mass) -> Self::Output { Mass::from_kg(self.as_kg() + rhs.as_kg()) }
+}
+impl<'a> Add<&'a Mass> for Mass {
+    type Output = Mass;
+    fn add(self, rhs: &'a Mass) -> Self::Output { Mass::from_kg(self.as_kg() + rhs.as_kg()) }
+}
+impl<'a> Add<Mass> for &'a Mass {
+    type Output = Mass;
+    fn add(self, rhs: Mass) -> Self::Output { Mass::from_kg(self.as_kg() + rhs.as_kg()) }
+}
+
 impl Add<f64> for Mass {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -84,6 +98,20 @@ impl Sub for Mass {
         let v = self.as_kg() - rhs.as_kg();
         Self::from_kg(v)
     }
+}
+
+// 引用-引用 与 混合引用：Mass 减法
+impl<'a, 'b> Sub<&'b Mass> for &'a Mass {
+    type Output = Mass;
+    fn sub(self, rhs: &'b Mass) -> Self::Output { Mass::from_kg(self.as_kg() - rhs.as_kg()) }
+}
+impl<'a> Sub<&'a Mass> for Mass {
+    type Output = Mass;
+    fn sub(self, rhs: &'a Mass) -> Self::Output { Mass::from_kg(self.as_kg() - rhs.as_kg()) }
+}
+impl<'a> Sub<Mass> for &'a Mass {
+    type Output = Mass;
+    fn sub(self, rhs: Mass) -> Self::Output { Mass::from_kg(self.as_kg() - rhs.as_kg()) }
 }
 
 impl Sub<f64> for Mass {
@@ -332,5 +360,32 @@ mod tests {
         let m = Mass::from_g(1000.0);
         let result = 2000.0 / m;
         assert_relative_eq!(result.as_g(), 2.0);
+    }
+
+    #[test]
+    fn test_mass_ref_ops() {
+        let m1 = Mass::from_kg(2.0);
+        let m2 = Mass::from_g(1000.0); // 1 kg
+        let s = &m1 + &m2;
+        assert_relative_eq!(s.as_kg(), 3.0);
+
+        let d = &m1 - &m2;
+        assert_relative_eq!(d.as_kg(), 1.0);
+
+        // 混合引用：加/减
+        let s2 = m1 + &m2;
+        assert_relative_eq!(s2.as_kg(), 3.0);
+        let m1b = Mass::from_kg(2.0);
+        let s3 = &m1b + m2;
+        assert_relative_eq!(s3.as_kg(), 3.0);
+
+        let m1c = Mass::from_kg(2.0);
+        let m2c = Mass::from_g(1000.0);
+        let d2 = m1c - &m2c;
+        assert_relative_eq!(d2.as_kg(), 1.0);
+        let m1d = Mass::from_kg(2.0);
+        let m2d = Mass::from_g(1000.0);
+        let d3 = &m1d - m2d;
+        assert_relative_eq!(d3.as_kg(), 1.0);
     }
 }

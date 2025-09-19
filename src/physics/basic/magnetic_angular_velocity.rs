@@ -185,6 +185,20 @@ impl Add for MagneticAngularVelocity {
     }
 }
 
+// 引用-引用 与 混合引用：MagneticAngularVelocity 加法
+impl<'a, 'b> Add<&'b MagneticAngularVelocity> for &'a MagneticAngularVelocity {
+    type Output = MagneticAngularVelocity;
+    fn add(self, rhs: &'b MagneticAngularVelocity) -> Self::Output { MagneticAngularVelocity::from_tesla_rad_per_second(self.as_tesla_rad_per_second() + rhs.as_tesla_rad_per_second()) }
+}
+impl<'a> Add<&'a MagneticAngularVelocity> for MagneticAngularVelocity {
+    type Output = MagneticAngularVelocity;
+    fn add(self, rhs: &'a MagneticAngularVelocity) -> Self::Output { MagneticAngularVelocity::from_tesla_rad_per_second(self.as_tesla_rad_per_second() + rhs.as_tesla_rad_per_second()) }
+}
+impl<'a> Add<MagneticAngularVelocity> for &'a MagneticAngularVelocity {
+    type Output = MagneticAngularVelocity;
+    fn add(self, rhs: MagneticAngularVelocity) -> Self::Output { MagneticAngularVelocity::from_tesla_rad_per_second(self.as_tesla_rad_per_second() + rhs.as_tesla_rad_per_second()) }
+}
+
 impl Add<f64> for MagneticAngularVelocity {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -203,6 +217,20 @@ impl Sub for MagneticAngularVelocity {
         let v = self.as_tesla_rad_per_second() - rhs.as_tesla_rad_per_second();
         Self::from_tesla_rad_per_second(v)
     }
+}
+
+// 引用-引用 与 混合引用：MagneticAngularVelocity 减法
+impl<'a, 'b> Sub<&'b MagneticAngularVelocity> for &'a MagneticAngularVelocity {
+    type Output = MagneticAngularVelocity;
+    fn sub(self, rhs: &'b MagneticAngularVelocity) -> Self::Output { MagneticAngularVelocity::from_tesla_rad_per_second(self.as_tesla_rad_per_second() - rhs.as_tesla_rad_per_second()) }
+}
+impl<'a> Sub<&'a MagneticAngularVelocity> for MagneticAngularVelocity {
+    type Output = MagneticAngularVelocity;
+    fn sub(self, rhs: &'a MagneticAngularVelocity) -> Self::Output { MagneticAngularVelocity::from_tesla_rad_per_second(self.as_tesla_rad_per_second() - rhs.as_tesla_rad_per_second()) }
+}
+impl<'a> Sub<MagneticAngularVelocity> for &'a MagneticAngularVelocity {
+    type Output = MagneticAngularVelocity;
+    fn sub(self, rhs: MagneticAngularVelocity) -> Self::Output { MagneticAngularVelocity::from_tesla_rad_per_second(self.as_tesla_rad_per_second() - rhs.as_tesla_rad_per_second()) }
 }
 
 impl Sub<f64> for MagneticAngularVelocity {
@@ -662,5 +690,32 @@ mod tests {
         let small_mav = MagneticAngularVelocity::from_nano_tesla_rad_per_second(1.0);
         let result = small_mav * 1000.0;
         assert_relative_eq!(result.as_tesla_rad_per_second(), 1e-6);
+    }
+
+    #[test]
+    fn test_magnetic_angular_velocity_ref_ops() {
+        let a = MagneticAngularVelocity::from_tesla_rad_per_second(2.0);
+        let b = MagneticAngularVelocity::from_gauss_rad_per_second(10_000.0); // 1 T·rad/s
+        let s = &a + &b;
+        assert_relative_eq!(s.as_tesla_rad_per_second(), 3.0);
+
+        let d = &a - &b;
+        assert_relative_eq!(d.as_tesla_rad_per_second(), 1.0);
+
+        // 混合引用：加/减
+        let s2 = a + &b;
+        assert_relative_eq!(s2.as_tesla_rad_per_second(), 3.0);
+        let a1 = MagneticAngularVelocity::from_tesla_rad_per_second(2.0);
+        let s3 = &a1 + b;
+        assert_relative_eq!(s3.as_tesla_rad_per_second(), 3.0);
+
+        let a2 = MagneticAngularVelocity::from_tesla_rad_per_second(2.0);
+        let b2 = MagneticAngularVelocity::from_gauss_rad_per_second(10_000.0);
+        let d2 = a2 - &b2;
+        assert_relative_eq!(d2.as_tesla_rad_per_second(), 1.0);
+        let a3 = MagneticAngularVelocity::from_tesla_rad_per_second(2.0);
+        let b3 = MagneticAngularVelocity::from_gauss_rad_per_second(10_000.0);
+        let d3 = &a3 - b3;
+        assert_relative_eq!(d3.as_tesla_rad_per_second(), 1.0);
     }
 }

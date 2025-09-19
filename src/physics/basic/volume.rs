@@ -385,11 +385,25 @@ mod tests {
         assert_relative_eq!(a.as_m2(), 1_000_000.0);
 
         // 混合引用覆盖：Volume +/- &Volume, &Volume +/- Volume, &Volume / Distance, Volume / &Distance
-        let _ = v + &w;
-        let _ = &v + w;
-        let _ = v - &w;
-        let _ = &v - w;
-        let _ = &w / Distance::from_m(1000.0);
-        let _ = w / &Distance::from_m(1000.0);
+        let s2 = v + &w;
+        assert_relative_eq!(s2.as_m3(), 1_000_000_008.0);
+        let v1 = Volume::from_m3(8.0);
+        let w1 = Volume::from_km3(1.0);
+        let s3 = &v1 + w1;
+        assert_relative_eq!(s3.as_m3(), 1_000_000_008.0);
+
+        let v2 = Volume::from_m3(8.0);
+        let w2 = Volume::from_km3(1.0);
+        let d2 = v2 - &w2;
+        assert_relative_eq!(d2.as_m3(), -999_999_992.0);
+        let v3 = Volume::from_m3(8.0);
+        let w3 = Volume::from_km3(1.0);
+        let d3 = &v3 - w3;
+        assert_relative_eq!(d3.as_m3(), -999_999_992.0);
+
+        let a2 = &w / Distance::from_m(1000.0);
+        assert_relative_eq!(a2.as_m2(), 1_000_000.0);
+        let a3 = w / &Distance::from_m(1000.0);
+        assert_relative_eq!(a3.as_m2(), 1_000_000.0);
     }
 }

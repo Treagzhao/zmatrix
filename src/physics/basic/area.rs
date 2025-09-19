@@ -391,6 +391,14 @@ mod tests {
         let a7 = Area::from_km2(1.0);
         let c3 = &a7 / Area::from_m2(2.0);
         assert_relative_eq!(c3.get_value(), 500_000.0);
+
+        // 覆盖：Area / &Distance 与 &Area / Distance
+        let a8 = Area::from_km2(1.0);
+        let dist2 = a8 / &Distance::from_m(1000.0);
+        assert_relative_eq!(dist2.as_m(), 1000.0);
+        let a9 = Area::from_km2(1.0);
+        let dist3 = &a9 / Distance::from_m(1000.0);
+        assert_relative_eq!(dist3.as_m(), 1000.0);
     }
 
     #[test]

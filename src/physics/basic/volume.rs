@@ -406,4 +406,37 @@ mod tests {
         let a3 = w / &Distance::from_m(1000.0);
         assert_relative_eq!(a3.as_m2(), 1_000_000.0);
     }
+
+    #[test]
+    fn test_volume_div_volume_ref_ops() {
+        // 测试 Volume / Volume -> Coef 的引用版本
+        let v1 = Volume::from_m3(1000.0);
+        let v2 = Volume::from_m3(200.0);
+        
+        // &Volume / &Volume
+        let c1 = &v1 / &v2;
+        assert_relative_eq!(c1.get_value(), 5.0);
+        
+        // Volume / &Volume
+        let c2 = v1 / &v2;
+        assert_relative_eq!(c2.get_value(), 5.0);
+        
+        // &Volume / Volume
+        let v3 = Volume::from_m3(1000.0);
+        let v4 = Volume::from_m3(200.0);
+        let c3 = &v3 / v4;
+        assert_relative_eq!(c3.get_value(), 5.0);
+        
+        // 测试不同单位
+        let v5 = Volume::from_km3(1.0); // 1e9 m3
+        let v6 = Volume::from_m3(1e6); // 1e6 m3
+        let c4 = &v5 / &v6;
+        assert_relative_eq!(c4.get_value(), 1000.0);
+        
+        let c5 = v5 / &v6;
+        assert_relative_eq!(c5.get_value(), 1000.0);
+        
+        let c6 = &v5 / v6;
+        assert_relative_eq!(c6.get_value(), 1000.0);
+    }
 }

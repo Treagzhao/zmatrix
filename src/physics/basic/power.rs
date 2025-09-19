@@ -170,6 +170,20 @@ impl Add for Power {
     }
 }
 
+// 引用-引用 与 混合引用：Power 加法
+impl<'a, 'b> Add<&'b Power> for &'a Power {
+    type Output = Power;
+    fn add(self, rhs: &'b Power) -> Self::Output { Power::from_watt(self.as_watt() + rhs.as_watt()) }
+}
+impl<'a> Add<&'a Power> for Power {
+    type Output = Power;
+    fn add(self, rhs: &'a Power) -> Self::Output { Power::from_watt(self.as_watt() + rhs.as_watt()) }
+}
+impl<'a> Add<Power> for &'a Power {
+    type Output = Power;
+    fn add(self, rhs: Power) -> Self::Output { Power::from_watt(self.as_watt() + rhs.as_watt()) }
+}
+
 impl Add<f64> for Power {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -187,6 +201,20 @@ impl Sub for Power {
         let v = self.as_watt() - rhs.as_watt();
         Self::from_watt(v)
     }
+}
+
+// 引用-引用 与 混合引用：Power 减法
+impl<'a, 'b> Sub<&'b Power> for &'a Power {
+    type Output = Power;
+    fn sub(self, rhs: &'b Power) -> Self::Output { Power::from_watt(self.as_watt() - rhs.as_watt()) }
+}
+impl<'a> Sub<&'a Power> for Power {
+    type Output = Power;
+    fn sub(self, rhs: &'a Power) -> Self::Output { Power::from_watt(self.as_watt() - rhs.as_watt()) }
+}
+impl<'a> Sub<Power> for &'a Power {
+    type Output = Power;
+    fn sub(self, rhs: Power) -> Self::Output { Power::from_watt(self.as_watt() - rhs.as_watt()) }
 }
 
 impl Sub<f64> for Power {
@@ -257,6 +285,20 @@ impl Div<Force> for Power {
     }
 }
 
+// 引用版本：Power / Force -> Velocity
+impl<'a, 'b> Div<&'b Force> for &'a Power {
+    type Output = Velocity;
+    fn div(self, rhs: &'b Force) -> Self::Output { Velocity::from_m_per_sec(self.as_watt() / rhs.as_newton()) }
+}
+impl<'a> Div<&'a Force> for Power {
+    type Output = Velocity;
+    fn div(self, rhs: &'a Force) -> Self::Output { Velocity::from_m_per_sec(self.as_watt() / rhs.as_newton()) }
+}
+impl<'a> Div<Force> for &'a Power {
+    type Output = Velocity;
+    fn div(self, rhs: Force) -> Self::Output { Velocity::from_m_per_sec(self.as_watt() / rhs.as_newton()) }
+}
+
 // 功率 ÷ 速度 = 力
 impl Div<Velocity> for Power {
     type Output = Force;
@@ -264,6 +306,20 @@ impl Div<Velocity> for Power {
         let force_value = self.as_watt() / rhs.as_m_per_sec();
         Force::from_newton(force_value)
     }
+}
+
+// 引用版本：Power / Velocity -> Force
+impl<'a, 'b> Div<&'b Velocity> for &'a Power {
+    type Output = Force;
+    fn div(self, rhs: &'b Velocity) -> Self::Output { Force::from_newton(self.as_watt() / rhs.as_m_per_sec()) }
+}
+impl<'a> Div<&'a Velocity> for Power {
+    type Output = Force;
+    fn div(self, rhs: &'a Velocity) -> Self::Output { Force::from_newton(self.as_watt() / rhs.as_m_per_sec()) }
+}
+impl<'a> Div<Velocity> for &'a Power {
+    type Output = Force;
+    fn div(self, rhs: Velocity) -> Self::Output { Force::from_newton(self.as_watt() / rhs.as_m_per_sec()) }
 }
 
 // 功率与时间的乘积（得到能量）
@@ -885,5 +941,52 @@ mod tests {
         // 时间 × 功率 = 能量
         let energy2 = time * power;
         assert_relative_eq!(energy2.as_joule(), 200.0);
+    }
+
+    #[test]
+    fn test_power_ref_ops() {
+        let p1 = Power::from_watt(10.0);
+        let p2 = Power::from_kilo_watt(0.005); // 5 W
+        let s = &p1 + &p2;
+        assert_relative_eq!(s.as_watt(), 15.0);
+
+        let d = &p1 - &p2;
+        assert_relative_eq!(d.as_watt(), 5.0);
+
+        let v = &p1 / &Force::from_newton(2.0);
+        assert_relative_eq!(v.as_m_per_sec(), 5.0);
+
+        let f = &p1 / &Velocity::from_m_per_sec(2.0);
+        assert_relative_eq!(f.as_newton(), 5.0);
+
+        // 混合引用：加/减
+        let s2 = p1 + &p2;
+        assert_relative_eq!(s2.as_watt(), 15.0);
+        let p1b = Power::from_watt(10.0);
+        let s3 = &p1b + p2;
+        assert_relative_eq!(s3.as_watt(), 15.0);
+
+        let p1c = Power::from_watt(10.0);
+        let p2c = Power::from_kilo_watt(0.005);
+        let d2 = p1c - &p2c;
+        assert_relative_eq!(d2.as_watt(), 5.0);
+        let p1d = Power::from_watt(10.0);
+        let p2d = Power::from_kilo_watt(0.005);
+        let d3 = &p1d - p2d;
+        assert_relative_eq!(d3.as_watt(), 5.0);
+
+        // 混合引用：/ Force
+        let v2 = p1 / &Force::from_newton(2.0);
+        assert_relative_eq!(v2.as_m_per_sec(), 5.0);
+        let p1e = Power::from_watt(10.0);
+        let v3 = &p1e / Force::from_newton(2.0);
+        assert_relative_eq!(v3.as_m_per_sec(), 5.0);
+
+        // 混合引用：/ Velocity
+        let f2 = p1 / &Velocity::from_m_per_sec(2.0);
+        assert_relative_eq!(f2.as_newton(), 5.0);
+        let p1f = Power::from_watt(10.0);
+        let f3 = &p1f / Velocity::from_m_per_sec(2.0);
+        assert_relative_eq!(f3.as_newton(), 5.0);
     }
 }

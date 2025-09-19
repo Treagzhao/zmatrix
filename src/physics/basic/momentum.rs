@@ -66,6 +66,20 @@ impl Add for Momentum {
     }
 }
 
+// 引用-引用 与 混合引用：Momentum 加法
+impl<'a, 'b> Add<&'b Momentum> for &'a Momentum {
+    type Output = Momentum;
+    fn add(self, rhs: &'b Momentum) -> Self::Output { Momentum::from_kg_m_s(self.as_kg_m_s() + rhs.as_kg_m_s()) }
+}
+impl<'a> Add<&'a Momentum> for Momentum {
+    type Output = Momentum;
+    fn add(self, rhs: &'a Momentum) -> Self::Output { Momentum::from_kg_m_s(self.as_kg_m_s() + rhs.as_kg_m_s()) }
+}
+impl<'a> Add<Momentum> for &'a Momentum {
+    type Output = Momentum;
+    fn add(self, rhs: Momentum) -> Self::Output { Momentum::from_kg_m_s(self.as_kg_m_s() + rhs.as_kg_m_s()) }
+}
+
 impl Add<f64> for Momentum {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -83,6 +97,20 @@ impl Sub for Momentum {
         let v = self.as_kg_m_s() - rhs.as_kg_m_s();
         Self::from_kg_m_s(v)
     }
+}
+
+// 引用-引用 与 混合引用：Momentum 减法
+impl<'a, 'b> Sub<&'b Momentum> for &'a Momentum {
+    type Output = Momentum;
+    fn sub(self, rhs: &'b Momentum) -> Self::Output { Momentum::from_kg_m_s(self.as_kg_m_s() - rhs.as_kg_m_s()) }
+}
+impl<'a> Sub<&'a Momentum> for Momentum {
+    type Output = Momentum;
+    fn sub(self, rhs: &'a Momentum) -> Self::Output { Momentum::from_kg_m_s(self.as_kg_m_s() - rhs.as_kg_m_s()) }
+}
+impl<'a> Sub<Momentum> for &'a Momentum {
+    type Output = Momentum;
+    fn sub(self, rhs: Momentum) -> Self::Output { Momentum::from_kg_m_s(self.as_kg_m_s() - rhs.as_kg_m_s()) }
 }
 
 impl Sub<f64> for Momentum {
@@ -154,6 +182,20 @@ impl Mul<Distance> for Momentum {
         let v = self.as_kg_m_s() * rhs.as_m();
         AngularMomentum::from_kg_m2_per_second(v)
     }
+}
+
+// 引用版本：Momentum * Distance -> AngularMomentum
+impl<'a, 'b> Mul<&'b Distance> for &'a Momentum {
+    type Output = AngularMomentum;
+    fn mul(self, rhs: &'b Distance) -> Self::Output { AngularMomentum::from_kg_m2_per_second(self.as_kg_m_s() * rhs.as_m()) }
+}
+impl<'a> Mul<&'a Distance> for Momentum {
+    type Output = AngularMomentum;
+    fn mul(self, rhs: &'a Distance) -> Self::Output { AngularMomentum::from_kg_m2_per_second(self.as_kg_m_s() * rhs.as_m()) }
+}
+impl<'a> Mul<Distance> for &'a Momentum {
+    type Output = AngularMomentum;
+    fn mul(self, rhs: Distance) -> Self::Output { AngularMomentum::from_kg_m2_per_second(self.as_kg_m_s() * rhs.as_m()) }
 }
 
 #[cfg(test)]
@@ -304,5 +346,43 @@ mod tests {
         let m = Momentum::from_kg_km_s(1.0);
         let result = 2.0 / m;
         assert_relative_eq!(result.as_kg_km_s(), 2.0);
+    }
+
+    #[test]
+    fn test_momentum_ref_ops() {
+        let m1 = Momentum::from_kg_m_s(2.0);
+        let m2 = Momentum::from_kg_km_s(0.001); // 1 m/s * kg
+        let s = &m1 + &m2;
+        assert_relative_eq!(s.as_kg_m_s(), 3.0);
+
+        let d = &m1 - &m2;
+        assert_relative_eq!(d.as_kg_m_s(), 1.0);
+
+        let l = &m1 * &Distance::from_m(3.0);
+        assert_relative_eq!(l.as_kg_m2_per_second(), 6.0);
+
+        // 混合引用：加/减
+        let s2 = m1 + &m2;
+        assert_relative_eq!(s2.as_kg_m_s(), 3.0);
+        let m1b = Momentum::from_kg_m_s(2.0);
+        let s3 = &m1b + m2;
+        assert_relative_eq!(s3.as_kg_m_s(), 3.0);
+
+        let m1c = Momentum::from_kg_m_s(2.0);
+        let m2c = Momentum::from_kg_km_s(0.001);
+        let d2 = m1c - &m2c;
+        assert_relative_eq!(d2.as_kg_m_s(), 1.0);
+        let m1d = Momentum::from_kg_m_s(2.0);
+        let m2d = Momentum::from_kg_km_s(0.001);
+        let d3 = &m1d - m2d;
+        assert_relative_eq!(d3.as_kg_m_s(), 1.0);
+
+        // 混合引用：* Distance
+        let m1e = Momentum::from_kg_m_s(2.0);
+        let l2 = m1e * &Distance::from_m(3.0);
+        assert_relative_eq!(l2.as_kg_m2_per_second(), 6.0);
+        let m1f = Momentum::from_kg_m_s(2.0);
+        let l3 = &m1f * Distance::from_m(3.0);
+        assert_relative_eq!(l3.as_kg_m2_per_second(), 6.0);
     }
 }

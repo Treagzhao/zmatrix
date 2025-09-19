@@ -64,6 +64,20 @@ impl Add for Volume {
     }
 }
 
+// 引用-引用 与 混合引用：Volume 加法
+impl<'a, 'b> Add<&'b Volume> for &'a Volume {
+    type Output = Volume;
+    fn add(self, rhs: &'b Volume) -> Self::Output { Volume::from_m3(self.as_m3() + rhs.as_m3()) }
+}
+impl<'a> Add<&'a Volume> for Volume {
+    type Output = Volume;
+    fn add(self, rhs: &'a Volume) -> Self::Output { Volume::from_m3(self.as_m3() + rhs.as_m3()) }
+}
+impl<'a> Add<Volume> for &'a Volume {
+    type Output = Volume;
+    fn add(self, rhs: Volume) -> Self::Output { Volume::from_m3(self.as_m3() + rhs.as_m3()) }
+}
+
 impl Add<f64> for Volume {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -81,6 +95,20 @@ impl Sub for Volume {
         let v = self.as_m3() - rhs.as_m3();
         Self::from_m3(v)
     }
+}
+
+// 引用-引用 与 混合引用：Volume 减法
+impl<'a, 'b> Sub<&'b Volume> for &'a Volume {
+    type Output = Volume;
+    fn sub(self, rhs: &'b Volume) -> Self::Output { Volume::from_m3(self.as_m3() - rhs.as_m3()) }
+}
+impl<'a> Sub<&'a Volume> for Volume {
+    type Output = Volume;
+    fn sub(self, rhs: &'a Volume) -> Self::Output { Volume::from_m3(self.as_m3() - rhs.as_m3()) }
+}
+impl<'a> Sub<Volume> for &'a Volume {
+    type Output = Volume;
+    fn sub(self, rhs: Volume) -> Self::Output { Volume::from_m3(self.as_m3() - rhs.as_m3()) }
 }
 
 impl Sub<f64> for Volume {
@@ -110,6 +138,20 @@ impl Div for Volume {
         let v = self.as_m3() / rhs.as_m3();
         Coef::new(v)
     }
+}
+
+// 引用版本：Volume / Volume -> Coef
+impl<'a, 'b> Div<&'b Volume> for &'a Volume {
+    type Output = Coef;
+    fn div(self, rhs: &'b Volume) -> Self::Output { Coef::new(self.as_m3() / rhs.as_m3()) }
+}
+impl<'a> Div<&'a Volume> for Volume {
+    type Output = Coef;
+    fn div(self, rhs: &'a Volume) -> Self::Output { Coef::new(self.as_m3() / rhs.as_m3()) }
+}
+impl<'a> Div<Volume> for &'a Volume {
+    type Output = Coef;
+    fn div(self, rhs: Volume) -> Self::Output { Coef::new(self.as_m3() / rhs.as_m3()) }
 }
 
 
@@ -154,6 +196,20 @@ impl Div<Distance> for Volume {
         let v = self.as_m3() / rhs.as_m();
         Area::from_m2(v)
     }
+}
+
+// 引用版本：Volume / Distance -> Area
+impl<'a, 'b> Div<&'b Distance> for &'a Volume {
+    type Output = Area;
+    fn div(self, rhs: &'b Distance) -> Self::Output { Area::from_m2(self.as_m3() / rhs.as_m()) }
+}
+impl<'a> Div<&'a Distance> for Volume {
+    type Output = Area;
+    fn div(self, rhs: &'a Distance) -> Self::Output { Area::from_m2(self.as_m3() / rhs.as_m()) }
+}
+impl<'a> Div<Distance> for &'a Volume {
+    type Output = Area;
+    fn div(self, rhs: Distance) -> Self::Output { Area::from_m2(self.as_m3() / rhs.as_m()) }
 }
 
 impl Mul<Coef> for Volume {
@@ -313,5 +369,27 @@ mod tests {
         let v = Volume::from_km3(1.0);
         let result = 2.0 / v;
         assert_relative_eq!(result.as_km3(), 2.0);
+    }
+
+    #[test]
+    fn test_volume_ref_ops() {
+        let v = Volume::from_m3(8.0);
+        let w = Volume::from_km3(1.0); // 1e9 m3
+        let s = &v + &w;
+        assert_relative_eq!(s.as_m3(), 1_000_000_008.0);
+
+        let d = &w - &v;
+        assert_relative_eq!(d.as_m3(), 999_999_992.0);
+
+        let a = &w / &Distance::from_m(1000.0);
+        assert_relative_eq!(a.as_m2(), 1_000_000.0);
+
+        // 混合引用覆盖：Volume +/- &Volume, &Volume +/- Volume, &Volume / Distance, Volume / &Distance
+        let _ = v + &w;
+        let _ = &v + w;
+        let _ = v - &w;
+        let _ = &v - w;
+        let _ = &w / Distance::from_m(1000.0);
+        let _ = w / &Distance::from_m(1000.0);
     }
 }

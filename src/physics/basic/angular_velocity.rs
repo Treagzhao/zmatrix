@@ -113,6 +113,20 @@ impl Add for AngularVelocity {
     }
 }
 
+// 引用-引用 与 混合引用：AngularVelocity 加法
+impl<'a, 'b> Add<&'b AngularVelocity> for &'a AngularVelocity {
+    type Output = AngularVelocity;
+    fn add(self, rhs: &'b AngularVelocity) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second() + rhs.as_rad_per_second()) }
+}
+impl<'a> Add<&'a AngularVelocity> for AngularVelocity {
+    type Output = AngularVelocity;
+    fn add(self, rhs: &'a AngularVelocity) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second() + rhs.as_rad_per_second()) }
+}
+impl<'a> Add<AngularVelocity> for &'a AngularVelocity {
+    type Output = AngularVelocity;
+    fn add(self, rhs: AngularVelocity) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second() + rhs.as_rad_per_second()) }
+}
+
 impl Add<f64> for AngularVelocity {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -132,6 +146,20 @@ impl Sub for AngularVelocity {
     }
 }
 
+// 引用-引用 与 混合引用：AngularVelocity 减法
+impl<'a, 'b> Sub<&'b AngularVelocity> for &'a AngularVelocity {
+    type Output = AngularVelocity;
+    fn sub(self, rhs: &'b AngularVelocity) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second() - rhs.as_rad_per_second()) }
+}
+impl<'a> Sub<&'a AngularVelocity> for AngularVelocity {
+    type Output = AngularVelocity;
+    fn sub(self, rhs: &'a AngularVelocity) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second() - rhs.as_rad_per_second()) }
+}
+impl<'a> Sub<AngularVelocity> for &'a AngularVelocity {
+    type Output = AngularVelocity;
+    fn sub(self, rhs: AngularVelocity) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second() - rhs.as_rad_per_second()) }
+}
+
 impl Sub<f64> for AngularVelocity {
     type Output = Self;
     fn sub(self, rhs: f64) -> Self::Output {
@@ -149,6 +177,20 @@ impl Mul<Distance> for AngularVelocity {
         let v = self.as_rad_per_second() * rhs.as_m();
         Velocity::from_m_per_sec(v)
     }
+}
+
+// 引用版本：AngularVelocity * Distance -> Velocity
+impl<'a, 'b> Mul<&'b Distance> for &'a AngularVelocity {
+    type Output = Velocity;
+    fn mul(self, rhs: &'b Distance) -> Self::Output { Velocity::from_m_per_sec(self.as_rad_per_second() * rhs.as_m()) }
+}
+impl<'a> Mul<&'a Distance> for AngularVelocity {
+    type Output = Velocity;
+    fn mul(self, rhs: &'a Distance) -> Self::Output { Velocity::from_m_per_sec(self.as_rad_per_second() * rhs.as_m()) }
+}
+impl<'a> Mul<Distance> for &'a AngularVelocity {
+    type Output = Velocity;
+    fn mul(self, rhs: Distance) -> Self::Output { Velocity::from_m_per_sec(self.as_rad_per_second() * rhs.as_m()) }
 }
 
 impl Mul<f64> for AngularVelocity {
@@ -229,6 +271,20 @@ impl Div for AngularVelocity {
     }
 }
 
+// 引用版本：AngularVelocity / AngularVelocity -> Coef
+impl<'a, 'b> Div<&'b AngularVelocity> for &'a AngularVelocity {
+    type Output = Coef;
+    fn div(self, rhs: &'b AngularVelocity) -> Self::Output { Coef::new(self.as_rad_per_second() / rhs.as_rad_per_second()) }
+}
+impl<'a> Div<&'a AngularVelocity> for AngularVelocity {
+    type Output = Coef;
+    fn div(self, rhs: &'a AngularVelocity) -> Self::Output { Coef::new(self.as_rad_per_second() / rhs.as_rad_per_second()) }
+}
+impl<'a> Div<AngularVelocity> for &'a AngularVelocity {
+    type Output = Coef;
+    fn div(self, rhs: AngularVelocity) -> Self::Output { Coef::new(self.as_rad_per_second() / rhs.as_rad_per_second()) }
+}
+
 // 角速度 ÷ 角加速度 = 时间
 impl Div<AngularAcceleration> for AngularVelocity {
     type Output = std::time::Duration;
@@ -236,6 +292,20 @@ impl Div<AngularAcceleration> for AngularVelocity {
         let time_value = self.as_rad_per_second() / rhs.as_rad_per_second2();
         std::time::Duration::from_secs_f64(time_value)
     }
+}
+
+// 引用版本：AngularVelocity / AngularAcceleration -> Duration
+impl<'a, 'b> Div<&'b AngularAcceleration> for &'a AngularVelocity {
+    type Output = std::time::Duration;
+    fn div(self, rhs: &'b AngularAcceleration) -> Self::Output { std::time::Duration::from_secs_f64(self.as_rad_per_second() / rhs.as_rad_per_second2()) }
+}
+impl<'a> Div<&'a AngularAcceleration> for AngularVelocity {
+    type Output = std::time::Duration;
+    fn div(self, rhs: &'a AngularAcceleration) -> Self::Output { std::time::Duration::from_secs_f64(self.as_rad_per_second() / rhs.as_rad_per_second2()) }
+}
+impl<'a> Div<AngularAcceleration> for &'a AngularVelocity {
+    type Output = std::time::Duration;
+    fn div(self, rhs: AngularAcceleration) -> Self::Output { std::time::Duration::from_secs_f64(self.as_rad_per_second() / rhs.as_rad_per_second2()) }
 }
 
 impl Neg for AngularVelocity {
@@ -543,5 +613,54 @@ mod tests {
         let result1 = angular_velocity * magnetic_induction;
         let result2 = magnetic_induction * angular_velocity;
         assert_relative_eq!(result1.as_tesla_rad_per_second(), result2.as_tesla_rad_per_second());
+    }
+
+    #[test]
+    fn test_angular_velocity_ref_ops() {
+        let w1 = AngularVelocity::from_rad_per_second(std::f64::consts::PI);
+        let w2 = AngularVelocity::from_deg_per_second(180.0); // PI rad/s
+        let s = &w1 + &w2;
+        assert_relative_eq!(s.as_rad_per_second(), 2.0 * std::f64::consts::PI);
+
+        let d = &w1 - &w2;
+        assert_relative_eq!(d.as_rad_per_second(), 0.0);
+
+        let v = &w1 * &Distance::from_m(2.0);
+        assert_relative_eq!(v.as_m_per_sec(), 2.0 * std::f64::consts::PI);
+
+        let coef = &w1 / &w2;
+        assert_relative_eq!(coef.get_value(), 1.0);
+
+        let t = &w1 / &AngularAcceleration::from_rad_per_second2(std::f64::consts::PI);
+        assert_relative_eq!(t.as_secs_f64(), 1.0);
+
+        // 混合引用：加/减
+        let s2 = w1 + &w2;
+        assert_relative_eq!(s2.as_rad_per_second(), 2.0 * std::f64::consts::PI);
+        let s3 = &w1 + w2;
+        assert_relative_eq!(s3.as_rad_per_second(), 2.0 * std::f64::consts::PI);
+        let w2b = AngularVelocity::from_deg_per_second(180.0);
+        let d2 = w1 - &w2b;
+        assert_relative_eq!(d2.as_rad_per_second(), 0.0);
+        let d3 = &w1 - w2b;
+        assert_relative_eq!(d3.as_rad_per_second(), 0.0);
+
+        // 混合引用：* Distance
+        let v2 = w1 * &Distance::from_m(2.0);
+        assert_relative_eq!(v2.as_m_per_sec(), 2.0 * std::f64::consts::PI);
+        let v3 = &w1 * Distance::from_m(2.0);
+        assert_relative_eq!(v3.as_m_per_sec(), 2.0 * std::f64::consts::PI);
+
+        // 混合引用：/ AngularVelocity -> Coef
+        let c2 = w1 / &w1;
+        assert_relative_eq!(c2.get_value(), 1.0);
+        let c3 = &w1 / w1;
+        assert_relative_eq!(c3.get_value(), 1.0);
+
+        // 混合引用：/ AngularAcceleration -> Duration
+        let ta = w1 / &AngularAcceleration::from_rad_per_second2(std::f64::consts::PI);
+        assert_relative_eq!(ta.as_secs_f64(), 1.0);
+        let tb = &w1 / AngularAcceleration::from_rad_per_second2(std::f64::consts::PI);
+        assert_relative_eq!(tb.as_secs_f64(), 1.0);
     }
 }

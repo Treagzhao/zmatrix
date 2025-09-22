@@ -598,4 +598,47 @@ mod tests {
         assert_relative_eq!(q2, 3.0);
         assert_relative_eq!(q3, 4.0);
     }
+
+    #[test]
+    fn test_div_neg_w_branch_value_impl() {
+        // 取单位四元数 u 与其相反数 -u，(-u) / u 会得到 w<0 的中间结果，需触发取反分支
+        let u = Quaternion::new(0.7071067811865476, 0.7071067811865476, 0.0, 0.0); // 约等于 cos/sin(pi/4)
+        let neg_u = Quaternion::new(-u.q0, -u.q1, -u.q2, -u.q3);
+        let d = neg_u / u; // 走值实现
+        assert_relative_eq!(d.q0, 1.0, epsilon = 1e-12);
+        assert_relative_eq!(d.q1, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(d.q2, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(d.q3, 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_div_neg_w_branch_ref_impl() {
+        // 同样用引用版本覆盖引用实现中的取反分支
+        let u = Quaternion::new(0.7071067811865476, 0.7071067811865476, 0.0, 0.0);
+        let neg_u = Quaternion::new(-u.q0, -u.q1, -u.q2, -u.q3);
+        let d = (&neg_u) / (&u); // 走引用实现
+        assert_relative_eq!(d.q0, 1.0, epsilon = 1e-12);
+        assert_relative_eq!(d.q1, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(d.q2, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(d.q3, 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_div_zero_norm_branch() {
+        // 分子与分母均为零四元数，按实现应走 "norm<=EPS" 分支并返回单位四元数 (1,0,0,0)
+        let a = Quaternion::new(0.0, 0.0, 0.0, 0.0);
+        let b = Quaternion::new(0.0, 0.0, 0.0, 0.0);
+        let d1 = a / b;
+        assert_relative_eq!(d1.q0, 1.0, epsilon = 1e-12);
+        assert_relative_eq!(d1.q1, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(d1.q2, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(d1.q3, 0.0, epsilon = 1e-12);
+
+        // 引用版本也应一致
+        let d2 = (&a) / (&b);
+        assert_relative_eq!(d2.q0, 1.0, epsilon = 1e-12);
+        assert_relative_eq!(d2.q1, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(d2.q2, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(d2.q3, 0.0, epsilon = 1e-12);
+    }
 }

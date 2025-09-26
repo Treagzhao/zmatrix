@@ -1,4 +1,4 @@
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use super::*;
 impl Area {
     pub fn from_m2(v: f64) -> Self {
@@ -160,6 +160,14 @@ impl Div<Coef> for Area {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_m2() / rhs.get_value();
+        Self::from_m2(v)
+    }
+}
+
+impl Neg for Area {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_m2();
         Self::from_m2(v)
     }
 }
@@ -399,6 +407,34 @@ mod tests {
         let a9 = Area::from_km2(1.0);
         let dist3 = &a9 / Distance::from_m(1000.0);
         assert_relative_eq!(dist3.as_m(), 1000.0);
+    }
+
+    #[test]
+    fn test_area_neg() {
+        // 测试正值的负号
+        let a1 = Area::from_m2(5.0);
+        let neg_a1 = -a1;
+        assert_relative_eq!(neg_a1.as_m2(), -5.0);
+
+        // 测试负值的负号
+        let a2 = Area::from_km2(-10.0);
+        let neg_a2 = -a2;
+        assert_relative_eq!(neg_a2.as_km2(), 10.0);
+
+        // 测试零值
+        let a3 = Area::from_m2(0.0);
+        let neg_a3 = -a3;
+        assert_relative_eq!(neg_a3.as_m2(), 0.0);
+
+        // 测试不同单位的负号操作
+        let a4 = Area::from_km2(1.0);
+        let neg_a4 = -a4;
+        assert_relative_eq!(neg_a4.as_m2(), -1_000_000.0);
+
+        // 测试大数值
+        let a5 = Area::from_m2(2.0);
+        let neg_a5 = -a5;
+        assert_relative_eq!(neg_a5.as_km2(), -0.000002);
     }
 
     #[test]

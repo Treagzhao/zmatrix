@@ -3,7 +3,7 @@ use crate::physics::basic::{
 };
 use approx::assert_relative_eq;
 use std::any::Any;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 impl Default for Energy {
     fn default() -> Self {
@@ -334,6 +334,14 @@ impl Div<Coef> for Energy {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_joule() / rhs.get_value();
+        Self::from_joule(v)
+    }
+}
+
+impl Neg for Energy {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_joule();
         Self::from_joule(v)
     }
 }
@@ -1008,5 +1016,33 @@ mod tests {
         assert_relative_eq!(f2.as_newton(), 5.0);
         let f3 = &e1 / Distance::from_m(2.0);
         assert_relative_eq!(f3.as_newton(), 5.0);
+    }
+
+    #[test]
+    fn test_energy_neg() {
+        // 测试正值的负号
+        let e1 = Energy::from_joule(5.0);
+        let neg_e1 = -e1;
+        assert_relative_eq!(neg_e1.as_joule(), -5.0);
+
+        // 测试负值的负号
+        let e2 = Energy::from_kilo_joule(-10.0);
+        let neg_e2 = -e2;
+        assert_relative_eq!(neg_e2.as_kilo_joule(), 10.0);
+
+        // 测试零值
+        let e3 = Energy::from_joule(0.0);
+        let neg_e3 = -e3;
+        assert_relative_eq!(neg_e3.as_joule(), 0.0);
+
+        // 测试不同单位的负号操作
+        let e4 = Energy::from_mega_joule(1.0);
+        let neg_e4 = -e4;
+        assert_relative_eq!(neg_e4.as_joule(), -1_000_000.0);
+
+        // 测试电子伏特
+        let e5 = Energy::from_electron_volt(100.0);
+        let neg_e5 = -e5;
+        assert_relative_eq!(neg_e5.as_electron_volt(), -100.0);
     }
 }

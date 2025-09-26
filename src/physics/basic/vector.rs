@@ -17,7 +17,7 @@ mod velocity;
 use super::*;
 use crate::dense::Matrix;
 use crate::utils::float;
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Mul, Sub, Neg};
 
 // 将值限制在 [-1, 1] 区间内，供角度计算使用
 pub(crate) fn clamp_to_unit_interval(v: f64) -> f64 {
@@ -380,6 +380,18 @@ where
             x: self / rhs.x,
             y: self / rhs.y,
             z: self / rhs.z,
+        }
+    }
+}
+
+impl<T: VectorQuantity + Neg<Output = T> + Default> Neg for Vector3<T> {
+    type Output = Vector3<T>;
+
+    fn neg(self) -> Self::Output {
+        Vector3 {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
         }
     }
 }
@@ -929,5 +941,63 @@ mod tests {
         );
         let result = vec.norm_square();
         assert_relative_eq!(result, 14.0);
+    }
+
+    #[test]
+    fn test_vector3_neg() {
+        // 测试正向量的负号
+        let vec = Vector3::new(
+            Distance::from_m(1.0),
+            Distance::from_m(2.0),
+            Distance::from_m(3.0),
+        );
+        let neg_vec = -vec;
+        assert_relative_eq!(neg_vec.x.as_m(), -1.0);
+        assert_relative_eq!(neg_vec.y.as_m(), -2.0);
+        assert_relative_eq!(neg_vec.z.as_m(), -3.0);
+
+        // 测试负向量的负号
+        let vec2 = Vector3::new(
+            Distance::from_km(-1.0),
+            Distance::from_km(-2.0),
+            Distance::from_km(-3.0),
+        );
+        let neg_vec2 = -vec2;
+        assert_relative_eq!(neg_vec2.x.as_km(), 1.0);
+        assert_relative_eq!(neg_vec2.y.as_km(), 2.0);
+        assert_relative_eq!(neg_vec2.z.as_km(), 3.0);
+
+        // 测试零向量的负号
+        let vec3 = Vector3::new(
+            Distance::from_m(0.0),
+            Distance::from_m(0.0),
+            Distance::from_m(0.0),
+        );
+        let neg_vec3 = -vec3;
+        assert_relative_eq!(neg_vec3.x.as_m(), 0.0);
+        assert_relative_eq!(neg_vec3.y.as_m(), 0.0);
+        assert_relative_eq!(neg_vec3.z.as_m(), 0.0);
+
+        // 测试不同单位的负号操作
+        let vec4 = Vector3::new(
+            Force::from_newton(5.0),
+            Force::from_kilo_newton(-3.0),
+            Force::from_mega_newton(2.0),
+        );
+        let neg_vec4 = -vec4;
+        assert_relative_eq!(neg_vec4.x.as_newton(), -5.0);
+        assert_relative_eq!(neg_vec4.y.as_kilo_newton(), 3.0);
+        assert_relative_eq!(neg_vec4.z.as_mega_newton(), -2.0);
+
+        // 测试大数值
+        let vec5 = Vector3::new(
+            Acceleration::from_m_per_s2(1000.0),
+            Acceleration::from_km_per_h2(-500.0),
+            Acceleration::from_g(2.0),
+        );
+        let neg_vec5 = -vec5;
+        assert_relative_eq!(neg_vec5.x.as_m_per_s2(), -1000.0);
+        assert_relative_eq!(neg_vec5.y.as_km_per_h_2(), 500.0);
+        assert_relative_eq!(neg_vec5.z.as_g(), -2.0);
     }
 }

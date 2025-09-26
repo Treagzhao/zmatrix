@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{Coef, Torque, TorqueType, PhysicalQuantity, Distance, Energy, AngularMomentum, AngularVelocity, Force, Power};
 use approx::assert_relative_eq;
 
@@ -272,6 +272,14 @@ impl Div<Coef> for Torque {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_nm() / rhs.get_value();
+        Self::from_nm(v)
+    }
+}
+
+impl Neg for Torque {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_nm();
         Self::from_nm(v)
     }
 }
@@ -882,5 +890,33 @@ mod tests {
         let small_torque = Torque::from_nano_nm(1.0);
         let result = small_torque * 1000.0;
         assert_relative_eq!(result.as_nm(), 1e-6);
+    }
+
+    #[test]
+    fn test_torque_neg() {
+        // 测试正值的负号
+        let t1 = Torque::from_nm(5.0);
+        let neg_t1 = -t1;
+        assert_relative_eq!(neg_t1.as_nm(), -5.0);
+
+        // 测试负值的负号
+        let t2 = Torque::from_knm(-10.0);
+        let neg_t2 = -t2;
+        assert_relative_eq!(neg_t2.as_knm(), 10.0);
+
+        // 测试零值
+        let t3 = Torque::from_nm(0.0);
+        let neg_t3 = -t3;
+        assert_relative_eq!(neg_t3.as_nm(), 0.0);
+
+        // 测试不同单位的负号操作
+        let t4 = Torque::from_mnm(1.0);
+        let neg_t4 = -t4;
+        assert_relative_eq!(neg_t4.as_nm(), -1_000_000.0);
+
+        // 测试大数值
+        let t5 = Torque::from_micro_nm(1000000.0);
+        let neg_t5 = -t5;
+        assert_relative_eq!(neg_t5.as_nm(), -1.0);
     }
 }

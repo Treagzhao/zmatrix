@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Sub, Neg};
 use crate::physics::basic::{Coef, MagneticAngularVelocity, MagneticAngularVelocityType, PhysicalQuantity};
 use approx::assert_relative_eq;
 
@@ -274,6 +274,14 @@ impl Div<Coef> for MagneticAngularVelocity {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_tesla_rad_per_second() / rhs.get_value();
+        Self::from_tesla_rad_per_second(v)
+    }
+}
+
+impl Neg for MagneticAngularVelocity {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_tesla_rad_per_second();
         Self::from_tesla_rad_per_second(v)
     }
 }
@@ -717,5 +725,33 @@ mod tests {
         let b3 = MagneticAngularVelocity::from_gauss_rad_per_second(10_000.0);
         let d3 = &a3 - b3;
         assert_relative_eq!(d3.as_tesla_rad_per_second(), 1.0);
+    }
+
+    #[test]
+    fn test_magnetic_angular_velocity_neg() {
+        // 测试正值的负号
+        let mav1 = MagneticAngularVelocity::from_tesla_rad_per_second(5.0);
+        let neg_mav1 = -mav1;
+        assert_relative_eq!(neg_mav1.as_tesla_rad_per_second(), -5.0);
+
+        // 测试负值的负号
+        let mav2 = MagneticAngularVelocity::from_gauss_rad_per_second(-10000.0);
+        let neg_mav2 = -mav2;
+        assert_relative_eq!(neg_mav2.as_gauss_rad_per_second(), 10000.0);
+
+        // 测试零值
+        let mav3 = MagneticAngularVelocity::from_tesla_rad_per_second(0.0);
+        let neg_mav3 = -mav3;
+        assert_relative_eq!(neg_mav3.as_tesla_rad_per_second(), 0.0);
+
+        // 测试不同单位的负号操作
+        let mav4 = MagneticAngularVelocity::from_mill_tesla_rad_per_second(1000.0);
+        let neg_mav4 = -mav4;
+        assert_relative_eq!(neg_mav4.as_tesla_rad_per_second(), -1.0);
+
+        // 测试大数值
+        let mav5 = MagneticAngularVelocity::from_kilo_gauss_rad_per_second(10.0);
+        let neg_mav5 = -mav5;
+        assert_relative_eq!(neg_mav5.as_tesla_rad_per_second(), -1.0);
     }
 }

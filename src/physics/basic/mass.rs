@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{Coef, Mass, MassType, Momentum, PhysicalQuantity, Velocity};
 use approx::assert_relative_eq;
 
@@ -171,6 +171,14 @@ impl Div<Coef> for Mass {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_kg() / rhs.get_value();
+        Self::from_kg(v)
+    }
+}
+
+impl Neg for Mass {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_kg();
         Self::from_kg(v)
     }
 }
@@ -387,5 +395,33 @@ mod tests {
         let m2d = Mass::from_g(1000.0);
         let d3 = &m1d - m2d;
         assert_relative_eq!(d3.as_kg(), 1.0);
+    }
+
+    #[test]
+    fn test_mass_neg() {
+        // 测试正值的负号
+        let m1 = Mass::from_kg(5.0);
+        let neg_m1 = -m1;
+        assert_relative_eq!(neg_m1.as_kg(), -5.0);
+
+        // 测试负值的负号
+        let m2 = Mass::from_g(-1000.0);
+        let neg_m2 = -m2;
+        assert_relative_eq!(neg_m2.as_g(), 1000.0);
+
+        // 测试零值
+        let m3 = Mass::from_kg(0.0);
+        let neg_m3 = -m3;
+        assert_relative_eq!(neg_m3.as_kg(), 0.0);
+
+        // 测试不同单位的负号操作
+        let m4 = Mass::from_g(1000.0);
+        let neg_m4 = -m4;
+        assert_relative_eq!(neg_m4.as_kg(), -1.0);
+
+        // 测试大数值
+        let m5 = Mass::from_kg(2.0);
+        let neg_m5 = -m5;
+        assert_relative_eq!(neg_m5.as_g(), -2000.0);
     }
 }

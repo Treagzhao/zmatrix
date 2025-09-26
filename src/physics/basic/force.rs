@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{Coef, Force, ForceType, PhysicalQuantity, Distance, Energy, Mass, Acceleration};
 use approx::assert_relative_eq;
 
@@ -247,6 +247,14 @@ impl Div<Coef> for Force {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_newton() / rhs.get_value();
+        Self::from_newton(v)
+    }
+}
+
+impl Neg for Force {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_newton();
         Self::from_newton(v)
     }
 }
@@ -685,5 +693,33 @@ mod tests {
         assert_relative_eq!(f_zero.as_nano_newton(), 0.0);
         assert_relative_eq!(f_zero.as_kilo_newton(), 0.0);
         assert_relative_eq!(f_zero.as_mega_newton(), 0.0);
+    }
+
+    #[test]
+    fn test_force_neg() {
+        // 测试正值的负号
+        let f1 = Force::from_newton(5.0);
+        let neg_f1 = -f1;
+        assert_relative_eq!(neg_f1.as_newton(), -5.0);
+
+        // 测试负值的负号
+        let f2 = Force::from_kilo_newton(-10.0);
+        let neg_f2 = -f2;
+        assert_relative_eq!(neg_f2.as_kilo_newton(), 10.0);
+
+        // 测试零值
+        let f3 = Force::from_newton(0.0);
+        let neg_f3 = -f3;
+        assert_relative_eq!(neg_f3.as_newton(), 0.0);
+
+        // 测试不同单位的负号操作
+        let f4 = Force::from_mega_newton(1.0);
+        let neg_f4 = -f4;
+        assert_relative_eq!(neg_f4.as_newton(), -1_000_000.0);
+
+        // 测试大数值
+        let f5 = Force::from_micro_newton(1000000.0);
+        let neg_f5 = -f5;
+        assert_relative_eq!(neg_f5.as_newton(), -1.0);
     }
 }

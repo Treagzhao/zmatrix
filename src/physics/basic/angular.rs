@@ -1,6 +1,6 @@
 use super::*;
 use std::f64::consts::{PI, TAU};
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::time::Duration;
 
 impl Angular {
@@ -235,6 +235,14 @@ impl Div<Coef> for Angular {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_rad() / rhs.get_value();
+        Self::from_rad(v)
+    }
+}
+
+impl Neg for Angular {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_rad();
         Self::from_rad(v)
     }
 }
@@ -521,5 +529,33 @@ mod tests {
         assert_relative_eq!(w2.as_rad_per_second(), (std::f64::consts::PI / 12.0));
         let w3 = &a1 / dur;
         assert_relative_eq!(w3.as_rad_per_second(), (std::f64::consts::PI / 12.0));
+    }
+
+    #[test]
+    fn test_angular_neg() {
+        // 测试正值的负号
+        let a1 = Angular::from_rad(PI);
+        let neg_a1 = -a1;
+        assert_relative_eq!(neg_a1.as_rad(), -PI);
+
+        // 测试负值的负号
+        let a2 = Angular::from_deg(-90.0);
+        let neg_a2 = -a2;
+        assert_relative_eq!(neg_a2.as_deg(), 90.0);
+
+        // 测试零值
+        let a3 = Angular::from_rad(0.0);
+        let neg_a3 = -a3;
+        assert_relative_eq!(neg_a3.as_rad(), 0.0);
+
+        // 测试不同单位的负号操作
+        let a4 = Angular::from_deg(180.0);
+        let neg_a4 = -a4;
+        assert_relative_eq!(neg_a4.as_rad(), -PI);
+
+        // 测试大数值
+        let a5 = Angular::from_rad(2.0 * PI);
+        let neg_a5 = -a5;
+        assert_relative_eq!(neg_a5.as_deg(), -360.0);
     }
 }

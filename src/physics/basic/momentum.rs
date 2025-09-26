@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{AngularMomentum, AngularMomentumType, Coef, Distance, Mass, MassType, Momentum, MomentumType, PhysicalQuantity};
 
 impl Default for Momentum {
@@ -170,6 +170,14 @@ impl Div<Coef> for Momentum {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_kg_m_s() / rhs.get_value();
+        Self::from_kg_m_s(v)
+    }
+}
+
+impl Neg for Momentum {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_kg_m_s();
         Self::from_kg_m_s(v)
     }
 }
@@ -384,5 +392,33 @@ mod tests {
         let m1f = Momentum::from_kg_m_s(2.0);
         let l3 = &m1f * Distance::from_m(3.0);
         assert_relative_eq!(l3.as_kg_m2_per_second(), 6.0);
+    }
+
+    #[test]
+    fn test_momentum_neg() {
+        // 测试正值的负号
+        let m1 = Momentum::from_kg_m_s(5.0);
+        let neg_m1 = -m1;
+        assert_relative_eq!(neg_m1.as_kg_m_s(), -5.0);
+
+        // 测试负值的负号
+        let m2 = Momentum::from_kg_km_s(-1.0);
+        let neg_m2 = -m2;
+        assert_relative_eq!(neg_m2.as_kg_km_s(), 1.0);
+
+        // 测试零值
+        let m3 = Momentum::from_kg_m_s(0.0);
+        let neg_m3 = -m3;
+        assert_relative_eq!(neg_m3.as_kg_m_s(), 0.0);
+
+        // 测试不同单位的负号操作
+        let m4 = Momentum::from_kg_km_s(1.0);
+        let neg_m4 = -m4;
+        assert_relative_eq!(neg_m4.as_kg_m_s(), -1000.0);
+
+        // 测试大数值
+        let m5 = Momentum::from_kg_m_s(2.0);
+        let neg_m5 = -m5;
+        assert_relative_eq!(neg_m5.as_kg_km_s(), -0.002);
     }
 }

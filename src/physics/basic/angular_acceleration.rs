@@ -1,5 +1,5 @@
 use std::f64::consts::PI;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::time::Duration;
 use super::*;
 
@@ -221,6 +221,14 @@ impl Div<Coef> for AngularAcceleration {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_rad_per_second2() / rhs.get_value();
+        Self::from_rad_per_second2(v)
+    }
+}
+
+impl Neg for AngularAcceleration {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_rad_per_second2();
         Self::from_rad_per_second2(v)
     }
 }
@@ -447,5 +455,33 @@ mod tests {
         assert_relative_eq!(acc2.as_m_per_s2(), 2.0 * std::f64::consts::PI);
         let acc3 = &a1 * Distance::from_m(2.0);
         assert_relative_eq!(acc3.as_m_per_s2(), 2.0 * std::f64::consts::PI);
+    }
+
+    #[test]
+    fn test_angular_acceleration_neg() {
+        // 测试正值的负号
+        let a1 = AngularAcceleration::from_rad_per_second2(PI);
+        let neg_a1 = -a1;
+        assert_relative_eq!(neg_a1.as_rad_per_second2(), -PI);
+
+        // 测试负值的负号
+        let a2 = AngularAcceleration::from_deg_per_second2(-90.0);
+        let neg_a2 = -a2;
+        assert_relative_eq!(neg_a2.as_deg_per_second2(), 90.0);
+
+        // 测试零值
+        let a3 = AngularAcceleration::from_rad_per_second2(0.0);
+        let neg_a3 = -a3;
+        assert_relative_eq!(neg_a3.as_rad_per_second2(), 0.0);
+
+        // 测试不同单位的负号操作
+        let a4 = AngularAcceleration::from_deg_per_second2(180.0);
+        let neg_a4 = -a4;
+        assert_relative_eq!(neg_a4.as_rad_per_second2(), -PI);
+
+        // 测试大数值
+        let a5 = AngularAcceleration::from_rad_per_second2(2.0 * PI);
+        let neg_a5 = -a5;
+        assert_relative_eq!(neg_a5.as_deg_per_second2(), -360.0);
     }
 }

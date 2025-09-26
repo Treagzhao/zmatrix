@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Sub, Mul, Div, Neg};
 use lazy_static::lazy_static;
 use crate::physics::basic::{MagneticInduction, MagneticInductionType, PhysicalQuantity, AngularVelocity, MagneticAngularVelocity};
 lazy_static! {
@@ -289,6 +289,14 @@ impl Div<MagneticInduction> for f64 {
     fn div(self, rhs: MagneticInduction) -> Self::Output {
         let v = self / rhs.as_tesla();
         MagneticInduction::from_tesla(v)
+    }
+}
+
+impl Neg for MagneticInduction {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_tesla();
+        Self::from_tesla(v)
     }
 }
 
@@ -987,5 +995,33 @@ mod tests {
         let b1f = MagneticInduction::from_tesla(2.0);
         let mav3 = &b1f * AngularVelocity::from_rad_per_second(3.0);
         assert_relative_eq!(mav3.as_tesla_rad_per_second(), 6.0);
+    }
+
+    #[test]
+    fn test_magnetic_induction_neg() {
+        // 测试正值的负号
+        let b1 = MagneticInduction::from_tesla(5.0);
+        let neg_b1 = -b1;
+        assert_relative_eq!(neg_b1.as_tesla(), -5.0);
+
+        // 测试负值的负号
+        let b2 = MagneticInduction::from_gauss(-10000.0);
+        let neg_b2 = -b2;
+        assert_relative_eq!(neg_b2.as_gauss(), 10000.0);
+
+        // 测试零值
+        let b3 = MagneticInduction::from_tesla(0.0);
+        let neg_b3 = -b3;
+        assert_relative_eq!(neg_b3.as_tesla(), 0.0);
+
+        // 测试不同单位的负号操作
+        let b4 = MagneticInduction::from_mill_tesla(1000.0);
+        let neg_b4 = -b4;
+        assert_relative_eq!(neg_b4.as_tesla(), -1.0);
+
+        // 测试大数值
+        let b5 = MagneticInduction::from_kilo_gauss(10.0);
+        let neg_b5 = -b5;
+        assert_relative_eq!(neg_b5.as_tesla(), -1.0);
     }
 }

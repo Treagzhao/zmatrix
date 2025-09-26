@@ -1,4 +1,4 @@
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::time::Duration;
 use super::*;
 
@@ -201,6 +201,14 @@ impl Div<Coef> for Distance {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_m() / rhs.get_value();
+        Self::from_m(v)
+    }
+}
+
+impl Neg for Distance {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_m();
         Self::from_m(v)
     }
 }
@@ -488,5 +496,33 @@ mod tests {
         assert_relative_eq!(c2.get_value(), 500.0);
         let c3 = &d2b / Distance::from_m(2.0);
         assert_relative_eq!(c3.get_value(), 500.0);
+    }
+
+    #[test]
+    fn test_distance_neg() {
+        // 测试正值的负号
+        let d1 = Distance::from_m(5.0);
+        let neg_d1 = -d1;
+        assert_relative_eq!(neg_d1.as_m(), -5.0);
+
+        // 测试负值的负号
+        let d2 = Distance::from_km(-10.0);
+        let neg_d2 = -d2;
+        assert_relative_eq!(neg_d2.as_km(), 10.0);
+
+        // 测试零值
+        let d3 = Distance::from_m(0.0);
+        let neg_d3 = -d3;
+        assert_relative_eq!(neg_d3.as_m(), 0.0);
+
+        // 测试不同单位的负号操作
+        let d4 = Distance::from_km(1.0);
+        let neg_d4 = -d4;
+        assert_relative_eq!(neg_d4.as_m(), -1000.0);
+
+        // 测试大数值
+        let d5 = Distance::from_light_year(1.0);
+        let neg_d5 = -d5;
+        assert_relative_eq!(neg_d5.as_light_year(), -1.0);
     }
 }

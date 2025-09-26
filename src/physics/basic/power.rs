@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{Coef, Power, PowerType, PhysicalQuantity, Energy, Velocity, Force};
 use approx::assert_relative_eq;
 
@@ -272,6 +272,14 @@ impl Div<Coef> for Power {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_watt() / rhs.get_value();
+        Self::from_watt(v)
+    }
+}
+
+impl Neg for Power {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_watt();
         Self::from_watt(v)
     }
 }
@@ -988,5 +996,33 @@ mod tests {
         let p1f = Power::from_watt(10.0);
         let f3 = &p1f / Velocity::from_m_per_sec(2.0);
         assert_relative_eq!(f3.as_newton(), 5.0);
+    }
+
+    #[test]
+    fn test_power_neg() {
+        // 测试正值的负号
+        let p1 = Power::from_watt(5.0);
+        let neg_p1 = -p1;
+        assert_relative_eq!(neg_p1.as_watt(), -5.0);
+
+        // 测试负值的负号
+        let p2 = Power::from_kilo_watt(-10.0);
+        let neg_p2 = -p2;
+        assert_relative_eq!(neg_p2.as_kilo_watt(), 10.0);
+
+        // 测试零值
+        let p3 = Power::from_watt(0.0);
+        let neg_p3 = -p3;
+        assert_relative_eq!(neg_p3.as_watt(), 0.0);
+
+        // 测试不同单位的负号操作
+        let p4 = Power::from_mega_watt(1.0);
+        let neg_p4 = -p4;
+        assert_relative_eq!(neg_p4.as_watt(), -1_000_000.0);
+
+        // 测试马力
+        let p5 = Power::from_horse_power(1.0);
+        let neg_p5 = -p5;
+        assert_relative_eq!(neg_p5.as_watt(), -745.7);
     }
 }

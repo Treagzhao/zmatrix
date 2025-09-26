@@ -1,4 +1,4 @@
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::time::Duration;
 use super::*;
 const G: f64 = 9.80665;
@@ -207,6 +207,14 @@ impl Div<Coef> for Acceleration {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_m_per_s2() / rhs.get_value();
+        Self::from_m_per_s2(v)
+    }
+}
+
+impl Neg for Acceleration {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_m_per_s2();
         Self::from_m_per_s2(v)
     }
 }
@@ -432,5 +440,33 @@ mod tests {
         assert_relative_eq!(v2.as_m_per_sec(), 4.0);
         let v3 = &a1 * dur;
         assert_relative_eq!(v3.as_m_per_sec(), 4.0);
+    }
+
+    #[test]
+    fn test_acceleration_neg() {
+        // 测试正值的负号
+        let a1 = Acceleration::from_m_per_s2(5.0);
+        let neg_a1 = -a1;
+        assert_relative_eq!(neg_a1.as_m_per_s2(), -5.0);
+
+        // 测试负值的负号
+        let a2 = Acceleration::from_km_per_h2(-10.0);
+        let neg_a2 = -a2;
+        assert_relative_eq!(neg_a2.as_km_per_h_2(), 10.0);
+
+        // 测试零值
+        let a3 = Acceleration::from_g(0.0);
+        let neg_a3 = -a3;
+        assert_relative_eq!(neg_a3.as_g(), 0.0);
+
+        // 测试不同单位的负号操作
+        let a4 = Acceleration::from_m_per_s2(9.80665); // 1g
+        let neg_a4 = -a4;
+        assert_relative_eq!(neg_a4.as_g(), -1.0);
+
+        // 测试大数值
+        let a5 = Acceleration::from_km_per_h2(12960.0); // 1 m/s2
+        let neg_a5 = -a5;
+        assert_relative_eq!(neg_a5.as_m_per_s2(), -1.0);
     }
 }

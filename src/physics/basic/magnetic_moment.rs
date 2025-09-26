@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Sub, Neg};
 use crate::physics::basic::{Coef, MagneticMoment, MagneticMomentType, PhysicalQuantity, MagneticInduction, Energy};
 use approx::assert_relative_eq;
 
@@ -301,6 +301,14 @@ impl Div<Coef> for MagneticMoment {
     type Output = Self;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_am2() / rhs.get_value();
+        Self::from_am2(v)
+    }
+}
+
+impl Neg for MagneticMoment {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_am2();
         Self::from_am2(v)
     }
 }
@@ -840,5 +848,33 @@ mod tests {
         assert_relative_eq!(mm_zero.as_mill_j_per_tesla(), 0.0);
         assert_relative_eq!(mm_zero.as_micro_j_per_tesla(), 0.0);
         assert_relative_eq!(mm_zero.as_nano_j_per_tesla(), 0.0);
+    }
+
+    #[test]
+    fn test_magnetic_moment_neg() {
+        // 测试正值的负号
+        let mm1 = MagneticMoment::from_am2(5.0);
+        let neg_mm1 = -mm1;
+        assert_relative_eq!(neg_mm1.as_am2(), -5.0);
+
+        // 测试负值的负号
+        let mm2 = MagneticMoment::from_j_per_tesla(-3.0);
+        let neg_mm2 = -mm2;
+        assert_relative_eq!(neg_mm2.as_j_per_tesla(), 3.0);
+
+        // 测试零值
+        let mm3 = MagneticMoment::from_am2(0.0);
+        let neg_mm3 = -mm3;
+        assert_relative_eq!(neg_mm3.as_am2(), 0.0);
+
+        // 测试不同单位的负号操作
+        let mm4 = MagneticMoment::from_mill_am2(1000.0);
+        let neg_mm4 = -mm4;
+        assert_relative_eq!(neg_mm4.as_am2(), -1.0);
+
+        // 测试大数值
+        let mm5 = MagneticMoment::from_micro_am2(1000000.0);
+        let neg_mm5 = -mm5;
+        assert_relative_eq!(neg_mm5.as_am2(), -1.0);
     }
 }

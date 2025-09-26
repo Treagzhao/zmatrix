@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{Area, Coef, Distance, DistanceType, PhysicalQuantity, Volume, VolumeType};
 
 impl Default for Volume {
@@ -185,6 +185,14 @@ impl Div<Coef> for Volume {
     type Output = Volume;
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_m3() / rhs.get_value();
+        Self::from_m3(v)
+    }
+}
+
+impl Neg for Volume {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let v = -self.as_m3();
         Self::from_m3(v)
     }
 }
@@ -438,5 +446,33 @@ mod tests {
         
         let c6 = &v5 / v6;
         assert_relative_eq!(c6.get_value(), 1000.0);
+    }
+
+    #[test]
+    fn test_volume_neg() {
+        // 测试正值的负号
+        let v1 = Volume::from_m3(5.0);
+        let neg_v1 = -v1;
+        assert_relative_eq!(neg_v1.as_m3(), -5.0);
+
+        // 测试负值的负号
+        let v2 = Volume::from_km3(-10.0);
+        let neg_v2 = -v2;
+        assert_relative_eq!(neg_v2.as_km3(), 10.0);
+
+        // 测试零值
+        let v3 = Volume::from_m3(0.0);
+        let neg_v3 = -v3;
+        assert_relative_eq!(neg_v3.as_m3(), 0.0);
+
+        // 测试不同单位的负号操作
+        let v4 = Volume::from_km3(1.0);
+        let neg_v4 = -v4;
+        assert_relative_eq!(neg_v4.as_m3(), -1_000_000_000.0);
+
+        // 测试大数值
+        let v5 = Volume::from_m3(2.0);
+        let neg_v5 = -v5;
+        assert_relative_eq!(neg_v5.as_km3(), -0.000000002);
     }
 }

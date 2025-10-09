@@ -1,7 +1,47 @@
 use super::*;
 use crate::constant::FLT64_ZERO;
-use crate::spatial_geometry::quaternion::Quaternion;
+use crate::dense::error::OperationError;
 use crate::physics::basic::AngularType;
+use crate::spatial_geometry::quaternion::Quaternion;
+#[derive(Default)]
+pub struct RotationSeq {
+    tag: u8,
+    count: u8,
+}
+
+const TAG_X: u8 = 0x1;
+const TAG_Y: u8 = 0x2;
+const TAG_Z: u8 = 0x3;
+
+impl RotationSeq {
+    pub fn x(&mut self) -> Result<u8, OperationError> {
+        self.set_tag(TAG_X)
+    }
+
+    pub fn y(&mut self) -> Result<u8, OperationError> {
+        self.set_tag(TAG_Y)
+    }
+
+    pub fn z(&mut self) -> Result<u8, OperationError> {
+        self.set_tag(TAG_Z)
+    }
+
+    fn set_tag(&mut self,v:u8) -> Result<u8,OperationError>{
+        if self.count >= 3 {
+            return Err(OperationError::new("RotationSeq:: count exceeds 3"));
+        }
+        self.tag = (self.tag << 2) | v;
+        self.count += 1;
+        Ok(self.count)
+    }
+
+    pub fn value(&self) -> Result<u8, OperationError> {
+        if self.count != 3 {
+            return Err(OperationError::new("RotationSeq:: value requires 3 axes"));
+        }
+        Ok(self.tag)
+    }
+}
 
 impl Vector3<Angular> {
     pub fn to_f32_array(&self) -> [f32; 3] {
@@ -103,6 +143,73 @@ mod tests {
     use super::*;
     use approx::assert_relative_eq;
     use std::f64::consts::PI;
+    
+    fn build_and_value(seq: &[u8; 3]) -> u8 {
+        let mut r = RotationSeq::default();
+        for &axis in seq {
+            match axis {
+                TAG_X => { r.x().unwrap(); }
+                TAG_Y => { r.y().unwrap(); }
+                TAG_Z => { r.z().unwrap(); }
+                _ => unreachable!()
+            }
+        }
+        r.value().unwrap()
+    }
+
+    #[test]
+    fn test_rotationseq_tait_bryan_sequences() {
+        // XYZ
+        assert_eq!(build_and_value(&[TAG_X, TAG_Y, TAG_Z]), (TAG_X << 4) | (TAG_Y << 2) | TAG_Z);
+        // XZY
+        assert_eq!(build_and_value(&[TAG_X, TAG_Z, TAG_Y]), (TAG_X << 4) | (TAG_Z << 2) | TAG_Y);
+        // YXZ
+        assert_eq!(build_and_value(&[TAG_Y, TAG_X, TAG_Z]), (TAG_Y << 4) | (TAG_X << 2) | TAG_Z);
+        // YZX
+        assert_eq!(build_and_value(&[TAG_Y, TAG_Z, TAG_X]), (TAG_Y << 4) | (TAG_Z << 2) | TAG_X);
+        // ZXY
+        assert_eq!(build_and_value(&[TAG_Z, TAG_X, TAG_Y]), (TAG_Z << 4) | (TAG_X << 2) | TAG_Y);
+        // ZYX
+        assert_eq!(build_and_value(&[TAG_Z, TAG_Y, TAG_X]), (TAG_Z << 4) | (TAG_Y << 2) | TAG_X);
+    }
+
+    #[test]
+    fn test_rotationseq_proper_euler_sequences() {
+        // ZXZ
+        assert_eq!(build_and_value(&[TAG_Z, TAG_X, TAG_Z]), (TAG_Z << 4) | (TAG_X << 2) | TAG_Z);
+        // ZYZ
+        assert_eq!(build_and_value(&[TAG_Z, TAG_Y, TAG_Z]), (TAG_Z << 4) | (TAG_Y << 2) | TAG_Z);
+        // XYX
+        assert_eq!(build_and_value(&[TAG_X, TAG_Y, TAG_X]), (TAG_X << 4) | (TAG_Y << 2) | TAG_X);
+        // XZX
+        assert_eq!(build_and_value(&[TAG_X, TAG_Z, TAG_X]), (TAG_X << 4) | (TAG_Z << 2) | TAG_X);
+        // YXY
+        assert_eq!(build_and_value(&[TAG_Y, TAG_X, TAG_Y]), (TAG_Y << 4) | (TAG_X << 2) | TAG_Y);
+        // YZY
+        assert_eq!(build_and_value(&[TAG_Y, TAG_Z, TAG_Y]), (TAG_Y << 4) | (TAG_Z << 2) | TAG_Y);
+    }
+
+    #[test]
+    fn test_rotationseq_value_error_when_incomplete() {
+        let mut r = RotationSeq::default();
+        // 仅两个轴，未满三次
+        r.x().unwrap();
+        r.y().unwrap();
+        let err = r.value();
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn test_rotationseq_set_tag_error_when_exceeds() {
+        let mut r = RotationSeq::default();
+        // 三次正常
+        r.x().unwrap();
+        r.y().unwrap();
+        r.z().unwrap();
+        // 第四次应报错
+        let err = r.x();
+        assert!(err.is_err());
+    }
     #[test]
     fn test_to_f32_array() {
         let vector = Vector3 {
@@ -308,9 +415,9 @@ mod tests {
             Angular::from_rad(2.0),
             Angular::from_rad(3.0),
         );
-        
+
         let coef_vec = angular_vec.to_vector3_coef(AngularType::Rad);
-        
+
         assert_relative_eq!(coef_vec.x, 1.0);
         assert_relative_eq!(coef_vec.y, 2.0);
         assert_relative_eq!(coef_vec.z, 3.0);
@@ -319,13 +426,13 @@ mod tests {
     #[test]
     fn test_to_vector3_coef_deg() {
         let angular_vec = Vector3::new(
-            Angular::from_rad(PI),     // π rad = 180°
-            Angular::from_rad(PI/2.0), // π/2 rad = 90°
-            Angular::from_rad(PI/4.0), // π/4 rad = 45°
+            Angular::from_rad(PI),       // π rad = 180°
+            Angular::from_rad(PI / 2.0), // π/2 rad = 90°
+            Angular::from_rad(PI / 4.0), // π/4 rad = 45°
         );
-        
+
         let coef_vec = angular_vec.to_vector3_coef(AngularType::Deg);
-        
+
         assert_relative_eq!(coef_vec.x, 180.0, epsilon = 1e-10);
         assert_relative_eq!(coef_vec.y, 90.0, epsilon = 1e-10);
         assert_relative_eq!(coef_vec.z, 45.0, epsilon = 1e-10);
@@ -333,11 +440,7 @@ mod tests {
 
     #[test]
     fn test_from_vector_coef_rad() {
-        let coef_vec = Vector3::new(
-            Coef::new(1.0),
-            Coef::new(2.0),
-            Coef::new(3.0),
-        );
+        let coef_vec = Vector3::new(Coef::new(1.0), Coef::new(2.0), Coef::new(3.0));
 
         let angular_vec = Vector3::<Angular>::from_vector_coef(coef_vec, AngularType::Rad);
 
@@ -348,11 +451,7 @@ mod tests {
 
     #[test]
     fn test_from_vector_coef_deg() {
-        let coef_vec = Vector3::new(
-            Coef::new(180.0),
-            Coef::new(90.0),
-            Coef::new(45.0),
-        );
+        let coef_vec = Vector3::new(Coef::new(180.0), Coef::new(90.0), Coef::new(45.0));
 
         let angular_vec = Vector3::<Angular>::from_vector_coef(coef_vec, AngularType::Deg);
 
@@ -365,15 +464,25 @@ mod tests {
     fn test_from_vector_coef_roundtrip() {
         let original_angular_vec = Vector3::new(
             Angular::from_rad(PI),
-            Angular::from_rad(PI/2.0),
-            Angular::from_rad(PI/4.0),
+            Angular::from_rad(PI / 2.0),
+            Angular::from_rad(PI / 4.0),
         );
 
         let coef_vec = original_angular_vec.to_vector3_coef(AngularType::Rad);
-        let reconstructed_angular_vec = Vector3::<Angular>::from_vector_coef(coef_vec, AngularType::Rad);
+        let reconstructed_angular_vec =
+            Vector3::<Angular>::from_vector_coef(coef_vec, AngularType::Rad);
 
-        assert_relative_eq!(original_angular_vec.x.as_rad(), reconstructed_angular_vec.x.as_rad());
-        assert_relative_eq!(original_angular_vec.y.as_rad(), reconstructed_angular_vec.y.as_rad());
-        assert_relative_eq!(original_angular_vec.z.as_rad(), reconstructed_angular_vec.z.as_rad());
+        assert_relative_eq!(
+            original_angular_vec.x.as_rad(),
+            reconstructed_angular_vec.x.as_rad()
+        );
+        assert_relative_eq!(
+            original_angular_vec.y.as_rad(),
+            reconstructed_angular_vec.y.as_rad()
+        );
+        assert_relative_eq!(
+            original_angular_vec.z.as_rad(),
+            reconstructed_angular_vec.z.as_rad()
+        );
     }
 }

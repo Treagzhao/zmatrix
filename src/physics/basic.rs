@@ -19,7 +19,7 @@ pub mod mass;
 mod momentum;
 mod power;
 mod torque;
-mod vector;
+pub mod vector;
 mod velocity;
 mod volume;
 

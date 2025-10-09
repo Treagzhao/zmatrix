@@ -1,5 +1,5 @@
 mod acceleration;
-mod angular;
+pub mod angular;
 mod angular_acceleration;
 mod angular_momentum;
 mod angular_velocity;

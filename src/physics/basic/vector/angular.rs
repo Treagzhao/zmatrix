@@ -687,4 +687,73 @@ mod tests {
             for r in 0..3 { for c in 0..3 { assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12); } }
         }
     }
+
+    #[test]
+    fn test_to_cos_matrix_right_hand_zero_angles_identity() {
+        // 零角 -> 单位阵（任意转序）
+        let angles = Vector3::new(Angular::from_rad(0.0), Angular::from_rad(0.0), Angular::from_rad(0.0));
+        let mut seq = RotationSeq::default();
+        seq.x().unwrap(); seq.y().unwrap(); seq.z().unwrap(); // XYZ
+        let m = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
+        let a = m.to_array();
+        for r in 0..3 { for c in 0..3 { let exp = if r==c {1.0} else {0.0}; assert_relative_eq!(a[r][c], exp, epsilon = 1e-12); } }
+    }
+
+    #[test]
+    fn test_to_cos_matrix_right_hand_single_axis_matches_primitives() {
+        // 仅第一步角非零（roll），XYZ: R = Rz(0)*Ry(0)*Rx(bi) = Rx_right(bi)
+        let bi = 0.3456789012345_f64;
+        let angles = Vector3::new(Angular::from_rad(bi), Angular::from_rad(0.0), Angular::from_rad(0.0));
+        let mut seq = RotationSeq::default();
+        seq.x().unwrap(); seq.y().unwrap(); seq.z().unwrap(); // XYZ
+        let m = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
+        let expected = rx_right(bi);
+        let a = m.to_array();
+        let e = expected.to_array();
+        for r in 0..3 { for c in 0..3 { assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12); } }
+
+        // 仅第二步角非零（pitch），XYZ: R = Rz(0)*Ry(bj)*Rx(0) = Ry_right(bj)
+        let bj = -0.4567890123456_f64;
+        let angles = Vector3::new(Angular::from_rad(0.0), Angular::from_rad(bj), Angular::from_rad(0.0));
+        let mut seq = RotationSeq::default();
+        seq.x().unwrap(); seq.y().unwrap(); seq.z().unwrap();
+        let m = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
+        let expected = ry_right(bj);
+        let a = m.to_array();
+        let e = expected.to_array();
+        for r in 0..3 { for c in 0..3 { assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12); } }
+
+        // 仅第三步角非零（yaw），XYZ: R = Rz(bk)*Ry(0)*Rx(0) = Rz_right(bk)
+        let bk = 1.2345678901234_f64;
+        let angles = Vector3::new(Angular::from_rad(0.0), Angular::from_rad(0.0), Angular::from_rad(bk));
+        let mut seq = RotationSeq::default();
+        seq.x().unwrap(); seq.y().unwrap(); seq.z().unwrap();
+        let m = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
+        let expected = rz_right(bk);
+        let a = m.to_array();
+        let e = expected.to_array();
+        for r in 0..3 { for c in 0..3 { assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12); } }
+    }
+
+    #[test]
+    fn test_to_cos_matrix_right_vs_left_transpose_relation() {
+        // Right 主动 == Left 被动（转置关系）
+        let bi = 0.2_f64; let bj = -0.4_f64; let bk = 0.6_f64;
+        let angles = Vector3::new(Angular::from_rad(bi), Angular::from_rad(bj), Angular::from_rad(bk));
+        let mut seq = RotationSeq::default();
+        seq.y().unwrap(); seq.z().unwrap(); seq.x().unwrap(); // YZX 序
+        let mr = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
+        // Left 被动应满足：R_right = (Ai_left · Aj_left · Ak_left)^T
+        // 因此需要手工按 Ai·Aj·Ak 顺序构造 Left，再取转置比较
+        let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
+        let ti = 2u8; let tj = 3u8; let tk = 1u8; // YZX
+        let ai_l = match ti { 1 => rx_left(bi), 2 => ry_left(bi), _ => rz_left(bi) };
+        let aj_l = match tj { 1 => rx_left(bj), 2 => ry_left(bj), _ => rz_left(bj) };
+        let ak_l = match tk { 1 => rx_left(bk), 2 => ry_left(bk), _ => rz_left(bk) };
+        let left_ai_aj_ak = ai_l.product(&aj_l).product(&ak_l);
+        let ar = mr.to_array();
+        let al = left_ai_aj_ak.to_array();
+        // ar == (Ai_l · Aj_l · Ak_l)^T
+        for r in 0..3 { for c in 0..3 { assert_relative_eq!(ar[r][c], al[c][r], epsilon = 1e-12); } }
+    }
 }

@@ -231,6 +231,14 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn test_build_and_value_unreachable_branch_panics() {
+        // 触发默认分支，覆盖第227行的 unreachable!()
+        // 非法轴标记 0x4 将导致 panic
+        let _ = build_and_value(&[0x4, TAG_X, TAG_Y]);
+    }
+
+    #[test]
     fn test_rotationseq_tait_bryan_sequences() {
         // XYZ
         assert_eq!(

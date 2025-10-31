@@ -1,0 +1,576 @@
+   Compiling zmatrix v0.2.19 (/Users/treagzhao/Documents/Workspace/zmatrix)
+warning: unused import: `error`
+ --> src/dense/initial.rs:1:20
+  |
+1 | use crate::dense::{error, Matrix};
+  |                    ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `array_init::array_init`
+ --> src/dense/initial.rs:2:5
+  |
+2 | use array_init::array_init;
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `util`
+ --> src/dense/operation.rs:1:27
+  |
+1 | use crate::dense::{error, util, Matrix};
+  |                           ^^^^
+
+warning: unused import: `approx::assert_relative_eq`
+ --> src/dense/operation.rs:2:5
+  |
+2 | use approx::assert_relative_eq;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `array_init::array_init`
+ --> src/dense/operation.rs:3:5
+  |
+3 | use array_init::array_init;
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Arc` and `mpsc`
+ --> src/dense/operation.rs:9:17
+  |
+9 | use std::sync::{mpsc, Arc};
+  |                 ^^^^  ^^^
+
+warning: unused import: `std::thread`
+  --> src/dense/operation.rs:10:5
+   |
+10 | use std::thread;
+   |     ^^^^^^^^^^^
+
+warning: unused imports: `IntoParallelIterator` and `ParallelBridge`
+ --> src/dense/shape.rs:4:22
+  |
+4 | use rayon::prelude::{IntoParallelIterator, ParallelBridge};
+  |                      ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `Arc`, `Mutex`, and `RwLock`
+ --> src/dense/shape.rs:7:17
+  |
+7 | use std::sync::{Arc, Mutex, RwLock};
+  |                 ^^^  ^^^^^  ^^^^^^
+
+warning: unused imports: `AtomicPtr` and `Ordering`
+ --> src/dense/shape.rs:8:25
+  |
+8 | use std::sync::atomic::{AtomicPtr, Ordering};
+  |                         ^^^^^^^^^  ^^^^^^^^
+
+warning: unused import: `std::thread`
+ --> src/dense/shape.rs:9:5
+  |
+9 | use std::thread;
+  |     ^^^^^^^^^^^
+
+warning: unused import: `array_init::array_init`
+  --> src/dense/shape.rs:10:5
+   |
+10 | use array_init::array_init;
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Sub`
+ --> src/dense/util.rs:4:26
+  |
+4 | use std::ops::{Add, Mul, Sub};
+  |                          ^^^
+
+warning: unused imports: `Not` and `Sub`
+ --> src/dense.rs:8:26
+  |
+8 | use std::ops::{Add, Mul, Not, Sub};
+  |                          ^^^  ^^^
+
+warning: unused imports: `Arc` and `mpsc`
+ --> src/dense.rs:9:17
+  |
+9 | use std::sync::{mpsc, Arc};
+  |                 ^^^^  ^^^
+
+warning: unused import: `std::thread`
+  --> src/dense.rs:10:5
+   |
+10 | use std::thread;
+   |     ^^^^^^^^^^^
+
+warning: unused import: `crate::physics::basic`
+ --> src/physics/basic.rs:1:5
+  |
+1 | use crate::physics::basic;
+  |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Acceleration`, `Mass`, and `Velocity`
+ --> src/physics/basic/energy.rs:2:5
+  |
+2 |     Acceleration, Coef, Distance, Energy, EnergyType, Force, Mass, PhysicalQuantity, Velocity,
+  |     ^^^^^^^^^^^^                                             ^^^^                    ^^^^^^^^
+
+warning: unused import: `approx::assert_relative_eq`
+ --> src/physics/basic/magnetic_angular_velocity.rs:4:5
+  |
+4 | use approx::assert_relative_eq;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Area`
+   --> src/physics/basic/magnetic_moment.rs:342:52
+    |
+342 |     use crate::physics::basic::{MagneticInduction, Area};
+    |                                                    ^^^^
+
+warning: unused imports: `AngularMomentumType`, `MassType`, and `Mass`
+ --> src/physics/basic/momentum.rs:3:46
+  |
+3 | use crate::physics::basic::{AngularMomentum, AngularMomentumType, Coef, Distance, Mass, MassType, Momentum, MomentumType, PhysicalQuantity};
+  |                                              ^^^^^^^^^^^^^^^^^^^                  ^^^^  ^^^^^^^^
+
+warning: duplicated attribute
+  --> src/physics/basic/vector/angular_velocity.rs:78:5
+   |
+78 |     #[test]
+   |     ^^^^^^^
+   |
+   = note: `#[warn(duplicate_macro_attributes)]` on by default
+
+warning: unused import: `Mass`
+ --> src/physics/basic/vector/distance.rs:2:52
+  |
+2 |     AngularMomentum, Coef, Distance, DistanceType, Mass, Momentum, Vector3, Velocity,
+  |                                                    ^^^^
+
+warning: unused import: `Div`
+ --> src/physics/basic/vector/megnetic_induction.rs:1:16
+  |
+1 | use std::ops::{Div, Mul};
+  |                ^^^
+
+warning: unused import: `crate::utils::float`
+  --> src/physics/basic/vector.rs:19:5
+   |
+19 | use crate::utils::float;
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::physics::basic::VelocityType::LightSpeed`
+ --> src/physics/basic/velocity.rs:3:5
+  |
+3 | use crate::physics::basic::VelocityType::LightSpeed;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::any::TypeId`
+   --> src/physics/basic/velocity.rs:318:9
+    |
+318 |     use std::any::TypeId;
+    |         ^^^^^^^^^^^^^^^^
+
+warning: unused import: `DistanceType`
+ --> src/physics/basic/volume.rs:3:51
+  |
+3 | use crate::physics::basic::{Area, Coef, Distance, DistanceType, PhysicalQuantity, Volume, VolumeType};
+  |                                                   ^^^^^^^^^^^^
+
+warning: variant `g` should have an upper camel case name
+   --> src/physics/basic.rs:196:5
+    |
+196 |     g,
+    |     ^ help: convert the identifier to upper camel case: `G`
+    |
+    = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: unused import: `super::*`
+ --> src/spatial_geometry/cos_matrix.rs:1:5
+  |
+1 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `super::*`
+ --> src/spatial_geometry/quaternion.rs:1:5
+  |
+1 | use super::*;
+  |     ^^^^^^^^
+
+warning: duplicated attribute
+  --> src/utils/float.rs:44:5
+   |
+44 |     #[test]
+   |     ^^^^^^^
+
+error[E0599]: no associated item named `XYZ` found for struct `vector::angular::RotationSeq` in the current scope
+   --> src/spatial_geometry/euler_angles.rs:116:26
+    |
+116 |             RotationSeq::XYZ,
+    |                          ^^^ associated item not found in `vector::angular::RotationSeq`
+    |
+   ::: src/physics/basic/vector/angular.rs:8:1
+    |
+8   | pub struct RotationSeq {
+    | ---------------------- associated item `XYZ` not found for this struct
+
+error[E0599]: no associated item named `ZYX` found for struct `vector::angular::RotationSeq` in the current scope
+   --> src/spatial_geometry/euler_angles.rs:117:26
+    |
+117 |             RotationSeq::ZYX,
+    |                          ^^^ associated item not found in `vector::angular::RotationSeq`
+    |
+   ::: src/physics/basic/vector/angular.rs:8:1
+    |
+8   | pub struct RotationSeq {
+    | ---------------------- associated item `ZYX` not found for this struct
+
+error[E0599]: no associated item named `XZY` found for struct `vector::angular::RotationSeq` in the current scope
+   --> src/spatial_geometry/euler_angles.rs:118:26
+    |
+118 |             RotationSeq::XZY,
+    |                          ^^^ associated item not found in `vector::angular::RotationSeq`
+    |
+   ::: src/physics/basic/vector/angular.rs:8:1
+    |
+8   | pub struct RotationSeq {
+    | ---------------------- associated item `XZY` not found for this struct
+
+error[E0599]: no associated item named `YXZ` found for struct `vector::angular::RotationSeq` in the current scope
+   --> src/spatial_geometry/euler_angles.rs:119:26
+    |
+119 |             RotationSeq::YXZ,
+    |                          ^^^ associated item not found in `vector::angular::RotationSeq`
+    |
+   ::: src/physics/basic/vector/angular.rs:8:1
+    |
+8   | pub struct RotationSeq {
+    | ---------------------- associated item `YXZ` not found for this struct
+
+error[E0599]: no associated item named `ZXY` found for struct `vector::angular::RotationSeq` in the current scope
+   --> src/spatial_geometry/euler_angles.rs:120:26
+    |
+120 |             RotationSeq::ZXY,
+    |                          ^^^ associated item not found in `vector::angular::RotationSeq`
+    |
+   ::: src/physics/basic/vector/angular.rs:8:1
+    |
+8   | pub struct RotationSeq {
+    | ---------------------- associated item `ZXY` not found for this struct
+
+error[E0599]: no associated item named `YZX` found for struct `vector::angular::RotationSeq` in the current scope
+   --> src/spatial_geometry/euler_angles.rs:121:26
+    |
+121 |             RotationSeq::YZX
+    |                          ^^^ associated item not found in `vector::angular::RotationSeq`
+    |
+   ::: src/physics/basic/vector/angular.rs:8:1
+    |
+8   | pub struct RotationSeq {
+    | ---------------------- associated item `YZX` not found for this struct
+
+error[E0616]: field `data` of struct `cos_matrix::CosMatrix` is private
+   --> src/spatial_geometry/euler_angles.rs:137:44
+    |
+137 |                 for (i, val) in cos_matrix.data.iter().enumerate() {
+    |                                            ^^^^ private field
+
+error[E0599]: no associated item named `XYZ` found for struct `vector::angular::RotationSeq` in the current scope
+   --> src/spatial_geometry/euler_angles.rs:151:59
+    |
+151 |         let cos_matrix = euler.to_cos_matrix(RotationSeq::XYZ, RotationHand::Right).unwrap();
+    |                                                           ^^^ associated item not found in `vector::angular::RotationSeq`
+    |
+   ::: src/physics/basic/vector/angular.rs:8:1
+    |
+8   | pub struct RotationSeq {
+    | ---------------------- associated item `XYZ` not found for this struct
+
+error[E0616]: field `data` of struct `cos_matrix::CosMatrix` is private
+   --> src/spatial_geometry/euler_angles.rs:161:36
+    |
+161 |         for (i, val) in cos_matrix.data.iter().enumerate() {
+    |                                    ^^^^ private field
+
+error[E0599]: no associated item named `ZXY` found for struct `vector::angular::RotationSeq` in the current scope
+   --> src/spatial_geometry/euler_angles.rs:173:59
+    |
+173 |         let cos_matrix = euler.to_cos_matrix(RotationSeq::ZXY, RotationHand::Right).unwrap();
+    |                                                           ^^^ associated item not found in `vector::angular::RotationSeq`
+    |
+   ::: src/physics/basic/vector/angular.rs:8:1
+    |
+8   | pub struct RotationSeq {
+    | ---------------------- associated item `ZXY` not found for this struct
+
+error[E0616]: field `data` of struct `cos_matrix::CosMatrix` is private
+   --> src/spatial_geometry/euler_angles.rs:182:36
+    |
+182 |         for (i, val) in cos_matrix.data.iter().enumerate() {
+    |                                    ^^^^ private field
+
+error[E0599]: no associated item named `XYZ` found for struct `vector::angular::RotationSeq` in the current scope
+   --> src/spatial_geometry/euler_angles.rs:193:65
+    |
+193 |         let cos_matrix_right = euler.to_cos_matrix(RotationSeq::XYZ, RotationHand::Right).unwrap();
+    |                                                                 ^^^ associated item not found in `vector::angular::RotationSeq`
+    |
+   ::: src/physics/basic/vector/angular.rs:8:1
+    |
+8   | pub struct RotationSeq {
+    | ---------------------- associated item `XYZ` not found for this struct
+
+error[E0599]: no associated item named `XYZ` found for struct `vector::angular::RotationSeq` in the current scope
+   --> src/spatial_geometry/euler_angles.rs:194:64
+    |
+194 |         let cos_matrix_left = euler.to_cos_matrix(RotationSeq::XYZ, RotationHand::Left).unwrap();
+    |                                                                ^^^ associated item not found in `vector::angular::RotationSeq`
+    |
+   ::: src/physics/basic/vector/angular.rs:8:1
+    |
+8   | pub struct RotationSeq {
+    | ---------------------- associated item `XYZ` not found for this struct
+
+error[E0616]: field `data` of struct `cos_matrix::CosMatrix` is private
+   --> src/spatial_geometry/euler_angles.rs:200:40
+    |
+200 |         for (r, l) in cos_matrix_right.data.iter().zip(cos_matrix_left.data.iter()) {
+    |                                        ^^^^ private field
+
+error[E0616]: field `data` of struct `cos_matrix::CosMatrix` is private
+   --> src/spatial_geometry/euler_angles.rs:200:72
+    |
+200 |         for (r, l) in cos_matrix_right.data.iter().zip(cos_matrix_left.data.iter()) {
+    |                                                                        ^^^^ private field
+
+warning: unused import: `PhysicalQuantity`
+ --> src/spatial_geometry/cos_matrix.rs:3:44
+  |
+3 | use crate::physics::basic::{Angular, Coef, PhysicalQuantity, Vector3, VectorQuantity};
+  |                                            ^^^^^^^^^^^^^^^^
+
+warning: unused import: `rayon::iter::ParallelIterator`
+ --> src/dense/operation.rs:4:5
+  |
+4 | use rayon::iter::ParallelIterator;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `rayon::prelude`
+ --> src/dense/operation.rs:5:5
+  |
+5 | use rayon::prelude::*;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `rayon::iter::ParallelIterator`
+ --> src/dense/shape.rs:3:5
+  |
+3 | use rayon::iter::ParallelIterator;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `expected`
+   --> src/dense/operation.rs:518:13
+    |
+518 |         let expected: [i32; 0] = [];
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `result`
+   --> src/dense/operation.rs:870:13
+    |
+870 |         let result = matrix.clamp(3.0, 2.0);
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_result`
+
+warning: unused variable: `data`
+   --> src/dense/shape.rs:185:13
+    |
+185 |         let data = (1..=100).collect::<Vec<_>>();
+    |             ^^^^ help: if this is intentional, prefix it with an underscore: `_data`
+
+warning: value assigned to `ceof` is never read
+   --> src/dense/util.rs:122:13
+    |
+122 |     let mut ceof: i8 = 0;
+    |             ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: unused variable: `key`
+   --> src/dense/util.rs:128:9
+    |
+128 |     let key = print_permutation(permutation);
+    |         ^^^ help: if this is intentional, prefix it with an underscore: `_key`
+
+warning: unused variable: `vec`
+   --> src/dense/util.rs:286:19
+    |
+286 |         if let Ok(vec) = res {
+    |                   ^^^ help: if this is intentional, prefix it with an underscore: `_vec`
+
+warning: variable does not need to be mutable
+  --> src/dense.rs:25:13
+   |
+25 |         let mut digits: u8 = 0;
+   |             ----^^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `d2`
+   --> src/physics/basic/acceleration.rs:378:13
+    |
+378 |         let d2 = d1.as_any().downcast_ref::<Acceleration>().unwrap();
+    |             ^^ help: if this is intentional, prefix it with an underscore: `_d2`
+
+warning: unused variable: `d2`
+   --> src/physics/basic/angular_acceleration.rs:371:13
+    |
+371 |         let d2 = dw.downcast_ref::<AngularAcceleration>().unwrap();
+    |             ^^ help: if this is intentional, prefix it with an underscore: `_d2`
+
+warning: unused variable: `d3`
+   --> src/physics/basic/angular_velocity.rs:506:13
+    |
+506 |         let d3 = d2.downcast_ref::<AngularVelocity>().unwrap();
+    |             ^^ help: if this is intentional, prefix it with an underscore: `_d3`
+
+warning: unused variable: `a`
+   --> src/physics/basic/area.rs:444:13
+    |
+444 |         let a: &Area = any.downcast_ref::<Area>().unwrap();
+    |             ^ help: if this is intentional, prefix it with an underscore: `_a`
+
+warning: unused variable: `c`
+   --> src/physics/basic/coef.rs:379:13
+    |
+379 |         let c = result.downcast_ref::<Coef>().unwrap();
+    |             ^ help: if this is intentional, prefix it with an underscore: `_c`
+
+warning: unused variable: `result`
+   --> src/physics/basic/magnetic_induction.rs:372:13
+    |
+372 |         let result = convert_gauss_value(1.0, MagneticInductionType::Tesla, MagneticInductionType::KiloGauss).unwrap();
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_result`
+
+warning: unused variable: `result`
+   --> src/physics/basic/magnetic_induction.rs:378:13
+    |
+378 |         let result = convert_gauss_value(1.0, MagneticInductionType::KiloGauss, MagneticInductionType::Tesla).unwrap();
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_result`
+
+warning: unused variable: `result`
+   --> src/physics/basic/magnetic_induction.rs:400:13
+    |
+400 |         let result = convert_tesla_value(1.0, MagneticInductionType::Tesla, MagneticInductionType::KiloGauss).unwrap();
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_result`
+
+warning: unused variable: `result`
+   --> src/physics/basic/magnetic_induction.rs:406:13
+    |
+406 |         let result = convert_tesla_value(1.0, MagneticInductionType::KiloGauss, MagneticInductionType::Tesla).unwrap();
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_result`
+
+warning: unused variable: `a`
+   --> src/physics/basic/magnetic_induction.rs:464:13
+    |
+464 |         let a = any.downcast_ref::<MagneticInduction>().unwrap();
+    |             ^ help: if this is intentional, prefix it with an underscore: `_a`
+
+warning: unused variable: `m2`
+   --> src/physics/basic/mass.rs:215:13
+    |
+215 |         let m2 = m1.as_g();
+    |             ^^ help: if this is intentional, prefix it with an underscore: `_m2`
+
+warning: unused variable: `p_zero`
+   --> src/physics/basic/power.rs:876:13
+    |
+876 |         let p_zero = Power::from_watt(0.0);
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_p_zero`
+
+warning: unused variable: `unit_name`
+   --> src/physics/basic/power.rs:895:21
+    |
+895 |         for (power, unit_name) in units {
+    |                     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_unit_name`
+
+warning: variable does not need to be mutable
+   --> src/physics/basic/vector/angular.rs:101:13
+    |
+101 |         let mut result: Vector3<Angular> = Vector3::new(
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/physics/basic/vector/angular.rs:110:13
+    |
+110 |         let mut result: Vector3<Angular> = Vector3::new(
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `ti`
+   --> src/physics/basic/vector/angular.rs:756:14
+    |
+756 |         let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
+    |              ^^ help: if this is intentional, prefix it with an underscore: `_ti`
+
+warning: unused variable: `tj`
+   --> src/physics/basic/vector/angular.rs:756:18
+    |
+756 |         let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
+    |                  ^^ help: if this is intentional, prefix it with an underscore: `_tj`
+
+warning: unused variable: `tk`
+   --> src/physics/basic/vector/angular.rs:756:22
+    |
+756 |         let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
+    |                      ^^ help: if this is intentional, prefix it with an underscore: `_tk`
+
+warning: unused variable: `input`
+   --> src/physics/basic/vector.rs:586:17
+    |
+586 |         let mut input = [1f32, 4f32, 9f32];
+    |                 ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
+
+warning: variable does not need to be mutable
+   --> src/physics/basic/vector.rs:586:13
+    |
+586 |         let mut input = [1f32, 4f32, 9f32];
+    |             ----^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `a`
+   --> src/physics/basic/velocity.rs:498:13
+    |
+498 |         let a = v_any.downcast_ref::<Velocity>().unwrap();
+    |             ^ help: if this is intentional, prefix it with an underscore: `_a`
+
+warning: unused variable: `v`
+   --> src/physics/basic/volume.rs:254:13
+    |
+254 |         let v = b.as_any().downcast_ref::<Volume>().unwrap();
+    |             ^ help: if this is intentional, prefix it with an underscore: `_v`
+
+warning: unused variable: `d`
+   --> src/physics/basic.rs:615:13
+    |
+615 |         let d = g.as_any().downcast_ref::<Acceleration>().unwrap();
+    |             ^ help: if this is intentional, prefix it with an underscore: `_d`
+
+warning: unused variable: `d`
+   --> src/physics/basic.rs:618:13
+    |
+618 |         let d = g.as_any().downcast_ref::<Area>().unwrap();
+    |             ^ help: if this is intentional, prefix it with an underscore: `_d`
+
+warning: value assigned to `x` is never read
+   --> src/spatial_geometry/cos_matrix.rs:484:17
+    |
+484 |         let mut x: Angular = Angular::default();
+    |                 ^
+    |
+    = help: maybe it is overwritten before being read?
+
+Some errors have detailed explanations: E0599, E0616.
+For more information about an error, try `rustc --explain E0599`.
+warning: `zmatrix` (lib test) generated 68 warnings
+error: could not compile `zmatrix` (lib test) due to 15 previous errors; 68 warnings emitted

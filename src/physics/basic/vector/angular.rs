@@ -10,9 +10,9 @@ pub struct RotationSeq {
     count: u8,
 }
 
-const TAG_X: u8 = 0x1;
-const TAG_Y: u8 = 0x2;
-const TAG_Z: u8 = 0x3;
+pub(crate) const TAG_X: u8 = 0x1;
+pub(crate) const TAG_Y: u8 = 0x2;
+pub(crate) const TAG_Z: u8 = 0x3;
 
 #[derive(Debug, Copy, Clone)]
 pub enum RotationHand {
@@ -195,13 +195,13 @@ fn rz_left(a: f64) -> CosMatrix { // 左手主动（等价右手被动）
     CosMatrix::new([[ c,  s, 0.0], [-s,  c, 0.0], [0.0, 0.0, 1.0]])
 }
 
-fn rx_hand(a: f64, hand: RotationHand) -> CosMatrix {
+pub(crate) fn rx_hand(a: f64, hand: RotationHand) -> CosMatrix {
     match hand { RotationHand::Right => rx_right(a), RotationHand::Left => rx_left(a) }
 }
-fn ry_hand(a: f64, hand: RotationHand) -> CosMatrix {
+pub(crate) fn ry_hand(a: f64, hand: RotationHand) -> CosMatrix {
     match hand { RotationHand::Right => ry_right(a), RotationHand::Left => ry_left(a) }
 }
-fn rz_hand(a: f64, hand: RotationHand) -> CosMatrix {
+pub(crate) fn rz_hand(a: f64, hand: RotationHand) -> CosMatrix {
     match hand { RotationHand::Right => rz_right(a), RotationHand::Left => rz_left(a) }
 }
 
@@ -763,5 +763,17 @@ mod tests {
         let al = left_ai_aj_ak.to_array();
         // ar == (Ai_l · Aj_l · Ak_l)^T
         for r in 0..3 { for c in 0..3 { assert_relative_eq!(ar[r][c], al[c][r], epsilon = 1e-12); } }
+    }
+
+    #[test]
+    fn to_quaternion_test(){
+        let angulars = Vector3::<Angular>::new(
+            Angular::from_rad(0.0),
+            Angular::from_rad(0.0),
+            Angular::from_deg(180.0),
+        );
+        let quaternion = angulars.to_quaternion();
+        let values = quaternion.get_value();
+        println!("{:?}", values);
     }
 }

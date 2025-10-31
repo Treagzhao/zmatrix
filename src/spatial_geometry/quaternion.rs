@@ -419,6 +419,17 @@ mod tests {
     }
 
     #[test]
+    fn test_inverse_zero_norm_branch() {
+        // 零四元数：norm_square == 0，触发 inverse 的 else 分支，返回单位四元数
+        let q = Quaternion::new(0.0, 0.0, 0.0, 0.0);
+        let inv = q.inverse();
+        assert_relative_eq!(inv.q0, 1.0, epsilon = 1e-12);
+        assert_relative_eq!(inv.q1, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(inv.q2, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(inv.q3, 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
     fn test_mul() {
         let q1 = Quaternion::new(1.0, 2.0, 3.0, 4.0);
         let q2 = Quaternion::new(5.0, 6.0, 7.0, 8.0);
@@ -640,5 +651,32 @@ mod tests {
         assert_relative_eq!(d2.q1, 0.0, epsilon = 1e-12);
         assert_relative_eq!(d2.q2, 0.0, epsilon = 1e-12);
         assert_relative_eq!(d2.q3, 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_exact_multiplication() {
+        let q1 = Quaternion::new(0.9961946980917455, 0.08715574274765817, 0.0, 0.0);
+        let q2 = Quaternion::new(0.9914448613738104, 0.0, 0.13052619222005157, 0.0);
+
+        let result = q2 * q1;
+
+        // 高精度打印
+        println!("q2 * q1 精确结果:");
+        println!("q0 = {:.16}", result.q0);
+        println!("q1 = {:.16}", result.q1);
+        println!("q2 = {:.16}", result.q2);
+        println!("q3 = {:.16}", result.q3);
+
+        // 手动计算验证
+        let w_manual = 0.9914448613738104 * 0.9961946980917455;
+        let x_manual = 0.9914448613738104 * 0.08715574274765817;
+        let y_manual = 0.13052619222005157 * 0.9961946980917455;
+        let z_manual = -0.13052619222005157 * 0.08715574274765817;
+
+        println!("手动计算:");
+        println!("w = {:.16}", w_manual);
+        println!("x = {:.16}", x_manual);
+        println!("y = {:.16}", y_manual);
+        println!("z = {:.16}", z_manual);
     }
 }

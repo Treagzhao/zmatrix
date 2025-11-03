@@ -44,7 +44,7 @@ impl PhysicalQuantity for Area {
     }
 
     fn default_unit_value(&self) -> f64 {
-        self.v
+        self.as_m2()
     }
 
     fn set_value(&mut self, value: f64) {
@@ -458,6 +458,10 @@ mod tests {
     fn test_default_unit_value() {
         let area = Area::from_m2(1.0);
         assert_eq!(area.default_unit_value(), 1.0);
+
+        // 当默认单位为 km^2 时，default_unit_value 也应返回以 m^2 表示的数值
+        let area_km2 = Area::from_km2(2.0);
+        assert_eq!(area_km2.default_unit_value(), 2_000_000.0);
     }
 
     #[test]

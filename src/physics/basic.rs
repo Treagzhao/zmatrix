@@ -562,7 +562,7 @@ impl PhysicalQuantity for Angular {
         self.v == 0.0
     }
     fn default_unit_value(&self) -> f64 {
-        self.v
+        self.as_rad()
     }
 
     fn set_value(&mut self, value: f64) {
@@ -738,6 +738,24 @@ mod tests {
         let e = Energy::from_joule(1.0);
         assert_eq!(false, e.is_zero());
     }
+
+        #[test]
+        fn test_angular_default_unit_value_is_rad() {
+            // 默认单位为弧度时，default_unit_value 应等于 as_rad()
+            let a_rad = Angular::from_rad(std::f64::consts::PI);
+            assert_relative_eq!(a_rad.default_unit_value(), a_rad.as_rad(), epsilon = 1e-12);
+
+            // 默认单位为度时，default_unit_value 也应返回弧度
+            let a_deg = Angular::from_deg(180.0);
+            assert_relative_eq!(a_deg.default_unit_value(), a_deg.as_rad(), epsilon = 1e-12);
+
+            // 随机值覆盖（包括负值和小数），确保统一弧度输出
+            let cases = vec![-720.0, -360.0, -45.5, 0.0, 12.34, 90.0, 123.456, 360.0, 720.0];
+            for deg in cases {
+                let a = Angular::from_deg(deg);
+                assert_relative_eq!(a.default_unit_value(), a.as_rad(), epsilon = 1e-12);
+            }
+        }
 }
 
 // 手动实现 VectorQuantity trait 给所有支持向量的物理量

@@ -42,7 +42,6 @@ impl EulerAngles {
     ) -> Result<Quaternion, OperationError> {
         let code = seq.value()?;
         let tags = [(code >> 4) & 0x3, (code >> 2) & 0x3, code & 0x3];
-        println!("[to_quaternion] seq code: {:#04x}, tags: [{:#x}, {:#x}, {:#x}]", code, tags[0], tags[1], tags[2]);
         // 按步骤位置取角度（与 to_cos_matrix 中的 arr 一致：i→roll, j→pitch, k→yaw）
         // 根据tags动态选择对应的角度
         let angles: Vec<f64> = tags.iter().map(|&tag| {
@@ -53,48 +52,29 @@ impl EulerAngles {
                 _ => 0.0,
             }
         }).collect();
-        println!(
-            "[to_quaternion] angles(rad) by tags: i->{} (tag {:#x}), j->{} (tag {:#x}), k->{} (tag {:#x})",
-            angles[0], tags[0], angles[1], tags[1], angles[2], tags[2]
-        );
 
         // 计算三个旋转的半角三角函数
         let half_angles = [angles[0] * 0.5, angles[1] * 0.5, angles[2] * 0.5];
-        println!(
-            "[to_quaternion] half_angles: [{}, {}, {}]",
-            half_angles[0], half_angles[1], half_angles[2]
-        );
         let (s1, c1) = half_angles[0].sin_cos();
         let (s2, c2) = half_angles[1].sin_cos();
         let (s3, c3) = half_angles[2].sin_cos();
-        println!(
-            "[to_quaternion] (s1,c1)=({},{}) (s2,c2)=({},{}) (s3,c3)=({},{})",
-            s1, c1, s2, c2, s3, c3
-        );
 
         // 创建三个单轴旋转的四元数
         let q1 = axis_quaternion(tags[0], c1, s1);
         let q2 = axis_quaternion(tags[1], c2, s2);
         let q3 = axis_quaternion(tags[2], c3, s3);
-        println!("[to_quaternion] q1 (step i): {:?}", q1);
-        println!("[to_quaternion] q2 (step j): {:?}", q2);
-        println!("[to_quaternion] q3 (step k): {:?}", q3);
 
         // 使用四元数乘法组合：按步骤先后（与矩阵 Ak·Aj·Ai 对齐）
         // 若实现使用 Hamilton 约定，需确保顺序与 to_cos_matrix 一致
 
-        println!("[to_quaternion] q2 * q1 = {:?}", q2 * q1);
         let mut quat = q3 * q2 * q1;
-        println!("[to_quaternion] quat (q3*q2*q1) before norm: {:?}", quat);
 
         // 归一化四元数
         quat = quat.normalize();
-        println!("[to_quaternion] quat after normalize: {:?}", quat);
 
         // 应用手性调整
         if let RotationHand::Left = hand {
             quat = quat.conjugate();
-            println!("[to_quaternion] applied left-hand conjugate: {:?}", quat);
         }
 
         Ok(quat)
@@ -543,9 +523,6 @@ mod tests {
 
         // 绕X轴旋转90°的四元数应该是 [cos(45°), sin(45°), 0, 0]
         let expected = Quaternion::new(0.7071067811865476, 0.7071067811865476, 0.0, 0.0);
-
-        println!("实际结果: {:?}", q);
-        println!("期望结果: {:?}", expected);
 
         assert_relative_eq!(q.q0, expected.q0, epsilon = 1e-10);
         assert_relative_eq!(q.q1, expected.q1, epsilon = 1e-10);

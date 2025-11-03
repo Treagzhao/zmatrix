@@ -458,7 +458,6 @@ mod tests {
         // Test invalid inputs (should panic as per f64::acos behavior)
         let invalid_cases = vec![1.00001, -1.00001, 2.0, -2.0, f64::NAN, f64::INFINITY];
         for invalid_input in invalid_cases {
-            println!("{:?}", invalid_input);
             let angle = Angular::acos(invalid_input);
             assert_eq!(true, angle.v.is_nan());
         }

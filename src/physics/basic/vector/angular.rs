@@ -62,10 +62,14 @@ impl Vector3<Angular> {
 
     pub fn to_quaternion(&self) -> Quaternion {
         let norm = self.norm();
+        println!("norm: {} rad, {} deg", norm.as_rad(), norm.as_deg());
         if norm.as_rad() < FLT64_ZERO {
             return Quaternion::default();
         } else {
-            let tmp = (norm * 0.5).sin() / norm.as_rad();
+            let half_norm = norm * 0.5;
+            println!("half_norm: {} rad", half_norm.as_rad());
+            let tmp = half_norm.sin() / norm.as_rad();
+            println!("tmp: {}", tmp);
             let mut q = Quaternion::default();
             q.q0 = (norm * 0.5).cos();
             q.q1 = (self.x * tmp).as_rad();
@@ -144,10 +148,14 @@ impl Vector3<Angular> {
         Vector3::new(x, y, z)
     }
 
-    pub fn to_cos_matrix(&self, seq: RotationSeq, hand: RotationHand) -> Result<CosMatrix, OperationError> {
+    pub fn to_cos_matrix(
+        &self,
+        seq: RotationSeq,
+        hand: RotationHand,
+    ) -> Result<CosMatrix, OperationError> {
         // 解码序列：i(高2位)、j(中2位)、k(低2位)
         let code = seq.value()?;
-        let tags = [ (code >> 4) & 0x3, (code >> 2) & 0x3, code & 0x3 ];
+        let tags = [(code >> 4) & 0x3, (code >> 2) & 0x3, code & 0x3];
 
         // 三步角值（按调用顺序 i, j, k 对应 self.x, self.y, self.z）
         let arr = [self.x.as_rad(), self.y.as_rad(), self.z.as_rad()];
@@ -158,7 +166,7 @@ impl Vector3<Angular> {
             result[t] = match tags[t] {
                 TAG_X => rx_hand(arr[t], hand),
                 TAG_Y => ry_hand(arr[t], hand),
-                _     => rz_hand(arr[t], hand),
+                _ => rz_hand(arr[t], hand),
             };
         }
 
@@ -169,40 +177,55 @@ impl Vector3<Angular> {
 }
 
 // 基础旋转矩阵构造
-fn rx_right(a: f64) -> CosMatrix { // 右手主动
+fn rx_right(a: f64) -> CosMatrix {
+    // 右手主动
     let (c, s) = (a.cos(), a.sin());
-    CosMatrix::new([[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s,  c]])
+    CosMatrix::new([[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s, c]])
 }
-fn ry_right(a: f64) -> CosMatrix { // 右手主动
+fn ry_right(a: f64) -> CosMatrix {
+    // 右手主动
     let (c, s) = (a.cos(), a.sin());
-    CosMatrix::new([[ c, 0.0,  s], [0.0, 1.0, 0.0], [-s, 0.0,  c]])
+    CosMatrix::new([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]])
 }
-fn rz_right(a: f64) -> CosMatrix { // 右手主动
+fn rz_right(a: f64) -> CosMatrix {
+    // 右手主动
     let (c, s) = (a.cos(), a.sin());
-    CosMatrix::new([[ c, -s, 0.0], [ s,  c, 0.0], [0.0, 0.0, 1.0]])
+    CosMatrix::new([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
 }
 
-fn rx_left(a: f64) -> CosMatrix { // 左手主动（等价右手被动）
+fn rx_left(a: f64) -> CosMatrix {
+    // 左手主动（等价右手被动）
     let (c, s) = (a.cos(), a.sin());
-    CosMatrix::new([[1.0, 0.0, 0.0], [0.0, c,  s], [0.0, -s, c]])
+    CosMatrix::new([[1.0, 0.0, 0.0], [0.0, c, s], [0.0, -s, c]])
 }
-fn ry_left(a: f64) -> CosMatrix { // 左手主动（等价右手被动）
+fn ry_left(a: f64) -> CosMatrix {
+    // 左手主动（等价右手被动）
     let (c, s) = (a.cos(), a.sin());
-    CosMatrix::new([[ c, 0.0, -s], [0.0, 1.0, 0.0], [ s, 0.0,  c]])
+    CosMatrix::new([[c, 0.0, -s], [0.0, 1.0, 0.0], [s, 0.0, c]])
 }
-fn rz_left(a: f64) -> CosMatrix { // 左手主动（等价右手被动）
+fn rz_left(a: f64) -> CosMatrix {
+    // 左手主动（等价右手被动）
     let (c, s) = (a.cos(), a.sin());
-    CosMatrix::new([[ c,  s, 0.0], [-s,  c, 0.0], [0.0, 0.0, 1.0]])
+    CosMatrix::new([[c, s, 0.0], [-s, c, 0.0], [0.0, 0.0, 1.0]])
 }
 
 pub(crate) fn rx_hand(a: f64, hand: RotationHand) -> CosMatrix {
-    match hand { RotationHand::Right => rx_right(a), RotationHand::Left => rx_left(a) }
+    match hand {
+        RotationHand::Right => rx_right(a),
+        RotationHand::Left => rx_left(a),
+    }
 }
 pub(crate) fn ry_hand(a: f64, hand: RotationHand) -> CosMatrix {
-    match hand { RotationHand::Right => ry_right(a), RotationHand::Left => ry_left(a) }
+    match hand {
+        RotationHand::Right => ry_right(a),
+        RotationHand::Left => ry_left(a),
+    }
 }
 pub(crate) fn rz_hand(a: f64, hand: RotationHand) -> CosMatrix {
-    match hand { RotationHand::Right => rz_right(a), RotationHand::Left => rz_left(a) }
+    match hand {
+        RotationHand::Right => rz_right(a),
+        RotationHand::Left => rz_left(a),
+    }
 }
 
 #[cfg(test)]
@@ -271,8 +294,6 @@ mod tests {
             (TAG_Z << 4) | (TAG_Y << 2) | TAG_X
         );
     }
-
-
 
     #[test]
     fn test_rotationseq_proper_euler_sequences() {
@@ -611,25 +632,185 @@ mod tests {
         let bi = 0.1234567890123_f64;
         let bj = -0.9876543210987_f64;
         let bk = 0.4567891234567_f64;
-        let angles = Vector3::new(Angular::from_rad(bi), Angular::from_rad(bj), Angular::from_rad(bk));
+        let angles = Vector3::new(
+            Angular::from_rad(bi),
+            Angular::from_rad(bj),
+            Angular::from_rad(bk),
+        );
 
         // 仅覆盖 12 个转序（6 个 Tait-Bryan + 6 个 Proper Euler）
         // 表项: (code, [a00,a01,a02,a10,a11,a12,a20,a21,a22])
         let cases: &[(u32, [f64; 9])] = &[
             // Proper Euler (i=k)
-            (0x121, [0.5506493978, -0.1027923194, 0.8283833532, -0.3681762079, 0.8607342051, 0.3515436076, -0.7491538698, -0.4985683175, 0.4361170853]),
-            (0x131, [0.5506493978, -0.8283833532, -0.1027923194, 0.7491538698, 0.4361170853, 0.4985683175, -0.3681762079, -0.3515436076, 0.8607342051]),
-            (0x212, [0.8607342051, -0.3681762079, -0.3515436076, -0.1027923194, 0.5506493978, -0.8283833532, 0.4985683175, 0.7491538698, 0.4361170853]),
-            (0x232, [0.4361170853, -0.7491538698, -0.4985683175, 0.8283833532, 0.5506493978, -0.1027923194, 0.3515436076, -0.3681762079, 0.8607342051]),
-            (0x313, [0.8607342051, 0.3515436076, -0.3681762079, -0.4985683175, 0.4361170853, -0.7491538698, -0.1027923194, 0.8283833532, 0.5506493978]),
-            (0x323, [0.4361170853, 0.4985683175, 0.7491538698, -0.3515436076, 0.8607342051, -0.3681762079, -0.8283833532, -0.1027923194, 0.5506493978]),
+            (
+                0x121,
+                [
+                    0.5506493978,
+                    -0.1027923194,
+                    0.8283833532,
+                    -0.3681762079,
+                    0.8607342051,
+                    0.3515436076,
+                    -0.7491538698,
+                    -0.4985683175,
+                    0.4361170853,
+                ],
+            ),
+            (
+                0x131,
+                [
+                    0.5506493978,
+                    -0.8283833532,
+                    -0.1027923194,
+                    0.7491538698,
+                    0.4361170853,
+                    0.4985683175,
+                    -0.3681762079,
+                    -0.3515436076,
+                    0.8607342051,
+                ],
+            ),
+            (
+                0x212,
+                [
+                    0.8607342051,
+                    -0.3681762079,
+                    -0.3515436076,
+                    -0.1027923194,
+                    0.5506493978,
+                    -0.8283833532,
+                    0.4985683175,
+                    0.7491538698,
+                    0.4361170853,
+                ],
+            ),
+            (
+                0x232,
+                [
+                    0.4361170853,
+                    -0.7491538698,
+                    -0.4985683175,
+                    0.8283833532,
+                    0.5506493978,
+                    -0.1027923194,
+                    0.3515436076,
+                    -0.3681762079,
+                    0.8607342051,
+                ],
+            ),
+            (
+                0x313,
+                [
+                    0.8607342051,
+                    0.3515436076,
+                    -0.3681762079,
+                    -0.4985683175,
+                    0.4361170853,
+                    -0.7491538698,
+                    -0.1027923194,
+                    0.8283833532,
+                    0.5506493978,
+                ],
+            ),
+            (
+                0x323,
+                [
+                    0.4361170853,
+                    0.4985683175,
+                    0.7491538698,
+                    -0.3515436076,
+                    0.8607342051,
+                    -0.3681762079,
+                    -0.8283833532,
+                    -0.1027923194,
+                    0.5506493978,
+                ],
+            ),
             // Tait-Bryan (i,j,k 全不同)
-            (0x123, [0.4941931534, 0.3454583188, 0.7977666808, -0.2428742193, 0.9359810416, -0.2548560446, -0.8347366296, -0.0678088474, 0.5464583420]),
-            (0x132, [0.4941931534, -0.6891372664, -0.5299650509, 0.8347366296, 0.5464583420, 0.0678088474, 0.2428742193, -0.4758919085, 0.8453040903]),
-            (0x213, [0.8453040903, 0.2428742193, -0.4758919085, -0.5299650509, 0.4941931534, -0.6891372664, 0.0678088474, 0.8347366296, 0.5464583420]),
-            (0x231, [0.5464583420, -0.8347366296, -0.0678088474, 0.7977666808, 0.4941931534, 0.3454583188, -0.2548560446, -0.2428742193, 0.9359810416]),
-            (0x312, [0.9359810416, -0.2548560446, -0.2428742193, -0.0678088474, 0.5464583420, -0.8347366296, 0.3454583188, 0.7977666808, 0.4941931534]),
-            (0x321, [0.5464583420, 0.0678088474, 0.8347366296, -0.4758919085, 0.8453040903, 0.2428742193, -0.6891372664, -0.5299650509, 0.4941931534]),
+            (
+                0x123,
+                [
+                    0.4941931534,
+                    0.3454583188,
+                    0.7977666808,
+                    -0.2428742193,
+                    0.9359810416,
+                    -0.2548560446,
+                    -0.8347366296,
+                    -0.0678088474,
+                    0.5464583420,
+                ],
+            ),
+            (
+                0x132,
+                [
+                    0.4941931534,
+                    -0.6891372664,
+                    -0.5299650509,
+                    0.8347366296,
+                    0.5464583420,
+                    0.0678088474,
+                    0.2428742193,
+                    -0.4758919085,
+                    0.8453040903,
+                ],
+            ),
+            (
+                0x213,
+                [
+                    0.8453040903,
+                    0.2428742193,
+                    -0.4758919085,
+                    -0.5299650509,
+                    0.4941931534,
+                    -0.6891372664,
+                    0.0678088474,
+                    0.8347366296,
+                    0.5464583420,
+                ],
+            ),
+            (
+                0x231,
+                [
+                    0.5464583420,
+                    -0.8347366296,
+                    -0.0678088474,
+                    0.7977666808,
+                    0.4941931534,
+                    0.3454583188,
+                    -0.2548560446,
+                    -0.2428742193,
+                    0.9359810416,
+                ],
+            ),
+            (
+                0x312,
+                [
+                    0.9359810416,
+                    -0.2548560446,
+                    -0.2428742193,
+                    -0.0678088474,
+                    0.5464583420,
+                    -0.8347366296,
+                    0.3454583188,
+                    0.7977666808,
+                    0.4941931534,
+                ],
+            ),
+            (
+                0x321,
+                [
+                    0.5464583420,
+                    0.0678088474,
+                    0.8347366296,
+                    -0.4758919085,
+                    0.8453040903,
+                    0.2428742193,
+                    -0.6891372664,
+                    -0.5299650509,
+                    0.4941931534,
+                ],
+            ),
         ];
 
         fn build_seq(code: u32) -> RotationSeq {
@@ -637,9 +818,39 @@ mod tests {
             let j = ((code >> 4) & 0x3) as u8;
             let k = (code & 0x3) as u8;
             let mut seq = RotationSeq::default();
-            match i { 1 => { seq.x().unwrap(); }, 2 => { seq.y().unwrap(); }, _ => { seq.z().unwrap(); } }
-            match j { 1 => { seq.x().unwrap(); }, 2 => { seq.y().unwrap(); }, _ => { seq.z().unwrap(); } }
-            match k { 1 => { seq.x().unwrap(); }, 2 => { seq.y().unwrap(); }, _ => { seq.z().unwrap(); } }
+            match i {
+                1 => {
+                    seq.x().unwrap();
+                }
+                2 => {
+                    seq.y().unwrap();
+                }
+                _ => {
+                    seq.z().unwrap();
+                }
+            }
+            match j {
+                1 => {
+                    seq.x().unwrap();
+                }
+                2 => {
+                    seq.y().unwrap();
+                }
+                _ => {
+                    seq.z().unwrap();
+                }
+            }
+            match k {
+                1 => {
+                    seq.x().unwrap();
+                }
+                2 => {
+                    seq.y().unwrap();
+                }
+                _ => {
+                    seq.z().unwrap();
+                }
+            }
             seq
         }
 
@@ -647,7 +858,9 @@ mod tests {
             let seq = build_seq(*code);
             let m = angles.to_cos_matrix(seq, RotationHand::Left).unwrap();
             let a = m.to_array();
-            let flat = [a[0][0], a[0][1], a[0][2], a[1][0], a[1][1], a[1][2], a[2][0], a[2][1], a[2][2]];
+            let flat = [
+                a[0][0], a[0][1], a[0][2], a[1][0], a[1][1], a[1][2], a[2][0], a[2][1], a[2][2],
+            ];
             for i in 0..9 {
                 assert_relative_eq!(flat[i], expect[i], epsilon = 1e-9);
             }
@@ -657,11 +870,15 @@ mod tests {
     #[test]
     fn test_to_cos_matrix_left_hand_all_sequences_consistency() {
         // 另一组角度，覆盖 12 个转序，断言与基于左手 rx/ry/rz 手工构造的一致
-        let bi = -0.3141592653589_f64;   // -π/10
+        let bi = -0.3141592653589_f64; // -π/10
         let bj = 0.7891234567890_f64;
         let bk = -1.2345678901234_f64;
 
-        let angles = Vector3::new(Angular::from_rad(bi), Angular::from_rad(bj), Angular::from_rad(bk));
+        let angles = Vector3::new(
+            Angular::from_rad(bi),
+            Angular::from_rad(bj),
+            Angular::from_rad(bk),
+        );
 
         // 12 个序：6 个 Tait-Bryan + 6 个 Proper Euler
         let seq_codes: [u32; 12] = [
@@ -670,110 +887,231 @@ mod tests {
         ];
 
         fn tags_from_code(code: u32) -> (u8, u8, u8) {
-            (((code >> 8) & 0x3) as u8, ((code >> 4) & 0x3) as u8, (code & 0x3) as u8)
+            (
+                ((code >> 8) & 0x3) as u8,
+                ((code >> 4) & 0x3) as u8,
+                (code & 0x3) as u8,
+            )
         }
 
         for code in seq_codes.iter() {
             // 构序
             let mut seq = RotationSeq::default();
             let (ti, tj, tk) = tags_from_code(*code);
-            match ti { 1 => { seq.x().unwrap(); }, 2 => { seq.y().unwrap(); }, _ => { seq.z().unwrap(); } }
-            match tj { 1 => { seq.x().unwrap(); }, 2 => { seq.y().unwrap(); }, _ => { seq.z().unwrap(); } }
-            match tk { 1 => { seq.x().unwrap(); }, 2 => { seq.y().unwrap(); }, _ => { seq.z().unwrap(); } }
+            match ti {
+                1 => {
+                    seq.x().unwrap();
+                }
+                2 => {
+                    seq.y().unwrap();
+                }
+                _ => {
+                    seq.z().unwrap();
+                }
+            }
+            match tj {
+                1 => {
+                    seq.x().unwrap();
+                }
+                2 => {
+                    seq.y().unwrap();
+                }
+                _ => {
+                    seq.z().unwrap();
+                }
+            }
+            match tk {
+                1 => {
+                    seq.x().unwrap();
+                }
+                2 => {
+                    seq.y().unwrap();
+                }
+                _ => {
+                    seq.z().unwrap();
+                }
+            }
 
             // 被测矩阵
             let m = angles.to_cos_matrix(seq, RotationHand::Left).unwrap();
 
             // 期望：Ak · Aj · Ai，使用左手基元旋转（Ai 用 bi，Aj 用 bj，Ak 用 bk）
-            let ai = match ti { 1 => rx_left(bi), 2 => ry_left(bi), _ => rz_left(bi) };
-            let aj = match tj { 1 => rx_left(bj), 2 => ry_left(bj), _ => rz_left(bj) };
-            let ak = match tk { 1 => rx_left(bk), 2 => ry_left(bk), _ => rz_left(bk) };
+            let ai = match ti {
+                1 => rx_left(bi),
+                2 => ry_left(bi),
+                _ => rz_left(bi),
+            };
+            let aj = match tj {
+                1 => rx_left(bj),
+                2 => ry_left(bj),
+                _ => rz_left(bj),
+            };
+            let ak = match tk {
+                1 => rx_left(bk),
+                2 => ry_left(bk),
+                _ => rz_left(bk),
+            };
             let expected = ak.product(&aj.product(&ai));
 
             let a = m.to_array();
             let e = expected.to_array();
-            for r in 0..3 { for c in 0..3 { assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12); } }
+            for r in 0..3 {
+                for c in 0..3 {
+                    assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12);
+                }
+            }
         }
     }
 
     #[test]
     fn test_to_cos_matrix_right_hand_zero_angles_identity() {
         // 零角 -> 单位阵（任意转序）
-        let angles = Vector3::new(Angular::from_rad(0.0), Angular::from_rad(0.0), Angular::from_rad(0.0));
+        let angles = Vector3::new(
+            Angular::from_rad(0.0),
+            Angular::from_rad(0.0),
+            Angular::from_rad(0.0),
+        );
         let mut seq = RotationSeq::default();
-        seq.x().unwrap(); seq.y().unwrap(); seq.z().unwrap(); // XYZ
+        seq.x().unwrap();
+        seq.y().unwrap();
+        seq.z().unwrap(); // XYZ
         let m = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
         let a = m.to_array();
-        for r in 0..3 { for c in 0..3 { let exp = if r==c {1.0} else {0.0}; assert_relative_eq!(a[r][c], exp, epsilon = 1e-12); } }
+        for r in 0..3 {
+            for c in 0..3 {
+                let exp = if r == c { 1.0 } else { 0.0 };
+                assert_relative_eq!(a[r][c], exp, epsilon = 1e-12);
+            }
+        }
     }
 
     #[test]
     fn test_to_cos_matrix_right_hand_single_axis_matches_primitives() {
         // 仅第一步角非零（roll），XYZ: R = Rz(0)*Ry(0)*Rx(bi) = Rx_right(bi)
         let bi = 0.3456789012345_f64;
-        let angles = Vector3::new(Angular::from_rad(bi), Angular::from_rad(0.0), Angular::from_rad(0.0));
+        let angles = Vector3::new(
+            Angular::from_rad(bi),
+            Angular::from_rad(0.0),
+            Angular::from_rad(0.0),
+        );
         let mut seq = RotationSeq::default();
-        seq.x().unwrap(); seq.y().unwrap(); seq.z().unwrap(); // XYZ
+        seq.x().unwrap();
+        seq.y().unwrap();
+        seq.z().unwrap(); // XYZ
         let m = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
         let expected = rx_right(bi);
         let a = m.to_array();
         let e = expected.to_array();
-        for r in 0..3 { for c in 0..3 { assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12); } }
+        for r in 0..3 {
+            for c in 0..3 {
+                assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12);
+            }
+        }
 
         // 仅第二步角非零（pitch），XYZ: R = Rz(0)*Ry(bj)*Rx(0) = Ry_right(bj)
         let bj = -0.4567890123456_f64;
-        let angles = Vector3::new(Angular::from_rad(0.0), Angular::from_rad(bj), Angular::from_rad(0.0));
+        let angles = Vector3::new(
+            Angular::from_rad(0.0),
+            Angular::from_rad(bj),
+            Angular::from_rad(0.0),
+        );
         let mut seq = RotationSeq::default();
-        seq.x().unwrap(); seq.y().unwrap(); seq.z().unwrap();
+        seq.x().unwrap();
+        seq.y().unwrap();
+        seq.z().unwrap();
         let m = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
         let expected = ry_right(bj);
         let a = m.to_array();
         let e = expected.to_array();
-        for r in 0..3 { for c in 0..3 { assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12); } }
+        for r in 0..3 {
+            for c in 0..3 {
+                assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12);
+            }
+        }
 
         // 仅第三步角非零（yaw），XYZ: R = Rz(bk)*Ry(0)*Rx(0) = Rz_right(bk)
         let bk = 1.2345678901234_f64;
-        let angles = Vector3::new(Angular::from_rad(0.0), Angular::from_rad(0.0), Angular::from_rad(bk));
+        let angles = Vector3::new(
+            Angular::from_rad(0.0),
+            Angular::from_rad(0.0),
+            Angular::from_rad(bk),
+        );
         let mut seq = RotationSeq::default();
-        seq.x().unwrap(); seq.y().unwrap(); seq.z().unwrap();
+        seq.x().unwrap();
+        seq.y().unwrap();
+        seq.z().unwrap();
         let m = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
         let expected = rz_right(bk);
         let a = m.to_array();
         let e = expected.to_array();
-        for r in 0..3 { for c in 0..3 { assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12); } }
+        for r in 0..3 {
+            for c in 0..3 {
+                assert_relative_eq!(a[r][c], e[r][c], epsilon = 1e-12);
+            }
+        }
     }
 
     #[test]
     fn test_to_cos_matrix_right_vs_left_transpose_relation() {
         // Right 主动 == Left 被动（转置关系）
-        let bi = 0.2_f64; let bj = -0.4_f64; let bk = 0.6_f64;
-        let angles = Vector3::new(Angular::from_rad(bi), Angular::from_rad(bj), Angular::from_rad(bk));
+        let bi = 0.2_f64;
+        let bj = -0.4_f64;
+        let bk = 0.6_f64;
+        let angles = Vector3::new(
+            Angular::from_rad(bi),
+            Angular::from_rad(bj),
+            Angular::from_rad(bk),
+        );
         let mut seq = RotationSeq::default();
-        seq.y().unwrap(); seq.z().unwrap(); seq.x().unwrap(); // YZX 序
+        seq.y().unwrap();
+        seq.z().unwrap();
+        seq.x().unwrap(); // YZX 序
         let mr = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
         // Left 被动应满足：R_right = (Ai_left · Aj_left · Ak_left)^T
         // 因此需要手工按 Ai·Aj·Ak 顺序构造 Left，再取转置比较
         let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
-        let ti = 2u8; let tj = 3u8; let tk = 1u8; // YZX
-        let ai_l = match ti { 1 => rx_left(bi), 2 => ry_left(bi), _ => rz_left(bi) };
-        let aj_l = match tj { 1 => rx_left(bj), 2 => ry_left(bj), _ => rz_left(bj) };
-        let ak_l = match tk { 1 => rx_left(bk), 2 => ry_left(bk), _ => rz_left(bk) };
+        let ti = 2u8;
+        let tj = 3u8;
+        let tk = 1u8; // YZX
+        let ai_l = match ti {
+            1 => rx_left(bi),
+            2 => ry_left(bi),
+            _ => rz_left(bi),
+        };
+        let aj_l = match tj {
+            1 => rx_left(bj),
+            2 => ry_left(bj),
+            _ => rz_left(bj),
+        };
+        let ak_l = match tk {
+            1 => rx_left(bk),
+            2 => ry_left(bk),
+            _ => rz_left(bk),
+        };
         let left_ai_aj_ak = ai_l.product(&aj_l).product(&ak_l);
         let ar = mr.to_array();
         let al = left_ai_aj_ak.to_array();
         // ar == (Ai_l · Aj_l · Ak_l)^T
-        for r in 0..3 { for c in 0..3 { assert_relative_eq!(ar[r][c], al[c][r], epsilon = 1e-12); } }
+        for r in 0..3 {
+            for c in 0..3 {
+                assert_relative_eq!(ar[r][c], al[c][r], epsilon = 1e-12);
+            }
+        }
     }
 
     #[test]
-    fn to_quaternion_test(){
+    fn to_quaternion_test() {
         let angulars = Vector3::<Angular>::new(
             Angular::from_rad(0.0),
             Angular::from_rad(0.0),
             Angular::from_deg(180.0),
         );
         let quaternion = angulars.to_quaternion();
-        let values = quaternion.get_value();
-        println!("{:?}", values);
+        let (q0, q1, q2, q3) = quaternion.get_value();
+        println!("{:?}", (q0, q1, q2, q3));
+        assert_relative_eq!(q0, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(q1, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(q2, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(q3, 1.0, epsilon = 1e-12);
     }
 }

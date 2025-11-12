@@ -1,5 +1,12 @@
 use std::ops::Neg;
 
+pub fn sgn(xin: f64) -> f64 {
+    if xin > 0.0 {
+        return 1.0;
+    } else {
+        return -1.0;
+    }
+}
 // 符号函数
 pub fn sgn2_64(xin: f64) -> i32 {
     if xin > 0.0 {
@@ -13,7 +20,7 @@ pub fn sgn2_64(xin: f64) -> i32 {
 
 pub fn limit_float<T>(fin: T, f_bound: T) -> T
 where
-    T: Default + Copy + PartialOrd + Neg<Output=T>,
+    T: Default + Copy + PartialOrd + Neg<Output = T>,
 {
     let f_value: T;
 
@@ -37,8 +44,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use approx::assert_relative_eq;
     use super::*;
+    use approx::assert_relative_eq;
 
     #[test]
     #[test]
@@ -61,5 +68,12 @@ mod tests {
         assert_relative_eq!(limit_float(-1.8, 1.0), -1.0);
         assert_relative_eq!(limit_float(0.5, 1.0), 0.5);
     }
-}
 
+    #[test]
+    fn test_sgn() {
+        assert_relative_eq!(sgn(0.0), -1.0);
+        assert_relative_eq!(sgn(-0.0), -1.0);
+        assert_relative_eq!(sgn(1.0), 1.0);
+        assert_relative_eq!(sgn(-1.0), -1.0);
+    }
+}

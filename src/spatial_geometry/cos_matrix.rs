@@ -390,7 +390,7 @@ impl CosMatrix {
         let c11 = 1.0 + p_mat[0][0] - p_mat[1][1] - p_mat[2][2];
         let mut result = Quaternion::default();
         if a44 > 0.004 {
-            let tqi = sgn(f64::sqrt(a44) / 2.0);
+            let tqi = f64::sqrt(a44) / 2.0;
             result.q1 = 0.25 * (p_mat[1][2] - p_mat[2][1]) / tqi;
             result.q2 = 0.25 * (p_mat[2][0] - p_mat[0][2]) / tqi;
             result.q3 = 0.25 * (p_mat[0][1] - p_mat[1][0]) / tqi;
@@ -577,12 +577,12 @@ mod tests {
             [-0.986284316, 0.118965819, 0.114414386],
             [-0.0997423381, -0.981879771, 0.161132157],
         ]);
-        //[, , , ]
         let q = cos.to_quaternion();
-        assert_relative_eq!(q.q0, 0.90227056, epsilon = 1e-6);
-        assert_relative_eq!(q.q1, 0.2472885, epsilon = 1e-6);
-        assert_relative_eq!(q.q2, -0.24361777, epsilon = 1e-6);
-        assert_relative_eq!(q.q3, 0.25574735, epsilon = 1e-6);
+
+        assert_relative_eq!(q.q0, 0.59405565, epsilon = 1e-6);
+        assert_relative_eq!(q.q1, 0.46136004, epsilon = 1e-6);
+        assert_relative_eq!(q.q2,-0.45451167, epsilon = 1e-6);
+        assert_relative_eq!(q.q3, 0.4771415, epsilon = 1e-6);
 
         let cos = CosMatrix::new([
             [-0.99995, 0.00999, -0.00249],
@@ -601,10 +601,10 @@ mod tests {
             [0.001, 0.9998, -0.007],
         ]);
         let q = cos.to_quaternion();
-        assert_relative_eq!(q.q0, 0.8944585, epsilon = 1e-6);
-        assert_relative_eq!(q.q1, -0.4471398, epsilon = 1e-6);
-        assert_relative_eq!(q.q2, 0.00044722925, epsilon = 1e-6);
-        assert_relative_eq!(q.q3, -0.0031306047, epsilon = 1e-6);
+        assert_relative_eq!(q.q0, 0.70589256, epsilon = 1e-6);
+        assert_relative_eq!(q.q1, -0.70830125, epsilon = 1e-6);
+        assert_relative_eq!(q.q2,0.00070844294, epsilon = 1e-6);
+        assert_relative_eq!(q.q3,-0.004959101, epsilon = 1e-6);
 
         let cos = CosMatrix::new([
             [1.0, 0.0, 0.0],

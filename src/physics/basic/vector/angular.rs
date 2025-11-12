@@ -62,14 +62,11 @@ impl Vector3<Angular> {
 
     pub fn to_quaternion(&self) -> Quaternion {
         let norm = self.norm();
-        println!("norm: {} rad, {} deg", norm.as_rad(), norm.as_deg());
         if norm.as_rad() < FLT64_ZERO {
             return Quaternion::default();
         } else {
             let half_norm = norm * 0.5;
-            println!("half_norm: {} rad", half_norm.as_rad());
             let tmp = half_norm.sin() / norm.as_rad();
-            println!("tmp: {}", tmp);
             let mut q = Quaternion::default();
             q.q0 = (norm * 0.5).cos();
             q.q1 = (self.x * tmp).as_rad();

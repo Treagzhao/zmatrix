@@ -512,17 +512,6 @@ mod tests {
             rx /= norm;
             ry /= norm;
             rz /= norm;
-        } else {
-            rw = 1.0;
-            rx = 0.0;
-            ry = 0.0;
-            rz = 0.0;
-        }
-        if rw < 0.0 {
-            rw = -rw;
-            rx = -rx;
-            ry = -ry;
-            rz = -rz;
         }
         assert_relative_eq!(d1.q0, rw, epsilon = 1e-12);
         assert_relative_eq!(d1.q1, rx, epsilon = 1e-12);

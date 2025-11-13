@@ -652,6 +652,13 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(err.message, "quaternion norm is zero ,could not get axis");
+
+        let angle = Angular::from_rad(0.0);
+        let q = Quaternion::default();
+        let result = q.to_axis(angle);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.message, "angle is zero ,could not get axis");
     }
 
     #[test]

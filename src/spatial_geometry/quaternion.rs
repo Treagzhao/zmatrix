@@ -1,6 +1,8 @@
 use super::*;
 use crate::constant::FLT64_ZERO;
+use crate::dense::error::OperationError;
 use crate::dense::Matrix;
+use crate::physics::basic::{Angular, Coef, Vector3};
 use crate::spatial_geometry::cos_matrix::CosMatrix;
 use std::ops::{Add, Div, Mul};
 
@@ -130,6 +132,25 @@ impl Quaternion {
             [-self.q1, -self.q2, -self.q3],
         ])
     }
+
+    pub fn to_axis(&self, angle: Angular) -> Result<Vector3<Coef>, OperationError> {
+        if self.norm().abs() < 1e-12 {
+            return Err(OperationError {
+                message: "quaternion norm is zero ,could not get axis".to_string(),
+            });
+        }
+        let q = self.normalize();
+        let half_angle = angle / 2.0;
+        if half_angle.sin().abs() < 1e-12 {
+            return Err(OperationError {
+                message: "angle is zero ,could not get axis".to_string(),
+            });
+        }
+        let x = q.q1 / half_angle.sin();
+        let y = q.q2 / half_angle.sin();
+        let z = q.q3 / half_angle.sin();
+        Ok(Vector3::new(Coef::new(x), Coef::new(y), Coef::new(z)))
+    }
 }
 
 impl Add for Quaternion {
@@ -172,9 +193,9 @@ impl Div for Quaternion {
         let bw = rhs.q0;
 
         let mut rx = -ax * bw - ay * bz + az * by + aw * bx;
-        let mut ry =  ax * bz - ay * bw - az * bx + aw * by;
+        let mut ry = ax * bz - ay * bw - az * bx + aw * by;
         let mut rz = -ax * by + ay * bx - az * bw + aw * bz;
-        let mut rw =  ax * bx + ay * by + az * bz + aw * bw;
+        let mut rw = ax * bx + ay * by + az * bz + aw * bw;
 
         // 归一化并强制 w>=0
         let norm = f64::sqrt(rw * rw + rx * rx + ry * ry + rz * rz);
@@ -195,7 +216,12 @@ impl Div for Quaternion {
             ry = -ry;
             rz = -rz;
         }
-        Quaternion { q0: rw, q1: rx, q2: ry, q3: rz }
+        Quaternion {
+            q0: rw,
+            q1: rx,
+            q2: ry,
+            q3: rz,
+        }
     }
 }
 
@@ -215,9 +241,9 @@ impl Div for &Quaternion {
         let bw = rhs.q0;
 
         let mut rx = -ax * bw - ay * bz + az * by + aw * bx;
-        let mut ry =  ax * bz - ay * bw - az * bx + aw * by;
+        let mut ry = ax * bz - ay * bw - az * bx + aw * by;
         let mut rz = -ax * by + ay * bx - az * bw + aw * bz;
-        let mut rw =  ax * bx + ay * by + az * bz + aw * bw;
+        let mut rw = ax * bx + ay * by + az * bz + aw * bw;
 
         // 归一化并强制 w>=0
         let norm = f64::sqrt(rw * rw + rx * rx + ry * ry + rz * rz);
@@ -238,7 +264,12 @@ impl Div for &Quaternion {
             ry = -ry;
             rz = -rz;
         }
-        Quaternion { q0: rw, q1: rx, q2: ry, q3: rz }
+        Quaternion {
+            q0: rw,
+            q1: rx,
+            q2: ry,
+            q3: rz,
+        }
     }
 }
 
@@ -348,7 +379,7 @@ mod tests {
         };
         let result = target / b_i_old;
         let (q0, q1, q2, q3) = result.get_value();
-        println!("final result {:?}",result);
+        println!("final result {:?}", result);
         assert_relative_eq!(q0, 0.982280611992, epsilon = 1e-7);
         assert_relative_eq!(q1, -0.110394701362, epsilon = 1e-7);
         assert_relative_eq!(q2, -0.086304791272, epsilon = 1e-7);
@@ -463,15 +494,25 @@ mod tests {
         let r = Quaternion::new(0.5, 1.0, -2.0, 3.0);
         let d1 = q1 / r;
         // 手算预期：按 xyzw 公式计算，再单位化并强制 w>=0
-        let ax = q1.q1; let ay = q1.q2; let az = q1.q3; let aw = q1.q0;
-        let bx = r.q1;  let by = r.q2;  let bz = r.q3;  let bw = r.q0;
+        let ax = q1.q1;
+        let ay = q1.q2;
+        let az = q1.q3;
+        let aw = q1.q0;
+        let bx = r.q1;
+        let by = r.q2;
+        let bz = r.q3;
+        let bw = r.q0;
         let mut rx = -ax * bw - ay * bz + az * by + aw * bx;
-        let mut ry =  ax * bz - ay * bw - az * bx + aw * by;
+        let mut ry = ax * bz - ay * bw - az * bx + aw * by;
         let mut rz = -ax * by + ay * bx - az * bw + aw * bz;
-        let mut rw =  ax * bx + ay * by + az * bz + aw * bw;
+        let mut rw = ax * bx + ay * by + az * bz + aw * bw;
         let norm = f64::sqrt(rw * rw + rx * rx + ry * ry + rz * rz);
-        if norm > FLT64_ZERO { rw/=norm; rx/=norm; ry/=norm; rz/=norm; } else { rw=1.0; rx=0.0; ry=0.0; rz=0.0; }
-        if rw < 0.0 { rw=-rw; rx=-rx; ry=-ry; rz=-rz; }
+        if norm > FLT64_ZERO {
+            rw /= norm;
+            rx /= norm;
+            ry /= norm;
+            rz /= norm;
+        }
         assert_relative_eq!(d1.q0, rw, epsilon = 1e-12);
         assert_relative_eq!(d1.q1, rx, epsilon = 1e-12);
         assert_relative_eq!(d1.q2, ry, epsilon = 1e-12);
@@ -579,6 +620,34 @@ mod tests {
                 assert_relative_eq!(*exp, result.get(col, row).unwrap(), epsilon = 1e-7);
             }
         }
+    }
+
+    #[test]
+    fn test_to_axis_success() {
+        let angle = Angular::from_rad(std::f64::consts::PI);
+        // 180° 绕 X 轴的单位四元数：w = 0, x = 1, y = 0, z = 0
+        let q = Quaternion::new(0.0, 1.0, 0.0, 0.0);
+        let axis = q.to_axis(angle).expect("expected axis vector");
+        assert_relative_eq!(axis.x.get_value(), 1.0, epsilon = 1e-12);
+        assert_relative_eq!(axis.y.get_value(), 0.0, epsilon = 1e-12);
+        assert_relative_eq!(axis.z.get_value(), 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_to_axis_zero_quaternion_error() {
+        let angle = Angular::from_rad(1.0);
+        let zero_q = Quaternion::new(0.0, 0.0, 0.0, 0.0);
+        let result = zero_q.to_axis(angle);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.message, "quaternion norm is zero ,could not get axis");
+
+        let angle = Angular::from_rad(0.0);
+        let q = Quaternion::default();
+        let result = q.to_axis(angle);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.message, "angle is zero ,could not get axis");
     }
 
     #[test]

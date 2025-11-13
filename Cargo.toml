@@ -1,10 +1,11 @@
 [package]
 name = "zmatrix"
-version = "0.2.23"
+version = "0.2.24"
 edition = "2021"
 authors = ["Treagzhao"]
 license = "MIT"
 description = "This is a matrix calculation lib"
+
 
 [dependencies]
 approx = "0.5.1"

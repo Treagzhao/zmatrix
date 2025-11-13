@@ -6,6 +6,7 @@ authors = ["Treagzhao"]
 license = "MIT"
 description = "This is a matrix calculation lib"
 
+
 [dependencies]
 approx = "0.5.1"
 array-init = "2.1.0"

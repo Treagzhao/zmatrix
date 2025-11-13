@@ -189,6 +189,34 @@ impl<'a, 'b> Div<&'b Duration> for &'a Angular {
     }
 }
 
+impl Div<AngularVelocity> for Angular {
+    type Output = Duration;
+    fn div(self, rhs: AngularVelocity) -> Self::Output {
+        Duration::from_secs_f64(self.as_rad() / rhs.as_rad_per_second())
+    }
+}
+
+impl<'a, 'b> Div<&'b AngularVelocity> for &'a Angular {
+    type Output = Duration;
+    fn div(self, rhs: &'b AngularVelocity) -> Self::Output {
+        Duration::from_secs_f64(self.as_rad() / rhs.as_rad_per_second())
+    }
+}
+
+impl<'a> Div<&'a AngularVelocity> for Angular {
+    type Output = Duration;
+    fn div(self, rhs: &'a AngularVelocity) -> Self::Output {
+        Duration::from_secs_f64(self.as_rad() / rhs.as_rad_per_second())
+    }
+}
+
+impl<'a> Div<AngularVelocity> for &'a Angular {
+    type Output = Duration;
+    fn div(self, rhs: AngularVelocity) -> Self::Output {
+        Duration::from_secs_f64(self.as_rad() / rhs.as_rad_per_second())
+    }
+}
+
 impl Mul<f64> for Angular {
     type Output = Self;
     fn mul(self, rhs: f64) -> Self::Output {
@@ -556,5 +584,126 @@ mod tests {
         let a5 = Angular::from_rad(2.0 * PI);
         let neg_a5 = -a5;
         assert_relative_eq!(neg_a5.as_deg(), -360.0);
+    }
+
+    #[test]
+    fn test_angular_div_angular_velocity() {
+        // 基本测试：弧度 / 弧度每秒 = 秒
+        {
+            let angle = Angular::from_rad(PI);
+            let angular_velocity = AngularVelocity::from_rad_per_second(0.5 * PI);
+            let duration = angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 2.0);
+        }
+
+        // 基本测试：度 / 度每秒 = 秒
+        {
+            let angle = Angular::from_deg(180.0);
+            let angular_velocity = AngularVelocity::from_deg_per_second(90.0);
+            let duration = angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 2.0);
+        }
+
+        // 混合单位测试：度 / 弧度每秒
+        {
+            let angle = Angular::from_deg(180.0); // π 弧度
+            let angular_velocity = AngularVelocity::from_rad_per_second(PI);
+            let duration = angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        // 混合单位测试：弧度 / 度每秒
+        {
+            let angle = Angular::from_rad(PI);
+            let angular_velocity = AngularVelocity::from_deg_per_second(180.0); // π 弧度/秒
+            let duration = angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        // 测试弧度/小时单位
+        {
+            let angle = Angular::from_rad(2.0 * PI);
+            let angular_velocity = AngularVelocity::from_rad_per_hour(3600.0 * PI); // π 弧度/秒 = 3600π 弧度/小时
+            let duration = angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 2.0);
+        }
+
+        // 测试度/小时单位
+        {
+            let angle = Angular::from_deg(360.0);
+            let angular_velocity = AngularVelocity::from_deg_per_hour(180.0 * 3600.0); // 180度/秒 = 180*3600度/小时
+            let duration = angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 2.0);
+        }
+
+        // 引用-引用测试
+        {
+            let angle = Angular::from_rad(PI);
+            let angular_velocity = AngularVelocity::from_rad_per_second(0.5 * PI);
+            let duration = &angle / &angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 2.0);
+        }
+
+        // 混合引用测试：值 / 引用
+        {
+            let angle = Angular::from_rad(PI);
+            let angular_velocity = AngularVelocity::from_rad_per_second(0.5 * PI);
+            let duration = angle / &angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 2.0);
+        }
+
+        // 混合引用测试：引用 / 值
+        {
+            let angle = Angular::from_rad(PI);
+            let angular_velocity = AngularVelocity::from_rad_per_second(0.5 * PI);
+            let duration = &angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 2.0);
+        }
+
+        // 测试不同单位的混合引用
+        {
+            let angle = Angular::from_deg(90.0);
+            let angular_velocity = AngularVelocity::from_rad_per_second(PI / 2.0);
+            let duration = &angle / &angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        {
+            let angle = Angular::from_deg(90.0);
+            let angular_velocity = AngularVelocity::from_rad_per_second(PI / 2.0);
+            let duration = angle / &angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        {
+            let angle = Angular::from_deg(90.0);
+            let angular_velocity = AngularVelocity::from_rad_per_second(PI / 2.0);
+            let duration = &angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        // 测试零角度
+        {
+            let angle = Angular::from_rad(0.0);
+            let angular_velocity = AngularVelocity::from_rad_per_second(1.0);
+            let duration = angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 0.0);
+        }
+
+        // 测试大角度
+        {
+            let angle = Angular::from_rad(10.0 * PI);
+            let angular_velocity = AngularVelocity::from_rad_per_second(PI);
+            let duration = angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 10.0);
+        }
+
+        // 测试小角速度
+        {
+            let angle = Angular::from_rad(PI);
+            let angular_velocity = AngularVelocity::from_rad_per_second(0.1);
+            let duration = angle / angular_velocity;
+            assert_relative_eq!(duration.as_secs_f64(), 10.0 * PI, epsilon = 1e-8);
+        }
     }
 }

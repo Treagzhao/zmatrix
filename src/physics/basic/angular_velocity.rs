@@ -580,11 +580,123 @@ mod tests {
 
     #[test]
     fn test_angular_velocity_div_angular_acceleration() {
-        let omega = AngularVelocity::from_rad_per_second(10.0); // 10 rad/s
-        let alpha = AngularAcceleration::from_rad_per_second2(2.0); // 2 rad/s²
-        let time = omega / alpha; // 5 s
-        
-        assert_relative_eq!(time.as_secs_f64(), 5.0);
+        // 基本测试：弧度每秒 / 弧度每秒² = 秒
+        {
+            let omega = AngularVelocity::from_rad_per_second(10.0);
+            let alpha = AngularAcceleration::from_rad_per_second2(2.0);
+            let duration = omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 5.0);
+        }
+
+        // 基本测试：度每秒 / 度每秒² = 秒
+        {
+            let omega = AngularVelocity::from_deg_per_second(180.0);
+            let alpha = AngularAcceleration::from_deg_per_second2(90.0);
+            let duration = omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 2.0);
+        }
+
+        // 混合单位测试：度每秒 / 弧度每秒²
+        {
+            let omega = AngularVelocity::from_deg_per_second(180.0); // π 弧度/秒
+            let alpha = AngularAcceleration::from_rad_per_second2(PI);
+            let duration = omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        // 混合单位测试：弧度每秒 / 度每秒²
+        {
+            let omega = AngularVelocity::from_rad_per_second(PI);
+            let alpha = AngularAcceleration::from_deg_per_second2(180.0); // π 弧度/秒²
+            let duration = omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        // 测试弧度/小时单位
+        {
+            let omega = AngularVelocity::from_rad_per_hour(3600.0 * PI); // π 弧度/秒 = 3600π 弧度/小时
+            let alpha = AngularAcceleration::from_rad_per_second2(PI);
+            let duration = omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        // 测试度/小时单位
+        {
+            let omega = AngularVelocity::from_deg_per_hour(180.0 * 3600.0); // 180度/秒 = 180*3600度/小时
+            let alpha = AngularAcceleration::from_deg_per_second2(180.0);
+            let duration = omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        // 引用-引用测试
+        {
+            let omega = AngularVelocity::from_rad_per_second(10.0);
+            let alpha = AngularAcceleration::from_rad_per_second2(2.0);
+            let duration = &omega / &alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 5.0);
+        }
+
+        // 混合引用测试：值 / 引用
+        {
+            let omega = AngularVelocity::from_rad_per_second(10.0);
+            let alpha = AngularAcceleration::from_rad_per_second2(2.0);
+            let duration = omega / &alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 5.0);
+        }
+
+        // 混合引用测试：引用 / 值
+        {
+            let omega = AngularVelocity::from_rad_per_second(10.0);
+            let alpha = AngularAcceleration::from_rad_per_second2(2.0);
+            let duration = &omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 5.0);
+        }
+
+        // 测试不同单位的混合引用
+        {
+            let omega = AngularVelocity::from_deg_per_second(180.0);
+            let alpha = AngularAcceleration::from_rad_per_second2(PI);
+            let duration = &omega / &alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        {
+            let omega = AngularVelocity::from_deg_per_second(180.0);
+            let alpha = AngularAcceleration::from_rad_per_second2(PI);
+            let duration = omega / &alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        {
+            let omega = AngularVelocity::from_deg_per_second(180.0);
+            let alpha = AngularAcceleration::from_rad_per_second2(PI);
+            let duration = &omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 1.0);
+        }
+
+        // 测试零角速度
+        {
+            let omega = AngularVelocity::from_rad_per_second(0.0);
+            let alpha = AngularAcceleration::from_rad_per_second2(1.0);
+            let duration = omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 0.0);
+        }
+
+        // 测试大角速度
+        {
+            let omega = AngularVelocity::from_rad_per_second(100.0 * PI);
+            let alpha = AngularAcceleration::from_rad_per_second2(PI);
+            let duration = omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 100.0);
+        }
+
+        // 测试小角加速度
+        {
+            let omega = AngularVelocity::from_rad_per_second(PI);
+            let alpha = AngularAcceleration::from_rad_per_second2(0.1);
+            let duration = omega / alpha;
+            assert_relative_eq!(duration.as_secs_f64(), 10.0 * PI, epsilon = 1e-8);
+        }
     }
 
     #[test]

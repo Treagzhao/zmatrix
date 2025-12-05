@@ -10,9 +10,9 @@ pub struct RotationSeq {
     count: u8,
 }
 
-pub(crate) const TAG_X: u8 = 0x1;
-pub(crate) const TAG_Y: u8 = 0x2;
-pub(crate) const TAG_Z: u8 = 0x3;
+pub const TAG_X: u8 = 0x1;
+pub const TAG_Y: u8 = 0x2;
+pub const TAG_Z: u8 = 0x3;
 
 #[derive(Debug, Copy, Clone)]
 pub enum RotationHand {

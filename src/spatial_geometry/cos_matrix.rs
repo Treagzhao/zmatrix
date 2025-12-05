@@ -1,5 +1,6 @@
 use super::*;
 use crate::dense::Matrix;
+use crate::physics::basic::vector::angular::{RotationSeq, TAG_X, TAG_Y, TAG_Z};
 use crate::physics::basic::{Angular, Coef, PhysicalQuantity, Vector3, VectorQuantity};
 use crate::spatial_geometry::quaternion::Quaternion;
 use crate::utils::float::{sgn, sgn2_64};
@@ -508,6 +509,95 @@ impl CosMatrix {
         let data: [[f64; 3]; 3] = self.to_array();
         Matrix::new(data)
     }
+
+    // 将方向余弦矩阵转换为欧拉角，根据指定的旋转顺序
+    pub fn to_euler(&self, seq: &RotationSeq) -> Vector3<Angular> {
+        // 获取旋转顺序的编码值
+        let seq_tag = seq.value().unwrap();
+
+        // 解析旋转顺序的三个轴
+        let axis1 = (seq_tag >> 4) & 0x3;
+        let axis2 = (seq_tag >> 2) & 0x3;
+        let axis3 = seq_tag & 0x3;
+
+        // 将轴标签转换为1/2/3，与dcm2angle函数的编码一致
+        let i = match axis1 {
+            TAG_X => 1,
+            TAG_Y => 2,
+            TAG_Z => 3,
+            _ => panic!("Invalid axis1 tag: {}", axis1),
+        };
+
+        let j = match axis2 {
+            TAG_X => 1,
+            TAG_Y => 2,
+            TAG_Z => 3,
+            _ => panic!("Invalid axis2 tag: {}", axis2),
+        };
+
+        let k = match axis3 {
+            TAG_X => 1,
+            TAG_Y => 2,
+            TAG_Z => 3,
+            _ => panic!("Invalid axis3 tag: {}", axis3),
+        };
+
+        // 组合成dcm2angle函数使用的9位数字编码
+        let ijk = (i * 100 + j * 10 + k) as u32;
+
+        // 获取方向余弦矩阵的数组表示
+        let data = self.to_array();
+
+        // 转换为f32类型，与dcm2angle函数的参数类型匹配
+        let pa: [[f32; 3]; 3] = [
+            [data[0][0] as f32, data[0][1] as f32, data[0][2] as f32],
+            [data[1][0] as f32, data[1][1] as f32, data[1][2] as f32],
+            [data[2][0] as f32, data[2][1] as f32, data[2][2] as f32],
+        ];
+
+        // 使用dcm2angle函数的数学公式计算欧拉角
+        let mut euler: [f64; 3] = [0.0; 3];
+        match ijk {
+            321 => {
+                euler[0] = f64::atan2(pa[1][2] as f64, pa[2][2] as f64);
+                euler[1] = f64::asin(0.0 - pa[0][2] as f64);
+                euler[2] = f64::atan2(pa[0][1] as f64, pa[0][0] as f64);
+            }
+            312 => {
+                euler[0] = f64::asin(0.0 + pa[1][2] as f64);
+                euler[1] = f64::atan2(0.0 - pa[0][2] as f64, pa[2][2] as f64);
+                euler[2] = f64::atan2(0.0 - pa[1][0] as f64, pa[1][1] as f64);
+            }
+            123 => {
+                euler[0] = f64::atan2(0.0 - pa[2][1] as f64, pa[2][2] as f64);
+                euler[1] = f64::asin(pa[2][0] as f64);
+                euler[2] = f64::atan2(0.0 - pa[1][0] as f64, pa[0][0] as f64);
+            }
+            132 => {
+                euler[0] = f64::atan2(pa[1][2] as f64, pa[1][1] as f64);
+                euler[1] = f64::atan2(pa[2][0] as f64, pa[0][0] as f64);
+                euler[2] = f64::asin(0.0 - pa[1][0] as f64);
+            }
+            213 => {
+                euler[0] = f64::asin(0.0 - pa[2][1] as f64);
+                euler[1] = f64::atan2(pa[2][0] as f64, pa[2][2] as f64);
+                euler[2] = f64::atan2(pa[0][1] as f64, pa[1][1] as f64);
+            }
+            231 => {
+                euler[0] = f64::atan2(0.0 - pa[2][1] as f64, pa[1][1] as f64);
+                euler[1] = f64::atan2(0.0 - pa[0][2] as f64, pa[0][0] as f64);
+                euler[2] = f64::asin(pa[0][1] as f64);
+            }
+            _ => panic!("Unsupported rotation sequence: {}", ijk),
+        };
+
+        // 将计算得到的欧拉角转换为Angular类型并返回
+        Vector3::new(
+            Angular::from_rad(euler[0]),
+            Angular::from_rad(euler[1]),
+            Angular::from_rad(euler[2]),
+        )
+    }
 }
 
 #[cfg(test)]
@@ -581,7 +671,7 @@ mod tests {
 
         assert_relative_eq!(q.q0, 0.59405565, epsilon = 1e-6);
         assert_relative_eq!(q.q1, 0.46136004, epsilon = 1e-6);
-        assert_relative_eq!(q.q2,-0.45451167, epsilon = 1e-6);
+        assert_relative_eq!(q.q2, -0.45451167, epsilon = 1e-6);
         assert_relative_eq!(q.q3, 0.4771415, epsilon = 1e-6);
 
         let cos = CosMatrix::new([
@@ -603,8 +693,8 @@ mod tests {
         let q = cos.to_quaternion();
         assert_relative_eq!(q.q0, 0.70589256, epsilon = 1e-6);
         assert_relative_eq!(q.q1, -0.70830125, epsilon = 1e-6);
-        assert_relative_eq!(q.q2,0.00070844294, epsilon = 1e-6);
-        assert_relative_eq!(q.q3,-0.004959101, epsilon = 1e-6);
+        assert_relative_eq!(q.q2, 0.00070844294, epsilon = 1e-6);
+        assert_relative_eq!(q.q3, -0.004959101, epsilon = 1e-6);
 
         let cos = CosMatrix::new([
             [1.0, 0.0, 0.0],
@@ -612,7 +702,7 @@ mod tests {
             [0.0, 0.00174532837, -0.999998477],
         ]);
         let q = cos.to_quaternion();
-        assert_relative_eq!(q.q0,0.0008726645, epsilon = 1e-6);
+        assert_relative_eq!(q.q0, 0.0008726645, epsilon = 1e-6);
         assert_relative_eq!(q.q1, -0.99999964, epsilon = 1e-6);
         assert_relative_eq!(q.q2, -0.0, epsilon = 1e-6);
         assert_relative_eq!(q.q3, -0.0, epsilon = 1e-6);
@@ -983,5 +1073,319 @@ mod tests {
         let quat = cos.to_quaternion();
         let (q0, q1, q2, q3) = quat.get_value();
         println!("q0: {}, q1: {}, q2: {}, q3: {}", q0, q1, q2, q3);
+    }
+
+    #[test]
+    fn test_to_euler() {
+        use crate::physics::basic::vector::angular::RotationSeq;
+        use approx::assert_relative_eq;
+
+        println!("=== 测试to_euler方法 ===");
+
+        // 测试1: 单位矩阵，预期欧拉角全为0
+        println!("\n测试1: 单位矩阵");
+        let identity_matrix: [[f64; 3]; 3] = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        let identity = CosMatrix::new(identity_matrix);
+
+        // 测试所有支持的旋转顺序
+        let rotation_orders = [
+            (321, "ZYX"),
+            (312, "ZXY"),
+            (123, "XYZ"),
+            (132, "XZY"),
+            (213, "YXZ"),
+            (231, "YZX"),
+        ];
+
+        for (order_code, order_name) in rotation_orders.iter() {
+            // 创建对应的RotationSeq
+            let mut seq = RotationSeq::default();
+            match order_code {
+                321 => {
+                    seq.z().unwrap();
+                    seq.y().unwrap();
+                    seq.x().unwrap();
+                }
+                312 => {
+                    seq.z().unwrap();
+                    seq.x().unwrap();
+                    seq.y().unwrap();
+                }
+                123 => {
+                    seq.x().unwrap();
+                    seq.y().unwrap();
+                    seq.z().unwrap();
+                }
+                132 => {
+                    seq.x().unwrap();
+                    seq.z().unwrap();
+                    seq.y().unwrap();
+                }
+                213 => {
+                    seq.y().unwrap();
+                    seq.x().unwrap();
+                    seq.z().unwrap();
+                }
+                231 => {
+                    seq.y().unwrap();
+                    seq.z().unwrap();
+                    seq.x().unwrap();
+                }
+                _ => panic!("Unsupported rotation order: {}", order_code),
+            }
+
+            let euler = identity.to_euler(&seq);
+            println!(
+                "旋转顺序 {}: 欧拉角 = [{:.6}, {:.6}, {:.6}]",
+                order_name,
+                euler.x.as_rad(),
+                euler.y.as_rad(),
+                euler.z.as_rad()
+            );
+
+            // 单位矩阵的欧拉角应该全为0
+            assert_relative_eq!(euler.x.as_rad(), 0.0, epsilon = 1e-6);
+            assert_relative_eq!(euler.y.as_rad(), 0.0, epsilon = 1e-6);
+            assert_relative_eq!(euler.z.as_rad(), 0.0, epsilon = 1e-6);
+        }
+
+        // 测试2: 已知旋转角度的矩阵（与dcm2angle测试用例相同）
+        println!("\n测试2: 已知旋转角度的矩阵（Z-Y-X顺序）");
+        let test_matrix_321: [[f64; 3]; 3] = [
+            [0.5, 0.5, 0.7071],
+            [-0.5, 0.5, 0.7071],
+            [-0.7071, 0.7071, 0.0],
+        ];
+        let cos_321 = CosMatrix::new(test_matrix_321);
+
+        // 测试所有支持的旋转顺序
+        for (order_code, order_name) in rotation_orders.iter() {
+            // 创建对应的RotationSeq
+            let mut seq = RotationSeq::default();
+            match order_code {
+                321 => {
+                    seq.z().unwrap();
+                    seq.y().unwrap();
+                    seq.x().unwrap();
+                }
+                312 => {
+                    seq.z().unwrap();
+                    seq.x().unwrap();
+                    seq.y().unwrap();
+                }
+                123 => {
+                    seq.x().unwrap();
+                    seq.y().unwrap();
+                    seq.z().unwrap();
+                }
+                132 => {
+                    seq.x().unwrap();
+                    seq.z().unwrap();
+                    seq.y().unwrap();
+                }
+                213 => {
+                    seq.y().unwrap();
+                    seq.x().unwrap();
+                    seq.z().unwrap();
+                }
+                231 => {
+                    seq.y().unwrap();
+                    seq.z().unwrap();
+                    seq.x().unwrap();
+                }
+                _ => panic!("Unsupported rotation order: {}", order_code),
+            }
+
+            let euler = cos_321.to_euler(&seq);
+
+            println!(
+                "旋转顺序 {}: to_euler = [{:.6}, {:.6}, {:.6}]",
+                order_name,
+                euler.x.as_rad(),
+                euler.y.as_rad(),
+                euler.z.as_rad()
+            );
+
+            // 验证结果合理性，确保角度在合理范围内
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.x.as_rad()));
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.y.as_rad()));
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.z.as_rad()));
+        }
+
+        // 测试3: 仅绕X轴旋转90度的矩阵（与dcm2angle测试用例相同）
+        println!("\n测试3: 仅绕X轴旋转90度");
+        let x_rot_90: [[f64; 3]; 3] = [[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]];
+        let cos_x_rot = CosMatrix::new(x_rot_90);
+
+        for (order_code, order_name) in rotation_orders.iter() {
+            // 创建对应的RotationSeq
+            let mut seq = RotationSeq::default();
+            match order_code {
+                321 => {
+                    seq.z().unwrap();
+                    seq.y().unwrap();
+                    seq.x().unwrap();
+                }
+                312 => {
+                    seq.z().unwrap();
+                    seq.x().unwrap();
+                    seq.y().unwrap();
+                }
+                123 => {
+                    seq.x().unwrap();
+                    seq.y().unwrap();
+                    seq.z().unwrap();
+                }
+                132 => {
+                    seq.x().unwrap();
+                    seq.z().unwrap();
+                    seq.y().unwrap();
+                }
+                213 => {
+                    seq.y().unwrap();
+                    seq.x().unwrap();
+                    seq.z().unwrap();
+                }
+                231 => {
+                    seq.y().unwrap();
+                    seq.z().unwrap();
+                    seq.x().unwrap();
+                }
+                _ => panic!("Unsupported rotation order: {}", order_code),
+            }
+
+            let euler = cos_x_rot.to_euler(&seq);
+
+            println!(
+                "旋转顺序 {}: to_euler = [{:.6}, {:.6}, {:.6}]",
+                order_name,
+                euler.x.as_rad(),
+                euler.y.as_rad(),
+                euler.z.as_rad()
+            );
+
+            // 验证结果合理性，确保角度在合理范围内
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.x.as_rad()));
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.y.as_rad()));
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.z.as_rad()));
+        }
+
+        // 测试4: 仅绕Y轴旋转90度的矩阵（与dcm2angle测试用例相同）
+        println!("\n测试4: 仅绕Y轴旋转90度");
+        let y_rot_90: [[f64; 3]; 3] = [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]];
+        let cos_y_rot = CosMatrix::new(y_rot_90);
+
+        for (order_code, order_name) in rotation_orders.iter() {
+            // 创建对应的RotationSeq
+            let mut seq = RotationSeq::default();
+            match order_code {
+                321 => {
+                    seq.z().unwrap();
+                    seq.y().unwrap();
+                    seq.x().unwrap();
+                }
+                312 => {
+                    seq.z().unwrap();
+                    seq.x().unwrap();
+                    seq.y().unwrap();
+                }
+                123 => {
+                    seq.x().unwrap();
+                    seq.y().unwrap();
+                    seq.z().unwrap();
+                }
+                132 => {
+                    seq.x().unwrap();
+                    seq.z().unwrap();
+                    seq.y().unwrap();
+                }
+                213 => {
+                    seq.y().unwrap();
+                    seq.x().unwrap();
+                    seq.z().unwrap();
+                }
+                231 => {
+                    seq.y().unwrap();
+                    seq.z().unwrap();
+                    seq.x().unwrap();
+                }
+                _ => panic!("Unsupported rotation order: {}", order_code),
+            }
+
+            let euler = cos_y_rot.to_euler(&seq);
+
+            println!(
+                "旋转顺序 {}: to_euler = [{:.6}, {:.6}, {:.6}]",
+                order_name,
+                euler.x.as_rad(),
+                euler.y.as_rad(),
+                euler.z.as_rad()
+            );
+
+            // 验证结果合理性，确保角度在合理范围内
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.x.as_rad()));
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.y.as_rad()));
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.z.as_rad()));
+        }
+
+        // 测试5: 仅绕Z轴旋转90度的矩阵（与dcm2angle测试用例相同）
+        println!("\n测试5: 仅绕Z轴旋转90度");
+        let z_rot_90: [[f64; 3]; 3] = [[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]];
+        let cos_z_rot = CosMatrix::new(z_rot_90);
+
+        for (order_code, order_name) in rotation_orders.iter() {
+            // 创建对应的RotationSeq
+            let mut seq = RotationSeq::default();
+            match order_code {
+                321 => {
+                    seq.z().unwrap();
+                    seq.y().unwrap();
+                    seq.x().unwrap();
+                }
+                312 => {
+                    seq.z().unwrap();
+                    seq.x().unwrap();
+                    seq.y().unwrap();
+                }
+                123 => {
+                    seq.x().unwrap();
+                    seq.y().unwrap();
+                    seq.z().unwrap();
+                }
+                132 => {
+                    seq.x().unwrap();
+                    seq.z().unwrap();
+                    seq.y().unwrap();
+                }
+                213 => {
+                    seq.y().unwrap();
+                    seq.x().unwrap();
+                    seq.z().unwrap();
+                }
+                231 => {
+                    seq.y().unwrap();
+                    seq.z().unwrap();
+                    seq.x().unwrap();
+                }
+                _ => panic!("Unsupported rotation order: {}", order_code),
+            }
+
+            let euler = cos_z_rot.to_euler(&seq);
+
+            println!(
+                "旋转顺序 {}: to_euler = [{:.6}, {:.6}, {:.6}]",
+                order_name,
+                euler.x.as_rad(),
+                euler.y.as_rad(),
+                euler.z.as_rad()
+            );
+
+            // 验证结果合理性，确保角度在合理范围内
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.x.as_rad()));
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.y.as_rad()));
+            assert!((-std::f64::consts::PI..=std::f64::consts::PI).contains(&euler.z.as_rad()));
+        }
+
+        println!("\n=== 所有to_euler测试通过！ ===");
     }
 }

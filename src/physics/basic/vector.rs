@@ -154,6 +154,25 @@ impl<T: VectorQuantity + Default> Vector3<T> {
         let cos_theta = clamp_to_unit_interval(dot / (a_norm * b_norm));
         Angular::acos(cos_theta)
     }
+
+    // 返回三个分量中的最大值
+    pub fn max(&self) -> T {
+        let x_val = self.x.default_unit_value();
+        let y_val = self.y.default_unit_value();
+        let z_val = self.z.default_unit_value();
+
+        let mut max_val = x_val;
+        if y_val > max_val {
+            max_val = y_val;
+        }
+        if z_val > max_val {
+            max_val = z_val;
+        }
+
+        let mut result = T::default();
+        result.set_value(max_val);
+        result
+    }
 }
 
 impl<T: VectorQuantity + Default> Vector3<T> {
@@ -999,5 +1018,79 @@ mod tests {
         assert_relative_eq!(neg_vec5.x.as_m_per_s2(), -1000.0);
         assert_relative_eq!(neg_vec5.y.as_km_per_h_2(), 500.0);
         assert_relative_eq!(neg_vec5.z.as_g(), -2.0);
+    }
+
+    #[test]
+    fn test_vector3_max() {
+        // 测试x分量最大的情况
+        let vec1 = Vector3::new(
+            Distance::from_m(10.0),
+            Distance::from_m(5.0),
+            Distance::from_m(3.0),
+        );
+        let max_val1 = vec1.max();
+        assert_relative_eq!(max_val1.as_m(), 10.0);
+
+        // 测试y分量最大的情况
+        let vec2 = Vector3::new(
+            Distance::from_m(5.0),
+            Distance::from_m(10.0),
+            Distance::from_m(3.0),
+        );
+        let max_val2 = vec2.max();
+        assert_relative_eq!(max_val2.as_m(), 10.0);
+
+        // 测试z分量最大的情况
+        let vec3 = Vector3::new(
+            Distance::from_m(5.0),
+            Distance::from_m(3.0),
+            Distance::from_m(10.0),
+        );
+        let max_val3 = vec3.max();
+        assert_relative_eq!(max_val3.as_m(), 10.0);
+
+        // 测试所有分量相等的情况
+        let vec4 = Vector3::new(
+            Distance::from_m(5.0),
+            Distance::from_m(5.0),
+            Distance::from_m(5.0),
+        );
+        let max_val4 = vec4.max();
+        assert_relative_eq!(max_val4.as_m(), 5.0);
+
+        // 测试负数值的情况
+        let vec5 = Vector3::new(
+            Distance::from_m(-10.0),
+            Distance::from_m(-5.0),
+            Distance::from_m(-3.0),
+        );
+        let max_val5 = vec5.max();
+        assert_relative_eq!(max_val5.as_m(), -3.0);
+
+        // 测试混合单位的情况
+        let vec6 = Vector3::new(
+            Distance::from_m(1000.0),  // 1000米
+            Distance::from_km(2.0),     // 2000米
+            Distance::from_m(500.0),    // 500米
+        );
+        let max_val6 = vec6.max();
+        assert_relative_eq!(max_val6.as_m(), 2000.0);
+
+        // 测试其他物理量类型
+        let vec7 = Vector3::new(
+            Force::from_newton(10.0),
+            Force::from_newton(20.0),
+            Force::from_newton(5.0),
+        );
+        let max_val7 = vec7.max();
+        assert_relative_eq!(max_val7.as_newton(), 20.0);
+
+        let vec8 = Vector3::new(
+            Velocity::from_m_per_sec(10.0),
+            Velocity::from_m_per_sec(5.0),
+            Velocity::from_m_per_sec(15.0),
+        );
+        let max_val8 = vec8.max();
+        assert_relative_eq!(max_val8.as_m_per_sec(), 15.0);
     }
 }

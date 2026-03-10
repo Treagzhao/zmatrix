@@ -345,11 +345,19 @@ warning: method `T` should have a snake case name
    = note: `#[warn(non_snake_case)]` on by default
 
 warning: `zmatrix` (lib) generated 53 warnings (run `cargo fix --lib -p zmatrix` to apply 39 suggestions)
-warning: unused imports: `Energy`, `MagneticInduction`, `Mass`, `Power`, `Torque`, `VectorQuantity`, and `Volume`
- --> examples/example_vector_quantity_restriction.rs:1:31
+warning: unused import: `Energy`
+ --> examples/example_torque.rs:1:49
   |
-1 | use zmatrix::physics::basic::{VectorQuantity, Distance, Velocity, Force, Torque, MagneticInduction, Vector3, Mass, Energy, Power, Volume};
-  |                               ^^^^^^^^^^^^^^                             ^^^^^^  ^^^^^^^^^^^^^^^^^           ^^^^  ^^^^^^  ^^^^^  ^^^^^^
+1 | use zmatrix::physics::basic::{Torque, Distance, Energy, PhysicalQuantity};
+  |                                                 ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Acceleration`
+ --> examples/example_energy.rs:1:65
+  |
+1 | use zmatrix::physics::basic::{Energy, Distance, Mass, Velocity, Acceleration, PhysicalQuantity};
+  |                                                                 ^^^^^^^^^^^^
   |
   = note: `#[warn(unused_imports)]` on by default
 
@@ -401,14 +409,6 @@ warning: function `exmples_vector3` is never used
 32 | fn exmples_vector3(){
    |    ^^^^^^^^^^^^^^^
 
-warning: unused import: `Energy`
- --> examples/example_torque.rs:1:49
-  |
-1 | use zmatrix::physics::basic::{Torque, Distance, Energy, PhysicalQuantity};
-  |                                                 ^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
 warning: unused import: `Area`
    --> src/physics/basic/magnetic_moment.rs:342:52
     |
@@ -434,27 +434,6 @@ warning: duplicated attribute
    |
 51 |     #[test]
    |     ^^^^^^^
-
-warning: unused import: `zmatrix::dense`
- --> examples/examples_dense.rs:1:5
-  |
-1 | use zmatrix::dense;
-  |     ^^^^^^^^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
-warning: unused `Result` that must be used
-  --> examples/examples_dense.rs:61:5
-   |
-61 |     m1.set(1, 1, 12);
-   |     ^^^^^^^^^^^^^^^^
-   |
-   = note: this `Result` may be an `Err` variant, which should be handled
-   = note: `#[warn(unused_must_use)]` on by default
-help: use `let _ = ...` to ignore the resulting value
-   |
-61 |     let _ = m1.set(1, 1, 12);
-   |     +++++++
 
 warning: unused import: `rayon::prelude`
  --> src/dense/operation.rs:5:5
@@ -628,24 +607,23 @@ warning: unused variable: `d`
 618 |         let d = g.as_any().downcast_ref::<Area>().unwrap();
     |             ^ help: if this is intentional, prefix it with an underscore: `_d`
 
-warning: `zmatrix` (example "examples_dense") generated 2 warnings (run `cargo fix --example "examples_dense"` to apply 1 suggestion)
 warning: `zmatrix` (example "example_magnetic_moment") generated 1 warning (run `cargo fix --example "example_magnetic_moment"` to apply 1 suggestion)
-warning: `zmatrix` (example "example_vector_quantity_restriction") generated 1 warning (run `cargo fix --example "example_vector_quantity_restriction"` to apply 1 suggestion)
+warning: `zmatrix` (example "example_energy") generated 1 warning (run `cargo fix --example "example_energy"` to apply 1 suggestion)
 warning: `zmatrix` (example "example_torque") generated 1 warning (run `cargo fix --example "example_torque"` to apply 1 suggestion)
 warning: `zmatrix` (example "example_physics") generated 6 warnings
-warning: unused import: `Acceleration`
- --> examples/example_energy.rs:1:65
-  |
-1 | use zmatrix::physics::basic::{Energy, Distance, Mass, Velocity, Acceleration, PhysicalQuantity};
-  |                                                                 ^^^^^^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
 warning: function `test_norm_square_basic` is never used
     --> src/physics/basic/vector.rs:1057:8
      |
 1057 |     fn test_norm_square_basic() {
      |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Energy`, `MagneticInduction`, `Mass`, `Power`, `Torque`, `VectorQuantity`, and `Volume`
+ --> examples/example_vector_quantity_restriction.rs:1:31
+  |
+1 | use zmatrix::physics::basic::{VectorQuantity, Distance, Velocity, Force, Torque, MagneticInduction, Vector3, Mass, Energy, Power, Volume};
+  |                               ^^^^^^^^^^^^^^                             ^^^^^^  ^^^^^^^^^^^^^^^^^           ^^^^  ^^^^^^  ^^^^^  ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
 
 warning: function `test_T` should have a snake case name
    --> src/dense/shape.rs:110:8
@@ -653,15 +631,37 @@ warning: function `test_T` should have a snake case name
 110 |     fn test_T() {
     |        ^^^^^^ help: convert the identifier to snake case: `test_t`
 
+warning: unused import: `zmatrix::dense`
+ --> examples/examples_dense.rs:1:5
+  |
+1 | use zmatrix::dense;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused `Result` that must be used
+  --> examples/examples_dense.rs:61:5
+   |
+61 |     m1.set(1, 1, 12);
+   |     ^^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+   = note: `#[warn(unused_must_use)]` on by default
+help: use `let _ = ...` to ignore the resulting value
+   |
+61 |     let _ = m1.set(1, 1, 12);
+   |     +++++++
+
 warning: variable `delta_B` should have a snake case name
     --> src/physics/basic/vector/magnetic_angular_velocity.rs:1622:13
      |
 1622 |         let delta_B = b - b_prev;
      |             ^^^^^^^ help: convert the identifier to snake case: `delta_b`
 
-warning: `zmatrix` (example "example_energy") generated 1 warning (run `cargo fix --example "example_energy"` to apply 1 suggestion)
+warning: `zmatrix` (example "example_vector_quantity_restriction") generated 1 warning (run `cargo fix --example "example_vector_quantity_restriction"` to apply 1 suggestion)
+warning: `zmatrix` (example "examples_dense") generated 2 warnings (run `cargo fix --example "examples_dense"` to apply 1 suggestion)
 warning: `zmatrix` (lib test) generated 75 warnings (40 duplicates) (run `cargo fix --lib -p zmatrix --tests` to apply 3 suggestions)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.47s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.33s
      Running unittests src/lib.rs (target/debug/deps/zmatrix-0317ef656e62916a)
    Doc-tests zmatrix
 warning: variant `g` should have an upper camel case name

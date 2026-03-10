@@ -1,4 +1,20 @@
-use crate::physics::basic::{Coef, MagneticInduction, MagneticInductionType, Vector3};
+use std::ops::{Div, Mul};
+use crate::physics::basic::{AngularVelocity, Coef, MagneticAngularVelocity, MagneticInduction, MagneticInductionType, Vector3};
+
+impl Mul<AngularVelocity> for Vector3<MagneticInduction>{
+    type Output = Vector3<MagneticAngularVelocity>;
+
+    fn mul(self, rhs: AngularVelocity) -> Self::Output {
+        let x = self.x.as_nano_tesla() * rhs.as_rad_per_second();
+        let y = self.y.as_nano_tesla() * rhs.as_rad_per_second();
+        let z = self.z.as_nano_tesla() * rhs.as_rad_per_second();
+        Vector3::new(
+            MagneticAngularVelocity::from_nano_tesla_rad_per_second(x),
+            MagneticAngularVelocity::from_nano_tesla_rad_per_second(y),
+            MagneticAngularVelocity::from_nano_tesla_rad_per_second(z),
+        )
+    }
+}
 
 impl Vector3<MagneticInduction> {
     pub fn to_vector3_coef(&self, magnetic_induction_type: MagneticInductionType) -> Vector3<Coef> {
@@ -45,6 +61,23 @@ impl Vector3<MagneticInduction> {
         };
         let z = MagneticInduction {
             v: coef.z.v,
+            default_type: magnetic_induction_type,
+        };
+        Vector3::new(x, y, z)
+    }
+
+    pub fn from_array_with_unit(array: [f64; 3], magnetic_induction_type: MagneticInductionType) -> Vector3<MagneticInduction> {
+        let [x, y, z] = array;
+        let x = MagneticInduction {
+            v: x,
+            default_type: magnetic_induction_type,
+        };
+        let y = MagneticInduction {
+            v: y,
+            default_type: magnetic_induction_type,
+        };
+        let z = MagneticInduction {
+            v: z,
             default_type: magnetic_induction_type,
         };
         Vector3::new(x, y, z)
@@ -383,5 +416,59 @@ mod tests {
         assert_relative_eq!(coef_vec.x.get_value(), 1e-1); // 1e-10 T = 1e-1 nT
         assert_relative_eq!(coef_vec.y.get_value(), 1e-6); // 1e-15 T = 1e-6 nT
         assert_relative_eq!(coef_vec.z.get_value(), 1e-11); // 1e-20 T = 1e-11 nT
+    }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试从数组和单位类型创建磁感应向量
+        let array = [1.0, 2.0, 3.0];
+        
+        // 测试 Tesla 单位
+        let magnetic_induction_vec = Vector3::<MagneticInduction>::from_array_with_unit(array, MagneticInductionType::Tesla);
+        assert_relative_eq!(magnetic_induction_vec.x.as_tesla(), 1.0);
+        assert_relative_eq!(magnetic_induction_vec.y.as_tesla(), 2.0);
+        assert_relative_eq!(magnetic_induction_vec.z.as_tesla(), 3.0);
+        
+        // 测试 Gauss 单位
+        let array = [10000.0, 20000.0, 30000.0];
+        let magnetic_induction_vec = Vector3::<MagneticInduction>::from_array_with_unit(array, MagneticInductionType::Gauss);
+        assert_relative_eq!(magnetic_induction_vec.x.as_gauss(), 10000.0);
+        assert_relative_eq!(magnetic_induction_vec.y.as_gauss(), 20000.0);
+        assert_relative_eq!(magnetic_induction_vec.z.as_gauss(), 30000.0);
+        
+        // 测试 MillTesla 单位
+        let array = [1000.0, 2000.0, 3000.0];
+        let magnetic_induction_vec = Vector3::<MagneticInduction>::from_array_with_unit(array, MagneticInductionType::MillTesla);
+        assert_relative_eq!(magnetic_induction_vec.x.as_milli_tesla(), 1000.0);
+        assert_relative_eq!(magnetic_induction_vec.y.as_milli_tesla(), 2000.0);
+        assert_relative_eq!(magnetic_induction_vec.z.as_milli_tesla(), 3000.0);
+        
+        // 测试 MicroTesla 单位
+        let array = [1000000.0, 2000000.0, 3000000.0];
+        let magnetic_induction_vec = Vector3::<MagneticInduction>::from_array_with_unit(array, MagneticInductionType::MicroTesla);
+        assert_relative_eq!(magnetic_induction_vec.x.as_micro_tesla(), 1000000.0);
+        assert_relative_eq!(magnetic_induction_vec.y.as_micro_tesla(), 2000000.0);
+        assert_relative_eq!(magnetic_induction_vec.z.as_micro_tesla(), 3000000.0);
+        
+        // 测试 NanoTesla 单位
+        let array = [1000000000.0, 2000000000.0, 3000000000.0];
+        let magnetic_induction_vec = Vector3::<MagneticInduction>::from_array_with_unit(array, MagneticInductionType::NanoTesla);
+        assert_relative_eq!(magnetic_induction_vec.x.as_nano_tesla(), 1000000000.0);
+        assert_relative_eq!(magnetic_induction_vec.y.as_nano_tesla(), 2000000000.0);
+        assert_relative_eq!(magnetic_induction_vec.z.as_nano_tesla(), 3000000000.0);
+        
+        // 测试 MillGauss 单位
+        let array = [10000000.0, 20000000.0, 30000000.0];
+        let magnetic_induction_vec = Vector3::<MagneticInduction>::from_array_with_unit(array, MagneticInductionType::MillGauss);
+        assert_relative_eq!(magnetic_induction_vec.x.as_mill_gauss(), 10000000.0);
+        assert_relative_eq!(magnetic_induction_vec.y.as_mill_gauss(), 20000000.0);
+        assert_relative_eq!(magnetic_induction_vec.z.as_mill_gauss(), 30000000.0);
+        
+        // 测试 KiloGauss 单位
+        let array = [10.0, 20.0, 30.0];
+        let magnetic_induction_vec = Vector3::<MagneticInduction>::from_array_with_unit(array, MagneticInductionType::KiloGauss);
+        assert_relative_eq!(magnetic_induction_vec.x.as_kilo_gauss(), 10.0);
+        assert_relative_eq!(magnetic_induction_vec.y.as_kilo_gauss(), 20.0);
+        assert_relative_eq!(magnetic_induction_vec.z.as_kilo_gauss(), 30.0);
     }
 }

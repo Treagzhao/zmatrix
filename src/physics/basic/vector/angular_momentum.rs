@@ -45,6 +45,23 @@ impl Vector3<AngularMomentum> {
         };
         Vector3::new(x, y, z)
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], angular_momentum_type: AngularMomentumType) -> Vector3<AngularMomentum> {
+        let [x, y, z] = array;
+        let x = AngularMomentum {
+            v: x,
+            default_type: angular_momentum_type,
+        };
+        let y = AngularMomentum {
+            v: y,
+            default_type: angular_momentum_type,
+        };
+        let z = AngularMomentum {
+            v: z,
+            default_type: angular_momentum_type,
+        };
+        Vector3::new(x, y, z)
+    }
 }
 
 #[cfg(test)]
@@ -257,5 +274,47 @@ mod tests {
         assert_relative_eq!(coef_from_nano_nms_mill_nms.x.get_value(), 1000.0, epsilon = 1e-10);
         assert_relative_eq!(coef_from_nano_nms_micro_nms.x.get_value(), 1000000.0, epsilon = 1e-10);
         assert_relative_eq!(coef_from_nano_nms_nano_nms.x.get_value(), 1000000000.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试 from_array_with_unit 方法
+        let array = [1.0, 2.0, 3.0];
+        
+        // 测试 KgM2perSecond 单位
+        let angular_momentum_vec = Vector3::<AngularMomentum>::from_array_with_unit(array, AngularMomentumType::KgM2perSecond);
+        assert_relative_eq!(angular_momentum_vec.x.as_kg_m2_per_second(), 1.0);
+        assert_relative_eq!(angular_momentum_vec.y.as_kg_m2_per_second(), 2.0);
+        assert_relative_eq!(angular_momentum_vec.z.as_kg_m2_per_second(), 3.0);
+        
+        // 测试 KgKm2perSecond 单位
+        let angular_momentum_vec_km2 = Vector3::<AngularMomentum>::from_array_with_unit(array, AngularMomentumType::KgKm2perSecond);
+        assert_relative_eq!(angular_momentum_vec_km2.x.as_kg_km2_per_second(), 1.0);
+        assert_relative_eq!(angular_momentum_vec_km2.y.as_kg_km2_per_second(), 2.0);
+        assert_relative_eq!(angular_momentum_vec_km2.z.as_kg_km2_per_second(), 3.0);
+        
+        // 测试 Nms 单位
+        let angular_momentum_vec_nms = Vector3::<AngularMomentum>::from_array_with_unit(array, AngularMomentumType::Nms);
+        assert_relative_eq!(angular_momentum_vec_nms.x.as_nms(), 1.0);
+        assert_relative_eq!(angular_momentum_vec_nms.y.as_nms(), 2.0);
+        assert_relative_eq!(angular_momentum_vec_nms.z.as_nms(), 3.0);
+        
+        // 测试 MillNms 单位
+        let angular_momentum_vec_mill_nms = Vector3::<AngularMomentum>::from_array_with_unit(array, AngularMomentumType::MillNms);
+        assert_relative_eq!(angular_momentum_vec_mill_nms.x.as_mill_nms(), 1.0);
+        assert_relative_eq!(angular_momentum_vec_mill_nms.y.as_mill_nms(), 2.0);
+        assert_relative_eq!(angular_momentum_vec_mill_nms.z.as_mill_nms(), 3.0);
+        
+        // 测试 MicroNms 单位
+        let angular_momentum_vec_micro_nms = Vector3::<AngularMomentum>::from_array_with_unit(array, AngularMomentumType::MicroNms);
+        assert_relative_eq!(angular_momentum_vec_micro_nms.x.as_micro_nms(), 1.0);
+        assert_relative_eq!(angular_momentum_vec_micro_nms.y.as_micro_nms(), 2.0);
+        assert_relative_eq!(angular_momentum_vec_micro_nms.z.as_micro_nms(), 3.0);
+        
+        // 测试 NanoNms 单位
+        let angular_momentum_vec_nano_nms = Vector3::<AngularMomentum>::from_array_with_unit(array, AngularMomentumType::NanoNms);
+        assert_relative_eq!(angular_momentum_vec_nano_nms.x.as_nano_nms(), 1.0);
+        assert_relative_eq!(angular_momentum_vec_nano_nms.y.as_nano_nms(), 2.0);
+        assert_relative_eq!(angular_momentum_vec_nano_nms.z.as_nano_nms(), 3.0);
     }
 }

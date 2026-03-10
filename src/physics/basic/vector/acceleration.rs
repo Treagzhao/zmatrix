@@ -33,6 +33,23 @@ impl Vector3<Acceleration> {
         };
         Vector3::new(x, y, z)
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], acceleration_type: AccelerationType) -> Vector3<Acceleration> {
+        let [x, y, z] = array;
+        let x = Acceleration {
+            v: x,
+            default_type: acceleration_type,
+        };
+        let y = Acceleration {
+            v: y,
+            default_type: acceleration_type,
+        };
+        let z = Acceleration {
+            v: z,
+            default_type: acceleration_type,
+        };
+        Vector3::new(x, y, z)
+    }
 }
 
 #[cfg(test)]
@@ -224,5 +241,29 @@ mod tests {
         assert_relative_eq!(coef_vec.x.get_value(), 1e-10);
         assert_relative_eq!(coef_vec.y.get_value(), 1e-15);
         assert_relative_eq!(coef_vec.z.get_value(), 1e-20);
+    }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试 from_array_with_unit 方法
+        let array = [9.8, 19.6, 29.4];
+        
+        // 测试 MPerSecond2 单位
+        let acceleration_vec = Vector3::<Acceleration>::from_array_with_unit(array, AccelerationType::MPerSecond2);
+        assert_relative_eq!(acceleration_vec.x.as_m_per_s2(), 9.8);
+        assert_relative_eq!(acceleration_vec.y.as_m_per_s2(), 19.6);
+        assert_relative_eq!(acceleration_vec.z.as_m_per_s2(), 29.4);
+        
+        // 测试 KmPerHour2 单位
+        let acceleration_vec_kmh2 = Vector3::<Acceleration>::from_array_with_unit(array, AccelerationType::KmPerHour2);
+        assert_relative_eq!(acceleration_vec_kmh2.x.as_km_per_h_2(), 9.8);
+        assert_relative_eq!(acceleration_vec_kmh2.y.as_km_per_h_2(), 19.6);
+        assert_relative_eq!(acceleration_vec_kmh2.z.as_km_per_h_2(), 29.4);
+        
+        // 测试 G 单位
+        let acceleration_vec_g = Vector3::<Acceleration>::from_array_with_unit(array, AccelerationType::G);
+        assert_relative_eq!(acceleration_vec_g.x.as_g(), 9.8);
+        assert_relative_eq!(acceleration_vec_g.y.as_g(), 19.6);
+        assert_relative_eq!(acceleration_vec_g.z.as_g(), 29.4);
     }
 }

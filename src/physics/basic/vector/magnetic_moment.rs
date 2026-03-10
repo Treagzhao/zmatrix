@@ -101,6 +101,68 @@ impl Vector3<MagneticMoment> {
             }
         }
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], magnetic_moment_type: MagneticMomentType) -> Vector3<MagneticMoment> {
+        let [x, y, z] = array;
+        match magnetic_moment_type {
+            MagneticMomentType::AM2 => {
+                Vector3::new(
+                    MagneticMoment::from_am2(x),
+                    MagneticMoment::from_am2(y),
+                    MagneticMoment::from_am2(z),
+                )
+            }
+            MagneticMomentType::MillAM2 => {
+                Vector3::new(
+                    MagneticMoment::from_mill_am2(x),
+                    MagneticMoment::from_mill_am2(y),
+                    MagneticMoment::from_mill_am2(z),
+                )
+            }
+            MagneticMomentType::MicroAM2 => {
+                Vector3::new(
+                    MagneticMoment::from_micro_am2(x),
+                    MagneticMoment::from_micro_am2(y),
+                    MagneticMoment::from_micro_am2(z),
+                )
+            }
+            MagneticMomentType::NanoAM2 => {
+                Vector3::new(
+                    MagneticMoment::from_nano_am2(x),
+                    MagneticMoment::from_nano_am2(y),
+                    MagneticMoment::from_nano_am2(z),
+                )
+            }
+            MagneticMomentType::JPerTesla => {
+                Vector3::new(
+                    MagneticMoment::from_j_per_tesla(x),
+                    MagneticMoment::from_j_per_tesla(y),
+                    MagneticMoment::from_j_per_tesla(z),
+                )
+            }
+            MagneticMomentType::MillJPerTesla => {
+                Vector3::new(
+                    MagneticMoment::from_mill_j_per_tesla(x),
+                    MagneticMoment::from_mill_j_per_tesla(y),
+                    MagneticMoment::from_mill_j_per_tesla(z),
+                )
+            }
+            MagneticMomentType::MicroJPerTesla => {
+                Vector3::new(
+                    MagneticMoment::from_micro_j_per_tesla(x),
+                    MagneticMoment::from_micro_j_per_tesla(y),
+                    MagneticMoment::from_micro_j_per_tesla(z),
+                )
+            }
+            MagneticMomentType::NanoJPerTesla => {
+                Vector3::new(
+                    MagneticMoment::from_nano_j_per_tesla(x),
+                    MagneticMoment::from_nano_j_per_tesla(y),
+                    MagneticMoment::from_nano_j_per_tesla(z),
+                )
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -119,6 +181,97 @@ mod tests {
         assert_relative_eq!(coef_vec.x.get_value(), 1.0, epsilon = 1e-10);
         assert_relative_eq!(coef_vec.y.get_value(), 2.0, epsilon = 1e-10);
         assert_relative_eq!(coef_vec.z.get_value(), 3.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_mill_am2() {
+        let magnetic_moment_vec = Vector3::new(
+            MagneticMoment::from_mill_am2(1000.0),
+            MagneticMoment::from_mill_am2(2000.0),
+            MagneticMoment::from_mill_am2(3000.0),
+        );
+        let coef_vec = magnetic_moment_vec.to_vector3_coef(MagneticMomentType::MillAM2);
+        assert_relative_eq!(coef_vec.x.get_value(), 1000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 2000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 3000.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_micro_am2() {
+        let magnetic_moment_vec = Vector3::new(
+            MagneticMoment::from_micro_am2(1000000.0),
+            MagneticMoment::from_micro_am2(2000000.0),
+            MagneticMoment::from_micro_am2(3000000.0),
+        );
+        let coef_vec = magnetic_moment_vec.to_vector3_coef(MagneticMomentType::MicroAM2);
+        assert_relative_eq!(coef_vec.x.get_value(), 1000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 2000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 3000000.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_nano_am2() {
+        let magnetic_moment_vec = Vector3::new(
+            MagneticMoment::from_nano_am2(1000000000.0),
+            MagneticMoment::from_nano_am2(2000000000.0),
+            MagneticMoment::from_nano_am2(3000000000.0),
+        );
+        let coef_vec = magnetic_moment_vec.to_vector3_coef(MagneticMomentType::NanoAM2);
+        assert_relative_eq!(coef_vec.x.get_value(), 1000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 2000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 3000000000.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_j_per_tesla() {
+        let magnetic_moment_vec = Vector3::new(
+            MagneticMoment::from_j_per_tesla(1.0),
+            MagneticMoment::from_j_per_tesla(2.0),
+            MagneticMoment::from_j_per_tesla(3.0),
+        );
+        let coef_vec = magnetic_moment_vec.to_vector3_coef(MagneticMomentType::JPerTesla);
+        assert_relative_eq!(coef_vec.x.get_value(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 3.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_mill_j_per_tesla() {
+        let magnetic_moment_vec = Vector3::new(
+            MagneticMoment::from_mill_j_per_tesla(1000.0),
+            MagneticMoment::from_mill_j_per_tesla(2000.0),
+            MagneticMoment::from_mill_j_per_tesla(3000.0),
+        );
+        let coef_vec = magnetic_moment_vec.to_vector3_coef(MagneticMomentType::MillJPerTesla);
+        assert_relative_eq!(coef_vec.x.get_value(), 1000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 2000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 3000.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_micro_j_per_tesla() {
+        let magnetic_moment_vec = Vector3::new(
+            MagneticMoment::from_micro_j_per_tesla(1000000.0),
+            MagneticMoment::from_micro_j_per_tesla(2000000.0),
+            MagneticMoment::from_micro_j_per_tesla(3000000.0),
+        );
+        let coef_vec = magnetic_moment_vec.to_vector3_coef(MagneticMomentType::MicroJPerTesla);
+        assert_relative_eq!(coef_vec.x.get_value(), 1000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 2000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 3000000.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_nano_j_per_tesla() {
+        let magnetic_moment_vec = Vector3::new(
+            MagneticMoment::from_nano_j_per_tesla(1000000000.0),
+            MagneticMoment::from_nano_j_per_tesla(2000000000.0),
+            MagneticMoment::from_nano_j_per_tesla(3000000000.0),
+        );
+        let coef_vec = magnetic_moment_vec.to_vector3_coef(MagneticMomentType::NanoJPerTesla);
+        assert_relative_eq!(coef_vec.x.get_value(), 1000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 2000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 3000000000.0, epsilon = 1e-10);
     }
 
     #[test]
@@ -396,5 +549,72 @@ mod tests {
         assert_relative_eq!(coef_from_nano_j_per_tesla_mill_j_per_tesla.x.get_value(), 1000.0, epsilon = 1e-10);
         assert_relative_eq!(coef_from_nano_j_per_tesla_micro_j_per_tesla.x.get_value(), 1000000.0, epsilon = 1e-10);
         assert_relative_eq!(coef_from_nano_j_per_tesla_nano_j_per_tesla.x.get_value(), 1000000000.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试从数组和单位类型创建磁矩向量
+        let array = [1.0, 2.0, 3.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::AM2);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_am2(), 1.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_am2(), 2.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_am2(), 3.0);
+        
+        // 测试不同单位类型
+        let array = [1000.0, 2000.0, 3000.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::MillAM2);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_mill_am2(), 1000.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_mill_am2(), 2000.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_mill_am2(), 3000.0);
+        
+        // 测试微安平方米单位
+        let array = [1000000.0, 2000000.0, 3000000.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::MicroAM2);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_micro_am2(), 1000000.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_micro_am2(), 2000000.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_micro_am2(), 3000000.0);
+        
+        // 测试纳安平方米单位
+        let array = [1000000000.0, 2000000000.0, 3000000000.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::NanoAM2);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_nano_am2(), 1000000000.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_nano_am2(), 2000000000.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_nano_am2(), 3000000000.0);
+        
+        // 测试焦耳每特斯拉单位
+        let array = [1.0, 2.0, 3.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::JPerTesla);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_j_per_tesla(), 2.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_j_per_tesla(), 3.0);
+        
+        // 测试毫焦耳每特斯拉单位
+        let array = [1000.0, 2000.0, 3000.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::MillJPerTesla);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_mill_j_per_tesla(), 1000.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_mill_j_per_tesla(), 2000.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_mill_j_per_tesla(), 3000.0);
+        
+        // 测试微焦耳每特斯拉单位
+        let array = [1000000.0, 2000000.0, 3000000.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::MicroJPerTesla);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_micro_j_per_tesla(), 1000000.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_micro_j_per_tesla(), 2000000.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_micro_j_per_tesla(), 3000000.0);
+        
+        // 测试纳焦耳每特斯拉单位
+        let array = [1000000000.0, 2000000000.0, 3000000000.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::NanoJPerTesla);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_nano_j_per_tesla(), 1000000000.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_nano_j_per_tesla(), 2000000000.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_nano_j_per_tesla(), 3000000000.0);
     }
 }

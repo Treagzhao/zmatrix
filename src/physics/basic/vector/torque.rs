@@ -79,6 +79,54 @@ impl Vector3<Torque> {
             }
         }
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], torque_type: TorqueType) -> Vector3<Torque> {
+        let [x, y, z] = array;
+        match torque_type {
+            TorqueType::NM => {
+                Vector3::new(
+                    Torque::from_nm(x),
+                    Torque::from_nm(y),
+                    Torque::from_nm(z),
+                )
+            }
+            TorqueType::MillNM => {
+                Vector3::new(
+                    Torque::from_mill_nm(x),
+                    Torque::from_mill_nm(y),
+                    Torque::from_mill_nm(z),
+                )
+            }
+            TorqueType::MicroNM => {
+                Vector3::new(
+                    Torque::from_micro_nm(x),
+                    Torque::from_micro_nm(y),
+                    Torque::from_micro_nm(z),
+                )
+            }
+            TorqueType::NanoNM => {
+                Vector3::new(
+                    Torque::from_nano_nm(x),
+                    Torque::from_nano_nm(y),
+                    Torque::from_nano_nm(z),
+                )
+            }
+            TorqueType::KNM => {
+                Vector3::new(
+                    Torque::from_knm(x),
+                    Torque::from_knm(y),
+                    Torque::from_knm(z),
+                )
+            }
+            TorqueType::MNM => {
+                Vector3::new(
+                    Torque::from_mnm(x),
+                    Torque::from_mnm(y),
+                    Torque::from_mnm(z),
+                )
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -97,6 +145,71 @@ mod tests {
         assert_relative_eq!(coef_vec.x.get_value(), 1.0, epsilon = 1e-10);
         assert_relative_eq!(coef_vec.y.get_value(), 2.0, epsilon = 1e-10);
         assert_relative_eq!(coef_vec.z.get_value(), 3.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_mill_nm() {
+        let torque_vec = Vector3::new(
+            Torque::from_mill_nm(1000.0),
+            Torque::from_mill_nm(2000.0),
+            Torque::from_mill_nm(3000.0),
+        );
+        let coef_vec = torque_vec.to_vector3_coef(TorqueType::MillNM);
+        assert_relative_eq!(coef_vec.x.get_value(), 1000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 2000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 3000.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_micro_nm() {
+        let torque_vec = Vector3::new(
+            Torque::from_micro_nm(1000000.0),
+            Torque::from_micro_nm(2000000.0),
+            Torque::from_micro_nm(3000000.0),
+        );
+        let coef_vec = torque_vec.to_vector3_coef(TorqueType::MicroNM);
+        assert_relative_eq!(coef_vec.x.get_value(), 1000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 2000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 3000000.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_nano_nm() {
+        let torque_vec = Vector3::new(
+            Torque::from_nano_nm(1000000000.0),
+            Torque::from_nano_nm(2000000000.0),
+            Torque::from_nano_nm(3000000000.0),
+        );
+        let coef_vec = torque_vec.to_vector3_coef(TorqueType::NanoNM);
+        assert_relative_eq!(coef_vec.x.get_value(), 1000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 2000000000.0, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 3000000000.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_knm() {
+        let torque_vec = Vector3::new(
+            Torque::from_knm(0.001),
+            Torque::from_knm(0.002),
+            Torque::from_knm(0.003),
+        );
+        let coef_vec = torque_vec.to_vector3_coef(TorqueType::KNM);
+        assert_relative_eq!(coef_vec.x.get_value(), 0.001, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 0.002, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 0.003, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_to_vector3_coef_mnm() {
+        let torque_vec = Vector3::new(
+            Torque::from_mnm(0.000001),
+            Torque::from_mnm(0.000002),
+            Torque::from_mnm(0.000003),
+        );
+        let coef_vec = torque_vec.to_vector3_coef(TorqueType::MNM);
+        assert_relative_eq!(coef_vec.x.get_value(), 0.000001, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.y.get_value(), 0.000002, epsilon = 1e-10);
+        assert_relative_eq!(coef_vec.z.get_value(), 0.000003, epsilon = 1e-10);
     }
 
     #[test]
@@ -282,5 +395,56 @@ mod tests {
         assert_relative_eq!(coef_from_mnm_nano.x.get_value(), 1000000000.0, epsilon = 1e-10);
         assert_relative_eq!(coef_from_mnm_knm.x.get_value(), 0.001, epsilon = 1e-10);
         assert_relative_eq!(coef_from_mnm_mnm.x.get_value(), 0.000001, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试从数组和单位类型创建力矩向量
+        let array = [1.0, 2.0, 3.0];
+        let torque_vec = Vector3::<Torque>::from_array_with_unit(array, TorqueType::NM);
+        
+        assert_relative_eq!(torque_vec.x.as_nm(), 1.0);
+        assert_relative_eq!(torque_vec.y.as_nm(), 2.0);
+        assert_relative_eq!(torque_vec.z.as_nm(), 3.0);
+        
+        // 测试不同单位类型
+        let array = [1000.0, 2000.0, 3000.0];
+        let torque_vec = Vector3::<Torque>::from_array_with_unit(array, TorqueType::MillNM);
+        
+        assert_relative_eq!(torque_vec.x.as_mill_nm(), 1000.0);
+        assert_relative_eq!(torque_vec.y.as_mill_nm(), 2000.0);
+        assert_relative_eq!(torque_vec.z.as_mill_nm(), 3000.0);
+        
+        // 测试微牛米单位
+        let array = [1000000.0, 2000000.0, 3000000.0];
+        let torque_vec = Vector3::<Torque>::from_array_with_unit(array, TorqueType::MicroNM);
+        
+        assert_relative_eq!(torque_vec.x.as_micro_nm(), 1000000.0);
+        assert_relative_eq!(torque_vec.y.as_micro_nm(), 2000000.0);
+        assert_relative_eq!(torque_vec.z.as_micro_nm(), 3000000.0);
+        
+        // 测试纳牛米单位
+        let array = [1000000000.0, 2000000000.0, 3000000000.0];
+        let torque_vec = Vector3::<Torque>::from_array_with_unit(array, TorqueType::NanoNM);
+        
+        assert_relative_eq!(torque_vec.x.as_nano_nm(), 1000000000.0);
+        assert_relative_eq!(torque_vec.y.as_nano_nm(), 2000000000.0);
+        assert_relative_eq!(torque_vec.z.as_nano_nm(), 3000000000.0);
+        
+        // 测试千牛米单位
+        let array = [0.001, 0.002, 0.003];
+        let torque_vec = Vector3::<Torque>::from_array_with_unit(array, TorqueType::KNM);
+        
+        assert_relative_eq!(torque_vec.x.as_knm(), 0.001);
+        assert_relative_eq!(torque_vec.y.as_knm(), 0.002);
+        assert_relative_eq!(torque_vec.z.as_knm(), 0.003);
+        
+        // 测试兆牛米单位
+        let array = [0.000001, 0.000002, 0.000003];
+        let torque_vec = Vector3::<Torque>::from_array_with_unit(array, TorqueType::MNM);
+        
+        assert_relative_eq!(torque_vec.x.as_mnm(), 0.000001);
+        assert_relative_eq!(torque_vec.y.as_mnm(), 0.000002);
+        assert_relative_eq!(torque_vec.z.as_mnm(), 0.000003);
     }
 }

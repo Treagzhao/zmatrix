@@ -145,6 +145,23 @@ impl Vector3<Angular> {
         Vector3::new(x, y, z)
     }
 
+    pub fn from_array_with_unit(array: [f64; 3], angular_type: AngularType) -> Vector3<Angular> {
+        let [x, y, z] = array;
+        let x = Angular {
+            v: x,
+            default_type: angular_type,
+        };
+        let y = Angular {
+            v: y,
+            default_type: angular_type,
+        };
+        let z = Angular {
+            v: z,
+            default_type: angular_type,
+        };
+        Vector3::new(x, y, z)
+    }
+
     pub fn to_cos_matrix(
         &self,
         seq: RotationSeq,
@@ -1110,5 +1127,23 @@ mod tests {
         assert_relative_eq!(q1, 0.0, epsilon = 1e-12);
         assert_relative_eq!(q2, 0.0, epsilon = 1e-12);
         assert_relative_eq!(q3, 1.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试 from_array_with_unit 方法
+        let array = [1.0, 2.0, 3.0];
+        
+        // 测试 Rad 单位
+        let angular_vec = Vector3::<Angular>::from_array_with_unit(array, AngularType::Rad);
+        assert_relative_eq!(angular_vec.x.as_rad(), 1.0);
+        assert_relative_eq!(angular_vec.y.as_rad(), 2.0);
+        assert_relative_eq!(angular_vec.z.as_rad(), 3.0);
+        
+        // 测试 Deg 单位
+        let angular_vec_deg = Vector3::<Angular>::from_array_with_unit(array, AngularType::Deg);
+        assert_relative_eq!(angular_vec_deg.x.as_deg(), 1.0);
+        assert_relative_eq!(angular_vec_deg.y.as_deg(), 2.0);
+        assert_relative_eq!(angular_vec_deg.z.as_deg(), 3.0);
     }
 }

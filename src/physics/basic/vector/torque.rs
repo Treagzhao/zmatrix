@@ -79,6 +79,54 @@ impl Vector3<Torque> {
             }
         }
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], torque_type: TorqueType) -> Vector3<Torque> {
+        let [x, y, z] = array;
+        match torque_type {
+            TorqueType::NM => {
+                Vector3::new(
+                    Torque::from_nm(x),
+                    Torque::from_nm(y),
+                    Torque::from_nm(z),
+                )
+            }
+            TorqueType::MillNM => {
+                Vector3::new(
+                    Torque::from_mill_nm(x),
+                    Torque::from_mill_nm(y),
+                    Torque::from_mill_nm(z),
+                )
+            }
+            TorqueType::MicroNM => {
+                Vector3::new(
+                    Torque::from_micro_nm(x),
+                    Torque::from_micro_nm(y),
+                    Torque::from_micro_nm(z),
+                )
+            }
+            TorqueType::NanoNM => {
+                Vector3::new(
+                    Torque::from_nano_nm(x),
+                    Torque::from_nano_nm(y),
+                    Torque::from_nano_nm(z),
+                )
+            }
+            TorqueType::KNM => {
+                Vector3::new(
+                    Torque::from_knm(x),
+                    Torque::from_knm(y),
+                    Torque::from_knm(z),
+                )
+            }
+            TorqueType::MNM => {
+                Vector3::new(
+                    Torque::from_mnm(x),
+                    Torque::from_mnm(y),
+                    Torque::from_mnm(z),
+                )
+            }
+        }
+    }
 }
 
 #[cfg(test)]

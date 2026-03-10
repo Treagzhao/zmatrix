@@ -1,4 +1,20 @@
-use crate::physics::basic::{Coef, MagneticInduction, MagneticInductionType, Vector3};
+use std::ops::{Div, Mul};
+use crate::physics::basic::{AngularVelocity, Coef, MagneticAngularVelocity, MagneticInduction, MagneticInductionType, Vector3};
+
+impl Mul<AngularVelocity> for Vector3<MagneticInduction>{
+    type Output = Vector3<MagneticAngularVelocity>;
+
+    fn mul(self, rhs: AngularVelocity) -> Self::Output {
+        let x = self.x.as_nano_tesla() * rhs.as_rad_per_second();
+        let y = self.y.as_nano_tesla() * rhs.as_rad_per_second();
+        let z = self.z.as_nano_tesla() * rhs.as_rad_per_second();
+        Vector3::new(
+            MagneticAngularVelocity::from_nano_tesla_rad_per_second(x),
+            MagneticAngularVelocity::from_nano_tesla_rad_per_second(y),
+            MagneticAngularVelocity::from_nano_tesla_rad_per_second(z),
+        )
+    }
+}
 
 impl Vector3<MagneticInduction> {
     pub fn to_vector3_coef(&self, magnetic_induction_type: MagneticInductionType) -> Vector3<Coef> {
@@ -45,6 +61,23 @@ impl Vector3<MagneticInduction> {
         };
         let z = MagneticInduction {
             v: coef.z.v,
+            default_type: magnetic_induction_type,
+        };
+        Vector3::new(x, y, z)
+    }
+
+    pub fn from_array_with_unit(array: [f64; 3], magnetic_induction_type: MagneticInductionType) -> Vector3<MagneticInduction> {
+        let [x, y, z] = array;
+        let x = MagneticInduction {
+            v: x,
+            default_type: magnetic_induction_type,
+        };
+        let y = MagneticInduction {
+            v: y,
+            default_type: magnetic_induction_type,
+        };
+        let z = MagneticInduction {
+            v: z,
             default_type: magnetic_induction_type,
         };
         Vector3::new(x, y, z)

@@ -114,6 +114,50 @@ impl Vector3<MagneticAngularVelocity> {
         }
     }
 
+    pub fn from_array_with_unit(
+        array: [f64; 3],
+        magnetic_angular_velocity_type: MagneticAngularVelocityType,
+    ) -> Vector3<MagneticAngularVelocity> {
+        let [x, y, z] = array;
+        match magnetic_angular_velocity_type {
+            MagneticAngularVelocityType::TeslaRadPerSecond => Vector3::new(
+                MagneticAngularVelocity::from_tesla_rad_per_second(x),
+                MagneticAngularVelocity::from_tesla_rad_per_second(y),
+                MagneticAngularVelocity::from_tesla_rad_per_second(z),
+            ),
+            MagneticAngularVelocityType::MillTeslaRadPerSecond => Vector3::new(
+                MagneticAngularVelocity::from_mill_tesla_rad_per_second(x),
+                MagneticAngularVelocity::from_mill_tesla_rad_per_second(y),
+                MagneticAngularVelocity::from_mill_tesla_rad_per_second(z),
+            ),
+            MagneticAngularVelocityType::MicroTeslaRadPerSecond => Vector3::new(
+                MagneticAngularVelocity::from_micro_tesla_rad_per_second(x),
+                MagneticAngularVelocity::from_micro_tesla_rad_per_second(y),
+                MagneticAngularVelocity::from_micro_tesla_rad_per_second(z),
+            ),
+            MagneticAngularVelocityType::NanoTeslaRadPerSecond => Vector3::new(
+                MagneticAngularVelocity::from_nano_tesla_rad_per_second(x),
+                MagneticAngularVelocity::from_nano_tesla_rad_per_second(y),
+                MagneticAngularVelocity::from_nano_tesla_rad_per_second(z),
+            ),
+            MagneticAngularVelocityType::GaussRadPerSecond => Vector3::new(
+                MagneticAngularVelocity::from_gauss_rad_per_second(x),
+                MagneticAngularVelocity::from_gauss_rad_per_second(y),
+                MagneticAngularVelocity::from_gauss_rad_per_second(z),
+            ),
+            MagneticAngularVelocityType::MillGaussRadPerSecond => Vector3::new(
+                MagneticAngularVelocity::from_mill_gauss_rad_per_second(x),
+                MagneticAngularVelocity::from_mill_gauss_rad_per_second(y),
+                MagneticAngularVelocity::from_mill_gauss_rad_per_second(z),
+            ),
+            MagneticAngularVelocityType::KiloGaussRadPerSecond => Vector3::new(
+                MagneticAngularVelocity::from_kilo_gauss_rad_per_second(x),
+                MagneticAngularVelocity::from_kilo_gauss_rad_per_second(y),
+                MagneticAngularVelocity::from_kilo_gauss_rad_per_second(z),
+            ),
+        }
+    }
+
     // 以标量角动量 k 作为输入：m = k * (B*w) / |B|^2
     pub fn to_magnetic_moment(
         &self,

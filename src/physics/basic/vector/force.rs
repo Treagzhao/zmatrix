@@ -79,6 +79,54 @@ impl Vector3<Force> {
             }
         }
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], force_type: ForceType) -> Vector3<Force> {
+        let [x, y, z] = array;
+        match force_type {
+            ForceType::Newton => {
+                Vector3::new(
+                    Force::from_newton(x),
+                    Force::from_newton(y),
+                    Force::from_newton(z),
+                )
+            }
+            ForceType::MillNewton => {
+                Vector3::new(
+                    Force::from_mill_newton(x),
+                    Force::from_mill_newton(y),
+                    Force::from_mill_newton(z),
+                )
+            }
+            ForceType::MicroNewton => {
+                Vector3::new(
+                    Force::from_micro_newton(x),
+                    Force::from_micro_newton(y),
+                    Force::from_micro_newton(z),
+                )
+            }
+            ForceType::NanoNewton => {
+                Vector3::new(
+                    Force::from_nano_newton(x),
+                    Force::from_nano_newton(y),
+                    Force::from_nano_newton(z),
+                )
+            }
+            ForceType::KiloNewton => {
+                Vector3::new(
+                    Force::from_kilo_newton(x),
+                    Force::from_kilo_newton(y),
+                    Force::from_kilo_newton(z),
+                )
+            }
+            ForceType::MegaNewton => {
+                Vector3::new(
+                    Force::from_mega_newton(x),
+                    Force::from_mega_newton(y),
+                    Force::from_mega_newton(z),
+                )
+            }
+        }
+    }
 }
 
 #[cfg(test)]

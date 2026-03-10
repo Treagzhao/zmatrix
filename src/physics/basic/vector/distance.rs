@@ -62,6 +62,23 @@ impl Vector3<Distance> {
         };
         Vector3::new(x, y, z)
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], distance_type: DistanceType) -> Vector3<Distance> {
+        let [x, y, z] = array;
+        let x = Distance {
+            v: x,
+            default_type: distance_type,
+        };
+        let y = Distance {
+            v: y,
+            default_type: distance_type,
+        };
+        let z = Distance {
+            v: z,
+            default_type: distance_type,
+        };
+        Vector3::new(x, y, z)
+    }
 }
 
 #[cfg(test)]

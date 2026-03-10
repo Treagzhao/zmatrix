@@ -101,6 +101,68 @@ impl Vector3<MagneticMoment> {
             }
         }
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], magnetic_moment_type: MagneticMomentType) -> Vector3<MagneticMoment> {
+        let [x, y, z] = array;
+        match magnetic_moment_type {
+            MagneticMomentType::AM2 => {
+                Vector3::new(
+                    MagneticMoment::from_am2(x),
+                    MagneticMoment::from_am2(y),
+                    MagneticMoment::from_am2(z),
+                )
+            }
+            MagneticMomentType::MillAM2 => {
+                Vector3::new(
+                    MagneticMoment::from_mill_am2(x),
+                    MagneticMoment::from_mill_am2(y),
+                    MagneticMoment::from_mill_am2(z),
+                )
+            }
+            MagneticMomentType::MicroAM2 => {
+                Vector3::new(
+                    MagneticMoment::from_micro_am2(x),
+                    MagneticMoment::from_micro_am2(y),
+                    MagneticMoment::from_micro_am2(z),
+                )
+            }
+            MagneticMomentType::NanoAM2 => {
+                Vector3::new(
+                    MagneticMoment::from_nano_am2(x),
+                    MagneticMoment::from_nano_am2(y),
+                    MagneticMoment::from_nano_am2(z),
+                )
+            }
+            MagneticMomentType::JPerTesla => {
+                Vector3::new(
+                    MagneticMoment::from_j_per_tesla(x),
+                    MagneticMoment::from_j_per_tesla(y),
+                    MagneticMoment::from_j_per_tesla(z),
+                )
+            }
+            MagneticMomentType::MillJPerTesla => {
+                Vector3::new(
+                    MagneticMoment::from_mill_j_per_tesla(x),
+                    MagneticMoment::from_mill_j_per_tesla(y),
+                    MagneticMoment::from_mill_j_per_tesla(z),
+                )
+            }
+            MagneticMomentType::MicroJPerTesla => {
+                Vector3::new(
+                    MagneticMoment::from_micro_j_per_tesla(x),
+                    MagneticMoment::from_micro_j_per_tesla(y),
+                    MagneticMoment::from_micro_j_per_tesla(z),
+                )
+            }
+            MagneticMomentType::NanoJPerTesla => {
+                Vector3::new(
+                    MagneticMoment::from_nano_j_per_tesla(x),
+                    MagneticMoment::from_nano_j_per_tesla(y),
+                    MagneticMoment::from_nano_j_per_tesla(z),
+                )
+            }
+        }
+    }
 }
 
 #[cfg(test)]

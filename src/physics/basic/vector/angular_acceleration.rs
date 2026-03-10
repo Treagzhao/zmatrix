@@ -34,6 +34,23 @@ impl Vector3<AngularAcceleration> {
         };
         Vector3::new(x, y, z)
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], angular_acceleration_type: AngularAccelerationType) -> Vector3<AngularAcceleration> {
+        let [x, y, z] = array;
+        let x = AngularAcceleration {
+            v: x,
+            default_type: angular_acceleration_type,
+        };
+        let y = AngularAcceleration {
+            v: y,
+            default_type: angular_acceleration_type,
+        };
+        let z = AngularAcceleration {
+            v: z,
+            default_type: angular_acceleration_type,
+        };
+        Vector3::new(x, y, z)
+    }
 }
 
 #[cfg(test)]

@@ -45,6 +45,23 @@ impl Vector3<AngularMomentum> {
         };
         Vector3::new(x, y, z)
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], angular_momentum_type: AngularMomentumType) -> Vector3<AngularMomentum> {
+        let [x, y, z] = array;
+        let x = AngularMomentum {
+            v: x,
+            default_type: angular_momentum_type,
+        };
+        let y = AngularMomentum {
+            v: y,
+            default_type: angular_momentum_type,
+        };
+        let z = AngularMomentum {
+            v: z,
+            default_type: angular_momentum_type,
+        };
+        Vector3::new(x, y, z)
+    }
 }
 
 #[cfg(test)]

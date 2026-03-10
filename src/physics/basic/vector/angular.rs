@@ -145,6 +145,23 @@ impl Vector3<Angular> {
         Vector3::new(x, y, z)
     }
 
+    pub fn from_array_with_unit(array: [f64; 3], angular_type: AngularType) -> Vector3<Angular> {
+        let [x, y, z] = array;
+        let x = Angular {
+            v: x,
+            default_type: angular_type,
+        };
+        let y = Angular {
+            v: y,
+            default_type: angular_type,
+        };
+        let z = Angular {
+            v: z,
+            default_type: angular_type,
+        };
+        Vector3::new(x, y, z)
+    }
+
     pub fn to_cos_matrix(
         &self,
         seq: RotationSeq,

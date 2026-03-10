@@ -33,6 +33,23 @@ impl Vector3<Acceleration> {
         };
         Vector3::new(x, y, z)
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], acceleration_type: AccelerationType) -> Vector3<Acceleration> {
+        let [x, y, z] = array;
+        let x = Acceleration {
+            v: x,
+            default_type: acceleration_type,
+        };
+        let y = Acceleration {
+            v: y,
+            default_type: acceleration_type,
+        };
+        let z = Acceleration {
+            v: z,
+            default_type: acceleration_type,
+        };
+        Vector3::new(x, y, z)
+    }
 }
 
 #[cfg(test)]

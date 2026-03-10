@@ -57,6 +57,23 @@ impl Vector3<AngularVelocity> {
         };
         Vector3::new(x, y, z)
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], angular_velocity_type: AngularVelocityType) -> Vector3<AngularVelocity> {
+        let [x, y, z] = array;
+        let x = AngularVelocity {
+            v: x,
+            default_type: angular_velocity_type,
+        };
+        let y = AngularVelocity {
+            v: y,
+            default_type: angular_velocity_type,
+        };
+        let z = AngularVelocity {
+            v: z,
+            default_type: angular_velocity_type,
+        };
+        Vector3::new(x, y, z)
+    }
 }
 
 impl Mul<Duration> for Vector3<AngularVelocity> {

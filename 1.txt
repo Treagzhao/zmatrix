@@ -31,6 +31,12 @@ warning: unused import: `array_init::array_init`
 3 | use array_init::array_init;
   |     ^^^^^^^^^^^^^^^^^^^^^^
 
+warning: unused import: `rayon::prelude::*`
+ --> src/dense/operation.rs:5:5
+  |
+5 | use rayon::prelude::*;
+  |     ^^^^^^^^^^^^^^^^^
+
 warning: unused imports: `Arc` and `mpsc`
  --> src/dense/operation.rs:9:17
   |
@@ -110,16 +116,34 @@ warning: unused imports: `Acceleration`, `Mass`, and `Velocity`
   |     ^^^^^^^^^^^^                                             ^^^^                    ^^^^^^^^
 
 warning: unused import: `approx::assert_relative_eq`
+ --> src/physics/basic/energy.rs:4:5
+  |
+4 | use approx::assert_relative_eq;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `approx::assert_relative_eq`
+ --> src/physics/basic/force.rs:4:5
+  |
+4 | use approx::assert_relative_eq;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `approx::assert_relative_eq`
  --> src/physics/basic/magnetic_angular_velocity.rs:4:5
   |
 4 | use approx::assert_relative_eq;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-warning: unused import: `Area`
-   --> src/physics/basic/magnetic_moment.rs:342:52
-    |
-342 |     use crate::physics::basic::{MagneticInduction, Area};
-    |                                                    ^^^^
+warning: unused import: `approx::assert_relative_eq`
+ --> src/physics/basic/magnetic_moment.rs:4:5
+  |
+4 | use approx::assert_relative_eq;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `approx::assert_relative_eq`
+ --> src/physics/basic/mass.rs:4:5
+  |
+4 | use approx::assert_relative_eq;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `AngularMomentumType`, `MassType`, and `Mass`
  --> src/physics/basic/momentum.rs:3:46
@@ -127,13 +151,17 @@ warning: unused imports: `AngularMomentumType`, `MassType`, and `Mass`
 3 | use crate::physics::basic::{AngularMomentum, AngularMomentumType, Coef, Distance, Mass, MassType, Momentum, MomentumType, PhysicalQuantity};
   |                                              ^^^^^^^^^^^^^^^^^^^                  ^^^^  ^^^^^^^^
 
-warning: duplicated attribute
-  --> src/physics/basic/vector/angular_velocity.rs:78:5
-   |
-78 |     #[test]
-   |     ^^^^^^^
-   |
-   = note: `#[warn(duplicate_macro_attributes)]` on by default
+warning: unused import: `approx::assert_relative_eq`
+ --> src/physics/basic/power.rs:4:5
+  |
+4 | use approx::assert_relative_eq;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `approx::assert_relative_eq`
+ --> src/physics/basic/torque.rs:4:5
+  |
+4 | use approx::assert_relative_eq;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused import: `Mass`
  --> src/physics/basic/vector/distance.rs:2:52
@@ -141,16 +169,22 @@ warning: unused import: `Mass`
 2 |     AngularMomentum, Coef, Distance, DistanceType, Mass, Momentum, Vector3, Velocity,
   |                                                    ^^^^
 
+warning: unused import: `super::*`
+ --> src/physics/basic/vector/magnetic_angular_velocity.rs:1:5
+  |
+1 | use super::*;
+  |     ^^^^^^^^
+
 warning: unused import: `Div`
- --> src/physics/basic/vector/megnetic_induction.rs:1:16
+ --> src/physics/basic/vector/magnetic_induction.rs:1:16
   |
 1 | use std::ops::{Div, Mul};
   |                ^^^
 
 warning: unused import: `crate::utils::float`
-  --> src/physics/basic/vector.rs:19:5
+  --> src/physics/basic/vector.rs:18:5
    |
-19 | use crate::utils::float;
+18 | use crate::utils::float;
    |     ^^^^^^^^^^^^^^^^^^^
 
 warning: unused import: `crate::physics::basic::VelocityType::LightSpeed`
@@ -158,12 +192,6 @@ warning: unused import: `crate::physics::basic::VelocityType::LightSpeed`
   |
 3 | use crate::physics::basic::VelocityType::LightSpeed;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: unused import: `std::any::TypeId`
-   --> src/physics/basic/velocity.rs:318:9
-    |
-318 |     use std::any::TypeId;
-    |         ^^^^^^^^^^^^^^^^
 
 warning: unused import: `DistanceType`
  --> src/physics/basic/volume.rs:3:51
@@ -197,11 +225,11 @@ warning: unused import: `super::*`
 1 | use super::*;
   |     ^^^^^^^^
 
-warning: duplicated attribute
-  --> src/utils/float.rs:51:5
-   |
-51 |     #[test]
-   |     ^^^^^^^
+warning: unused import: `rayon::iter::ParallelIterator`
+ --> src/dense/operation.rs:4:5
+  |
+4 | use rayon::iter::ParallelIterator;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused import: `PhysicalQuantity`
  --> src/spatial_geometry/cos_matrix.rs:4:44
@@ -210,22 +238,243 @@ warning: unused import: `PhysicalQuantity`
   |                                            ^^^^^^^^^^^^^^^^
 
 warning: unused import: `rayon::iter::ParallelIterator`
- --> src/dense/operation.rs:4:5
+ --> src/dense/shape.rs:3:5
   |
-4 | use rayon::iter::ParallelIterator;
+3 | use rayon::iter::ParallelIterator;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+warning: value assigned to `ceof` is never read
+   --> src/dense/util.rs:122:13
+    |
+122 |     let mut ceof: i8 = 0;
+    |             ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: unused variable: `key`
+   --> src/dense/util.rs:128:9
+    |
+128 |     let key = print_permutation(permutation);
+    |         ^^^ help: if this is intentional, prefix it with an underscore: `_key`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: variable does not need to be mutable
+  --> src/dense.rs:25:13
+   |
+25 |         let mut digits: u8 = 0;
+   |             ----^^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/physics/basic/vector/angular.rs:102:13
+    |
+102 |         let mut result: Vector3<Angular> = Vector3::new(
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/physics/basic/vector/angular.rs:111:13
+    |
+111 |         let mut result: Vector3<Angular> = Vector3::new(
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: value assigned to `x` is never read
+   --> src/spatial_geometry/cos_matrix.rs:485:17
+    |
+485 |         let mut x: Angular = Angular::default();
+    |                 ^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: field `digits` is never read
+  --> src/dense.rs:17:5
+   |
+12 | pub struct Matrix<const ROWS: usize, const COLS: usize, T>
+   |            ------ field in this struct
+...
+17 |     digits: u8,
+   |     ^^^^^^
+   |
+   = note: `Matrix` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+
+warning: struct `CalculateResult` is never constructed
+ --> src/dense/util.rs:8:12
+  |
+8 | pub struct CalculateResult<T>
+  |            ^^^^^^^^^^^^^^^
+
+warning: function `convert_to_f64` is never used
+  --> src/dense/util.rs:17:8
+   |
+17 | pub fn convert_to_f64<T>(value: T) -> Result<f64, error::OperationError>
+   |        ^^^^^^^^^^^^^^
+
+warning: function `calculate_in_threads` is never used
+  --> src/dense/util.rs:60:8
+   |
+60 | pub fn calculate_in_threads<'a, const ROWS: usize, const COLS: usize, T, F>(
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calculate_multi` is never used
+  --> src/dense/util.rs:93:8
+   |
+93 | pub fn calculate_multi<const A_ROWS: usize, const A_COLS: usize, const B_COLS: usize, T>(
+   |        ^^^^^^^^^^^^^^^
+
+warning: constant `LIGHT_SPEED` is never used
+ --> src/physics/basic/distance.rs:5:7
+  |
+5 | const LIGHT_SPEED: f64 = 299792458.0;
+  |       ^^^^^^^^^^^
+
+warning: method `T` should have a snake case name
+  --> src/dense/shape.rs:26:12
+   |
+26 |     pub fn T(&self) -> Matrix<COLS, ROWS, T> {
+   |            ^ help: convert the identifier to snake case: `t`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: `zmatrix` (lib) generated 53 warnings (run `cargo fix --lib -p zmatrix` to apply 39 suggestions)
+warning: unused import: `Area`
+   --> src/physics/basic/magnetic_moment.rs:342:52
+    |
+342 |     use crate::physics::basic::{MagneticInduction, Area};
+    |                                                    ^^^^
+
+warning: duplicated attribute
+  --> src/physics/basic/vector/angular_velocity.rs:95:5
+   |
+95 |     #[test]
+   |     ^^^^^^^
+   |
+   = note: `#[warn(duplicate_macro_attributes)]` on by default
+
+warning: unused import: `std::any::TypeId`
+   --> src/physics/basic/velocity.rs:318:9
+    |
+318 |     use std::any::TypeId;
+    |         ^^^^^^^^^^^^^^^^
+
+warning: duplicated attribute
+  --> src/utils/float.rs:51:5
+   |
+51 |     #[test]
+   |     ^^^^^^^
+
+warning: unused import: `Energy`
+ --> examples/example_magnetic_moment.rs:1:66
+  |
+1 | use zmatrix::physics::basic::{MagneticMoment, MagneticInduction, Energy, PhysicalQuantity};
+  |                                                                  ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Acceleration`
+ --> examples/example_energy.rs:1:65
+  |
+1 | use zmatrix::physics::basic::{Energy, Distance, Mass, Velocity, Acceleration, PhysicalQuantity};
+  |                                                                 ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused variable: `acc`
+  --> examples/example_physics.rs:20:9
+   |
+20 |     let acc:Acceleration = velocity / time;
+   |         ^^^ help: if this is intentional, prefix it with an underscore: `_acc`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `angular_accel`
+  --> examples/example_physics.rs:25:9
+   |
+25 |     let angular_accel:AngularAcceleration = omg / time;
+   |         ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_angular_accel`
+
+warning: unused variable: `area`
+  --> examples/example_physics.rs:28:9
+   |
+28 |     let area:Area = dis * dis;
+   |         ^^^^ help: if this is intentional, prefix it with an underscore: `_area`
+
+warning: unused variable: `pos_vector`
+  --> examples/example_physics.rs:33:9
+   |
+33 |     let pos_vector:Vector3<Distance> = Vector3::new(
+   |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_pos_vector`
+
+warning: function `calculate` is never used
+  --> examples/example_physics.rs:16:4
+   |
+16 | fn calculate() {
+   |    ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `exmples_vector3` is never used
+  --> examples/example_physics.rs:32:4
+   |
+32 | fn exmples_vector3(){
+   |    ^^^^^^^^^^^^^^^
+
+warning: unused import: `zmatrix::dense`
+ --> examples/examples_dense.rs:1:5
+  |
+1 | use zmatrix::dense;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused `Result` that must be used
+  --> examples/examples_dense.rs:61:5
+   |
+61 |     m1.set(1, 1, 12);
+   |     ^^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+   = note: `#[warn(unused_must_use)]` on by default
+help: use `let _ = ...` to ignore the resulting value
+   |
+61 |     let _ = m1.set(1, 1, 12);
+   |     +++++++
+
+warning: `zmatrix` (example "example_magnetic_moment") generated 1 warning (run `cargo fix --example "example_magnetic_moment"` to apply 1 suggestion)
+warning: `zmatrix` (example "example_physics") generated 6 warnings
+warning: `zmatrix` (example "examples_dense") generated 2 warnings (run `cargo fix --example "examples_dense"` to apply 1 suggestion)
+warning: `zmatrix` (example "example_energy") generated 1 warning (run `cargo fix --example "example_energy"` to apply 1 suggestion)
+warning: unused import: `Energy`
+ --> examples/example_torque.rs:1:49
+  |
+1 | use zmatrix::physics::basic::{Torque, Distance, Energy, PhysicalQuantity};
+  |                                                 ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `Energy`, `MagneticInduction`, `Mass`, `Power`, `Torque`, `VectorQuantity`, and `Volume`
+ --> examples/example_vector_quantity_restriction.rs:1:31
+  |
+1 | use zmatrix::physics::basic::{VectorQuantity, Distance, Velocity, Force, Torque, MagneticInduction, Vector3, Mass, Energy, Power, Volume};
+  |                               ^^^^^^^^^^^^^^                             ^^^^^^  ^^^^^^^^^^^^^^^^^           ^^^^  ^^^^^^  ^^^^^  ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `zmatrix` (example "example_vector_quantity_restriction") generated 1 warning (run `cargo fix --example "example_vector_quantity_restriction"` to apply 1 suggestion)
+warning: `zmatrix` (example "example_torque") generated 1 warning (run `cargo fix --example "example_torque"` to apply 1 suggestion)
 warning: unused import: `rayon::prelude`
  --> src/dense/operation.rs:5:5
   |
 5 | use rayon::prelude::*;
   |     ^^^^^^^^^^^^^^
-
-warning: unused import: `rayon::iter::ParallelIterator`
- --> src/dense/shape.rs:3:5
-  |
-3 | use rayon::iter::ParallelIterator;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused variable: `expected`
    --> src/dense/operation.rs:518:13
@@ -247,15 +496,6 @@ warning: unused variable: `data`
 185 |         let data = (1..=100).collect::<Vec<_>>();
     |             ^^^^ help: if this is intentional, prefix it with an underscore: `_data`
 
-warning: value assigned to `ceof` is never read
-   --> src/dense/util.rs:122:13
-    |
-122 |     let mut ceof: i8 = 0;
-    |             ^^^^
-    |
-    = help: maybe it is overwritten before being read?
-    = note: `#[warn(unused_assignments)]` on by default
-
 warning: unused variable: `key`
    --> src/dense/util.rs:128:9
     |
@@ -267,16 +507,6 @@ warning: unused variable: `vec`
     |
 286 |         if let Ok(vec) = res {
     |                   ^^^ help: if this is intentional, prefix it with an underscore: `_vec`
-
-warning: variable does not need to be mutable
-  --> src/dense.rs:25:13
-   |
-25 |         let mut digits: u8 = 0;
-   |             ----^^^^^^
-   |             |
-   |             help: remove this `mut`
-   |
-   = note: `#[warn(unused_mut)]` on by default
 
 warning: unused variable: `d2`
    --> src/physics/basic/acceleration.rs:378:13
@@ -356,50 +586,34 @@ warning: unused variable: `unit_name`
 895 |         for (power, unit_name) in units {
     |                     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_unit_name`
 
-warning: variable does not need to be mutable
-   --> src/physics/basic/vector/angular.rs:102:13
-    |
-102 |         let mut result: Vector3<Angular> = Vector3::new(
-    |             ----^^^^^^
-    |             |
-    |             help: remove this `mut`
-
-warning: variable does not need to be mutable
-   --> src/physics/basic/vector/angular.rs:111:13
-    |
-111 |         let mut result: Vector3<Angular> = Vector3::new(
-    |             ----^^^^^^
-    |             |
-    |             help: remove this `mut`
-
 warning: unused variable: `ti`
-    --> src/physics/basic/vector/angular.rs:1069:14
+    --> src/physics/basic/vector/angular.rs:1086:14
      |
-1069 |         let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
+1086 |         let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
      |              ^^ help: if this is intentional, prefix it with an underscore: `_ti`
 
 warning: unused variable: `tj`
-    --> src/physics/basic/vector/angular.rs:1069:18
+    --> src/physics/basic/vector/angular.rs:1086:18
      |
-1069 |         let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
+1086 |         let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
      |                  ^^ help: if this is intentional, prefix it with an underscore: `_tj`
 
 warning: unused variable: `tk`
-    --> src/physics/basic/vector/angular.rs:1069:22
+    --> src/physics/basic/vector/angular.rs:1086:22
      |
-1069 |         let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
+1086 |         let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
      |                      ^^ help: if this is intentional, prefix it with an underscore: `_tk`
 
 warning: unused variable: `input`
-   --> src/physics/basic/vector.rs:734:17
+   --> src/physics/basic/vector.rs:733:17
     |
-734 |         let mut input = [1f32, 4f32, 9f32];
+733 |         let mut input = [1f32, 4f32, 9f32];
     |                 ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
 
 warning: variable does not need to be mutable
-   --> src/physics/basic/vector.rs:734:13
+   --> src/physics/basic/vector.rs:733:13
     |
-734 |         let mut input = [1f32, 4f32, 9f32];
+733 |         let mut input = [1f32, 4f32, 9f32];
     |             ----^^^^^
     |             |
     |             help: remove this `mut`
@@ -428,45 +642,11 @@ warning: unused variable: `d`
 618 |         let d = g.as_any().downcast_ref::<Area>().unwrap();
     |             ^ help: if this is intentional, prefix it with an underscore: `_d`
 
-warning: value assigned to `x` is never read
-   --> src/spatial_geometry/cos_matrix.rs:485:17
-    |
-485 |         let mut x: Angular = Angular::default();
-    |                 ^
-    |
-    = help: maybe it is overwritten before being read?
-
-warning: field `digits` is never read
-  --> src/dense.rs:17:5
-   |
-12 | pub struct Matrix<const ROWS: usize, const COLS: usize, T>
-   |            ------ field in this struct
-...
-17 |     digits: u8,
-   |     ^^^^^^
-   |
-   = note: `Matrix` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
-   = note: `#[warn(dead_code)]` on by default
-
-warning: constant `LIGHT_SPEED` is never used
- --> src/physics/basic/distance.rs:5:7
-  |
-5 | const LIGHT_SPEED: f64 = 299792458.0;
-  |       ^^^^^^^^^^^
-
 warning: function `test_norm_square_basic` is never used
-    --> src/physics/basic/vector.rs:1058:8
+    --> src/physics/basic/vector.rs:1057:8
      |
-1058 |     fn test_norm_square_basic() {
+1057 |     fn test_norm_square_basic() {
      |        ^^^^^^^^^^^^^^^^^^^^^^
-
-warning: method `T` should have a snake case name
-  --> src/dense/shape.rs:26:12
-   |
-26 |     pub fn T(&self) -> Matrix<COLS, ROWS, T> {
-   |            ^ help: convert the identifier to snake case: `t`
-   |
-   = note: `#[warn(non_snake_case)]` on by default
 
 warning: function `test_T` should have a snake case name
    --> src/dense/shape.rs:110:8
@@ -475,193 +655,13 @@ warning: function `test_T` should have a snake case name
     |        ^^^^^^ help: convert the identifier to snake case: `test_t`
 
 warning: variable `delta_B` should have a snake case name
-    --> src/physics/basic/vector/magnetic_angular_velocity.rs:1578:13
+    --> src/physics/basic/vector/magnetic_angular_velocity.rs:1622:13
      |
-1578 |         let delta_B = b - b_prev;
+1622 |         let delta_B = b - b_prev;
      |             ^^^^^^^ help: convert the identifier to snake case: `delta_b`
 
-warning: `zmatrix` (lib test) generated 75 warnings (run `cargo fix --lib -p zmatrix --tests` to apply 34 suggestions)
-warning: unused import: `rayon::prelude::*`
- --> src/dense/operation.rs:5:5
-  |
-5 | use rayon::prelude::*;
-  |     ^^^^^^^^^^^^^^^^^
-
-warning: unused import: `approx::assert_relative_eq`
- --> src/physics/basic/energy.rs:4:5
-  |
-4 | use approx::assert_relative_eq;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: unused import: `approx::assert_relative_eq`
- --> src/physics/basic/force.rs:4:5
-  |
-4 | use approx::assert_relative_eq;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: unused import: `approx::assert_relative_eq`
- --> src/physics/basic/magnetic_moment.rs:4:5
-  |
-4 | use approx::assert_relative_eq;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: unused import: `approx::assert_relative_eq`
- --> src/physics/basic/mass.rs:4:5
-  |
-4 | use approx::assert_relative_eq;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: unused import: `approx::assert_relative_eq`
- --> src/physics/basic/power.rs:4:5
-  |
-4 | use approx::assert_relative_eq;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: unused import: `approx::assert_relative_eq`
- --> src/physics/basic/torque.rs:4:5
-  |
-4 | use approx::assert_relative_eq;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: unused import: `super::*`
- --> src/physics/basic/vector/magnetic_angular_velocity.rs:1:5
-  |
-1 | use super::*;
-  |     ^^^^^^^^
-
-warning: unused variable: `key`
-   --> src/dense/util.rs:128:9
-    |
-128 |     let key = print_permutation(permutation);
-    |         ^^^ help: if this is intentional, prefix it with an underscore: `_key`
-    |
-    = note: `#[warn(unused_variables)]` on by default
-
-warning: struct `CalculateResult` is never constructed
- --> src/dense/util.rs:8:12
-  |
-8 | pub struct CalculateResult<T>
-  |            ^^^^^^^^^^^^^^^
-
-warning: function `convert_to_f64` is never used
-  --> src/dense/util.rs:17:8
-   |
-17 | pub fn convert_to_f64<T>(value: T) -> Result<f64, error::OperationError>
-   |        ^^^^^^^^^^^^^^
-
-warning: function `calculate_in_threads` is never used
-  --> src/dense/util.rs:60:8
-   |
-60 | pub fn calculate_in_threads<'a, const ROWS: usize, const COLS: usize, T, F>(
-   |        ^^^^^^^^^^^^^^^^^^^^
-
-warning: function `calculate_multi` is never used
-  --> src/dense/util.rs:93:8
-   |
-93 | pub fn calculate_multi<const A_ROWS: usize, const A_COLS: usize, const B_COLS: usize, T>(
-   |        ^^^^^^^^^^^^^^^
-
-warning: `zmatrix` (lib) generated 53 warnings (40 duplicates) (run `cargo fix --lib -p zmatrix` to apply 8 suggestions)
-warning: unused import: `Energy`
- --> examples/example_magnetic_moment.rs:1:66
-  |
-1 | use zmatrix::physics::basic::{MagneticMoment, MagneticInduction, Energy, PhysicalQuantity};
-  |                                                                  ^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
-warning: unused imports: `Energy`, `MagneticInduction`, `Mass`, `Power`, `Torque`, `VectorQuantity`, and `Volume`
- --> examples/example_vector_quantity_restriction.rs:1:31
-  |
-1 | use zmatrix::physics::basic::{VectorQuantity, Distance, Velocity, Force, Torque, MagneticInduction, Vector3, Mass, Energy, Power, Volume};
-  |                               ^^^^^^^^^^^^^^                             ^^^^^^  ^^^^^^^^^^^^^^^^^           ^^^^  ^^^^^^  ^^^^^  ^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
-warning: unused variable: `acc`
-  --> examples/example_physics.rs:20:9
-   |
-20 |     let acc:Acceleration = velocity / time;
-   |         ^^^ help: if this is intentional, prefix it with an underscore: `_acc`
-   |
-   = note: `#[warn(unused_variables)]` on by default
-
-warning: unused variable: `angular_accel`
-  --> examples/example_physics.rs:25:9
-   |
-25 |     let angular_accel:AngularAcceleration = omg / time;
-   |         ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_angular_accel`
-
-warning: unused variable: `area`
-  --> examples/example_physics.rs:28:9
-   |
-28 |     let area:Area = dis * dis;
-   |         ^^^^ help: if this is intentional, prefix it with an underscore: `_area`
-
-warning: unused import: `Acceleration`
- --> examples/example_energy.rs:1:65
-  |
-1 | use zmatrix::physics::basic::{Energy, Distance, Mass, Velocity, Acceleration, PhysicalQuantity};
-  |                                                                 ^^^^^^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
-warning: unused variable: `pos_vector`
-  --> examples/example_physics.rs:33:9
-   |
-33 |     let pos_vector:Vector3<Distance> = Vector3::new(
-   |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_pos_vector`
-
-warning: function `calculate` is never used
-  --> examples/example_physics.rs:16:4
-   |
-16 | fn calculate() {
-   |    ^^^^^^^^^
-   |
-   = note: `#[warn(dead_code)]` on by default
-
-warning: function `exmples_vector3` is never used
-  --> examples/example_physics.rs:32:4
-   |
-32 | fn exmples_vector3(){
-   |    ^^^^^^^^^^^^^^^
-
-warning: unused import: `zmatrix::dense`
- --> examples/examples_dense.rs:1:5
-  |
-1 | use zmatrix::dense;
-  |     ^^^^^^^^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
-warning: unused `Result` that must be used
-  --> examples/examples_dense.rs:61:5
-   |
-61 |     m1.set(1, 1, 12);
-   |     ^^^^^^^^^^^^^^^^
-   |
-   = note: this `Result` may be an `Err` variant, which should be handled
-   = note: `#[warn(unused_must_use)]` on by default
-help: use `let _ = ...` to ignore the resulting value
-   |
-61 |     let _ = m1.set(1, 1, 12);
-   |     +++++++
-
-warning: `zmatrix` (example "example_magnetic_moment") generated 1 warning (run `cargo fix --example "example_magnetic_moment"` to apply 1 suggestion)
-warning: `zmatrix` (example "example_physics") generated 6 warnings
-warning: `zmatrix` (example "example_vector_quantity_restriction") generated 1 warning (run `cargo fix --example "example_vector_quantity_restriction"` to apply 1 suggestion)
-warning: `zmatrix` (example "example_energy") generated 1 warning (run `cargo fix --example "example_energy"` to apply 1 suggestion)
-warning: `zmatrix` (example "examples_dense") generated 2 warnings (run `cargo fix --example "examples_dense"` to apply 1 suggestion)
-warning: unused import: `Energy`
- --> examples/example_torque.rs:1:49
-  |
-1 | use zmatrix::physics::basic::{Torque, Distance, Energy, PhysicalQuantity};
-  |                                                 ^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
-warning: `zmatrix` (example "example_torque") generated 1 warning (run `cargo fix --example "example_torque"` to apply 1 suggestion)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.85s
+warning: `zmatrix` (lib test) generated 75 warnings (40 duplicates) (run `cargo fix --lib -p zmatrix --tests` to apply 3 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.80s
      Running unittests src/lib.rs (target/debug/deps/zmatrix-0317ef656e62916a)
    Doc-tests zmatrix
 warning: variant `g` should have an upper camel case name

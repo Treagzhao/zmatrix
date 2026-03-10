@@ -29,6 +29,23 @@ impl Vector3<Momentum> {
         };
         Vector3::new(x, y, z)
     }
+
+    pub fn from_array_with_unit(array: [f64; 3], momentum_type: MomentumType) -> Vector3<Momentum> {
+        let [x, y, z] = array;
+        let x = Momentum {
+            v: x,
+            default_type: momentum_type,
+        };
+        let y = Momentum {
+            v: y,
+            default_type: momentum_type,
+        };
+        let z = Momentum {
+            v: z,
+            default_type: momentum_type,
+        };
+        Vector3::new(x, y, z)
+    }
 }
 
 #[cfg(test)]

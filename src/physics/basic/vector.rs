@@ -17,7 +17,26 @@ mod velocity;
 use super::*;
 use crate::dense::Matrix;
 use crate::utils::float;
-use std::ops::{Add, Mul, Sub, Neg};
+use std::ops::{Add, Mul, Neg, Sub};
+
+// 定义空的 marker trait，用于标记非 Coef 类型
+// 所有实现 NonCoefficient 的类型必须也实现 VectorQuantity
+pub trait NonCoefficient: VectorQuantity {}
+
+// 为各种物理量实现 NonCoefficient trait
+impl NonCoefficient for super::Distance {}
+impl NonCoefficient for super::Velocity {}
+impl NonCoefficient for super::Acceleration {}
+impl NonCoefficient for super::Angular {}
+impl NonCoefficient for super::AngularVelocity {}
+impl NonCoefficient for super::AngularAcceleration {}
+impl NonCoefficient for super::AngularMomentum {}
+impl NonCoefficient for super::Force {}
+impl NonCoefficient for super::MagneticAngularVelocity {}
+impl NonCoefficient for super::MagneticInduction {}
+impl NonCoefficient for super::MagneticMoment {}
+impl NonCoefficient for super::Momentum {}
+impl NonCoefficient for super::Torque {}
 
 // 将值限制在 [-1, 1] 区间内，供角度计算使用
 pub(crate) fn clamp_to_unit_interval(v: f64) -> f64 {
@@ -243,6 +262,116 @@ impl<T: VectorQuantity + Mul<Coef, Output = T> + Default> Mul<Coef> for Vector3<
             y: self.y * rhs,
             z: self.z * rhs,
         }
+    }
+}
+
+// 实现 Vector3<Coef> 与 Vector3<T> 的乘法，产生 Vector3<T>
+impl<T: VectorQuantity + Default> Mul<Vector3<T>> for Vector3<Coef> {
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: Vector3<T>) -> Self::Output {
+        let mut result: Vector3<T> = Vector3::default();
+        result
+            .x
+            .set_value(self.x.default_unit_value() * rhs.x.default_unit_value());
+        result
+            .y
+            .set_value(self.y.default_unit_value() * rhs.y.default_unit_value());
+        result
+            .z
+            .set_value(self.z.default_unit_value() * rhs.z.default_unit_value());
+        result
+    }
+}
+
+// 实现引用版本的乘法
+impl<'a, 'b, T: VectorQuantity + Default> Mul<&'b Vector3<T>> for &'a Vector3<Coef> {
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: &'b Vector3<T>) -> Self::Output {
+        let mut result: Vector3<T> = Vector3::default();
+        result
+            .x
+            .set_value(self.x.default_unit_value() * rhs.x.default_unit_value());
+        result
+            .y
+            .set_value(self.y.default_unit_value() * rhs.y.default_unit_value());
+        result
+            .z
+            .set_value(self.z.default_unit_value() * rhs.z.default_unit_value());
+        result
+    }
+}
+
+// 实现混合引用版本的乘法
+impl<'a, T: VectorQuantity + Default> Mul<Vector3<T>> for &'a Vector3<Coef> {
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: Vector3<T>) -> Self::Output {
+        let mut result: Vector3<T> = Vector3::default();
+        result
+            .x
+            .set_value(self.x.default_unit_value() * rhs.x.default_unit_value());
+        result
+            .y
+            .set_value(self.y.default_unit_value() * rhs.y.default_unit_value());
+        result
+            .z
+            .set_value(self.z.default_unit_value() * rhs.z.default_unit_value());
+        result
+    }
+}
+
+impl<'a, T: VectorQuantity + Default> Mul<&'a Vector3<Coef>> for Vector3<T> {
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: &'a Vector3<Coef>) -> Self::Output {
+        let mut result: Vector3<T> = Vector3::default();
+        result
+            .x
+            .set_value(rhs.x.default_unit_value() * self.x.default_unit_value());
+        result
+            .y
+            .set_value(rhs.y.default_unit_value() * self.y.default_unit_value());
+        result
+            .z
+            .set_value(rhs.z.default_unit_value() * self.z.default_unit_value());
+        result
+    }
+}
+
+// 实现 Vector3<Coef> 与标量 T 的乘法，产生 Vector3<T>
+// 使用 NonCoefficient trait 来避免与现有 Mul<Coef> 实现冲突
+impl<T> Mul<T> for Vector3<Coef>
+where
+    T: NonCoefficient + Default,
+{
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        let rhs_value = rhs.default_unit_value();
+        let mut result: Vector3<T> = Vector3::default();
+        result.x.set_value(self.x.default_unit_value() * rhs_value);
+        result.y.set_value(self.y.default_unit_value() * rhs_value);
+        result.z.set_value(self.z.default_unit_value() * rhs_value);
+        result
+    }
+}
+
+// 实现引用版本的标量乘法
+impl<'a, T> Mul<T> for &'a Vector3<Coef>
+where
+    T: NonCoefficient + Default,
+{
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        let rhs_value = rhs.default_unit_value();
+        let mut result: Vector3<T> = Vector3::default();
+        result.x.set_value(self.x.default_unit_value() * rhs_value);
+        result.y.set_value(self.y.default_unit_value() * rhs_value);
+        result.z.set_value(self.z.default_unit_value() * rhs_value);
+        result
     }
 }
 
@@ -705,8 +834,6 @@ mod tests {
         assert_relative_eq!(result.x.get_value(), expected[0], epsilon = 0.00001);
         assert_relative_eq!(result.y.get_value(), expected[1], epsilon = 0.00001);
         assert_relative_eq!(result.z.get_value(), expected[2], epsilon = 0.00001);
-
-
     }
 
     #[test]
@@ -1069,9 +1196,9 @@ mod tests {
 
         // 测试混合单位的情况
         let vec6 = Vector3::new(
-            Distance::from_m(1000.0),  // 1000米
-            Distance::from_km(2.0),     // 2000米
-            Distance::from_m(500.0),    // 500米
+            Distance::from_m(1000.0), // 1000米
+            Distance::from_km(2.0),   // 2000米
+            Distance::from_m(500.0),  // 500米
         );
         let max_val6 = vec6.max();
         assert_relative_eq!(max_val6.as_m(), 2000.0);
@@ -1092,5 +1219,122 @@ mod tests {
         );
         let max_val8 = vec8.max();
         assert_relative_eq!(max_val8.as_m_per_sec(), 15.0);
+    }
+
+    #[test]
+    fn test_vector3_coef_mul_vector_quantity() {
+        // 测试 Vector3<Coef> * Vector3<Force>
+        let coef_vec = Vector3::new(Coef::new(2.0), Coef::new(3.0), Coef::new(4.0));
+        let force_vec = Vector3::new(
+            Force::from_newton(10.0),
+            Force::from_newton(20.0),
+            Force::from_newton(30.0),
+        );
+        let result = coef_vec * force_vec;
+        assert_relative_eq!(result.x.as_newton(), 20.0);
+        assert_relative_eq!(result.y.as_newton(), 60.0);
+        assert_relative_eq!(result.z.as_newton(), 120.0);
+
+        // 测试 &Vector3<Coef> * &Vector3<Force>
+        let coef_vec_ref = &coef_vec;
+        let force_vec_ref = &force_vec;
+        let result_ref = coef_vec_ref * force_vec_ref;
+        assert_relative_eq!(result_ref.x.as_newton(), 20.0);
+        assert_relative_eq!(result_ref.y.as_newton(), 60.0);
+        assert_relative_eq!(result_ref.z.as_newton(), 120.0);
+
+        // 测试 &Vector3<Coef> * Vector3<Force>
+        let result_mixed1 = coef_vec_ref * force_vec;
+        assert_relative_eq!(result_mixed1.x.as_newton(), 20.0);
+        assert_relative_eq!(result_mixed1.y.as_newton(), 60.0);
+        assert_relative_eq!(result_mixed1.z.as_newton(), 120.0);
+
+        // 测试 Vector3<Force> * &Vector3<Coef>
+        let result_mixed2 = force_vec * coef_vec_ref;
+        assert_relative_eq!(result_mixed2.x.as_newton(), 20.0);
+        assert_relative_eq!(result_mixed2.y.as_newton(), 60.0);
+        assert_relative_eq!(result_mixed2.z.as_newton(), 120.0);
+
+        // 测试其他物理量类型：Distance
+        let distance_vec = Vector3::new(
+            Distance::from_m(5.0),
+            Distance::from_m(10.0),
+            Distance::from_m(15.0),
+        );
+        let result_distance = coef_vec * distance_vec;
+        assert_relative_eq!(result_distance.x.as_m(), 10.0);
+        assert_relative_eq!(result_distance.y.as_m(), 30.0);
+        assert_relative_eq!(result_distance.z.as_m(), 60.0);
+
+        // 测试其他物理量类型：Velocity
+        let velocity_vec = Vector3::new(
+            Velocity::from_m_per_sec(2.0),
+            Velocity::from_m_per_sec(4.0),
+            Velocity::from_m_per_sec(6.0),
+        );
+        let result_velocity = coef_vec * velocity_vec;
+        assert_relative_eq!(result_velocity.x.as_m_per_sec(), 4.0);
+        assert_relative_eq!(result_velocity.y.as_m_per_sec(), 12.0);
+        assert_relative_eq!(result_velocity.z.as_m_per_sec(), 24.0);
+
+        // 测试零值情况
+        let zero_coef = Vector3::new(Coef::new(0.0), Coef::new(0.0), Coef::new(0.0));
+        let result_zero = zero_coef * force_vec;
+        assert_relative_eq!(result_zero.x.as_newton(), 0.0);
+        assert_relative_eq!(result_zero.y.as_newton(), 0.0);
+        assert_relative_eq!(result_zero.z.as_newton(), 0.0);
+
+        // 测试负系数情况
+        let negative_coef = Vector3::new(Coef::new(-1.0), Coef::new(-2.0), Coef::new(-3.0));
+        let result_negative = negative_coef * force_vec;
+        assert_relative_eq!(result_negative.x.as_newton(), -10.0);
+        assert_relative_eq!(result_negative.y.as_newton(), -40.0);
+        assert_relative_eq!(result_negative.z.as_newton(), -90.0);
+    }
+
+    #[test]
+    fn test_vector3_coef_mul_scalar_quantity() {
+        // 测试 Vector3<Coef> * Force (标量)
+        let coef_vec = Vector3::new(Coef::new(2.0), Coef::new(3.0), Coef::new(4.0));
+        let force_scalar = Force::from_newton(10.0);
+        let result = coef_vec * force_scalar;
+        assert_relative_eq!(result.x.as_newton(), 20.0);
+        assert_relative_eq!(result.y.as_newton(), 30.0);
+        assert_relative_eq!(result.z.as_newton(), 40.0);
+
+        // 测试 &Vector3<Coef> * Force (标量)
+        let coef_vec_ref = &coef_vec;
+        let result_ref = coef_vec_ref * force_scalar;
+        assert_relative_eq!(result_ref.x.as_newton(), 20.0);
+        assert_relative_eq!(result_ref.y.as_newton(), 30.0);
+        assert_relative_eq!(result_ref.z.as_newton(), 40.0);
+
+        // 测试其他物理量类型：Distance
+        let distance_scalar = Distance::from_m(5.0);
+        let result_distance = coef_vec * distance_scalar;
+        assert_relative_eq!(result_distance.x.as_m(), 10.0);
+        assert_relative_eq!(result_distance.y.as_m(), 15.0);
+        assert_relative_eq!(result_distance.z.as_m(), 20.0);
+
+        // 测试其他物理量类型：Velocity
+        let velocity_scalar = Velocity::from_m_per_sec(2.0);
+        let result_velocity = coef_vec * velocity_scalar;
+        assert_relative_eq!(result_velocity.x.as_m_per_sec(), 4.0);
+        assert_relative_eq!(result_velocity.y.as_m_per_sec(), 6.0);
+        assert_relative_eq!(result_velocity.z.as_m_per_sec(), 8.0);
+
+        // 测试零值情况
+        let zero_coef = Vector3::new(Coef::new(0.0), Coef::new(0.0), Coef::new(0.0));
+        let result_zero = zero_coef * force_scalar;
+        assert_relative_eq!(result_zero.x.as_newton(), 0.0);
+        assert_relative_eq!(result_zero.y.as_newton(), 0.0);
+        assert_relative_eq!(result_zero.z.as_newton(), 0.0);
+
+        // 测试负系数情况
+        let negative_coef = Vector3::new(Coef::new(-1.0), Coef::new(-2.0), Coef::new(-3.0));
+        let result_negative = negative_coef * force_scalar;
+        assert_relative_eq!(result_negative.x.as_newton(), -10.0);
+        assert_relative_eq!(result_negative.y.as_newton(), -20.0);
+        assert_relative_eq!(result_negative.z.as_newton(), -30.0);
     }
 }

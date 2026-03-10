@@ -392,18 +392,29 @@ mod test {
     fn test_from_array_with_unit() {
         // 测试从数组和单位类型创建角速度向量
         let array = [1.0, 2.0, 3.0];
-        let angular_velocity_vec = Vector3::<AngularVelocity>::from_array_with_unit(array, AngularVelocityType::RadperSecond);
         
+        // 测试 RadperSecond 单位
+        let angular_velocity_vec = Vector3::<AngularVelocity>::from_array_with_unit(array, AngularVelocityType::RadperSecond);
         assert_relative_eq!(angular_velocity_vec.x.as_rad_per_second(), 1.0);
         assert_relative_eq!(angular_velocity_vec.y.as_rad_per_second(), 2.0);
         assert_relative_eq!(angular_velocity_vec.z.as_rad_per_second(), 3.0);
         
-        // 测试不同单位类型
-        let array = [57.2958, 114.5916, 171.8873];
-        let angular_velocity_vec = Vector3::<AngularVelocity>::from_array_with_unit(array, AngularVelocityType::DegPerSecond);
+        // 测试 DegPerSecond 单位
+        let angular_velocity_vec_deg = Vector3::<AngularVelocity>::from_array_with_unit(array, AngularVelocityType::DegPerSecond);
+        assert_relative_eq!(angular_velocity_vec_deg.x.as_deg_per_second(), 1.0);
+        assert_relative_eq!(angular_velocity_vec_deg.y.as_deg_per_second(), 2.0);
+        assert_relative_eq!(angular_velocity_vec_deg.z.as_deg_per_second(), 3.0);
         
-        assert_relative_eq!(angular_velocity_vec.x.as_deg_per_second(), 57.2958);
-        assert_relative_eq!(angular_velocity_vec.y.as_deg_per_second(), 114.5916);
-        assert_relative_eq!(angular_velocity_vec.z.as_deg_per_second(), 171.8873);
+        // 测试 RadperHour 单位
+        let angular_velocity_vec_rad_hour = Vector3::<AngularVelocity>::from_array_with_unit(array, AngularVelocityType::RadperHour);
+        assert_relative_eq!(angular_velocity_vec_rad_hour.x.as_rad_per_hour(), 1.0);
+        assert_relative_eq!(angular_velocity_vec_rad_hour.y.as_rad_per_hour(), 2.0);
+        assert_relative_eq!(angular_velocity_vec_rad_hour.z.as_rad_per_hour(), 3.0);
+        
+        // 测试 DegperHour 单位
+        let angular_velocity_vec_deg_hour = Vector3::<AngularVelocity>::from_array_with_unit(array, AngularVelocityType::DegperHour);
+        assert_relative_eq!(angular_velocity_vec_deg_hour.x.as_deg_per_hour(), 1.0);
+        assert_relative_eq!(angular_velocity_vec_deg_hour.y.as_deg_per_hour(), 2.0);
+        assert_relative_eq!(angular_velocity_vec_deg_hour.z.as_deg_per_hour(), 3.0);
     }
 }

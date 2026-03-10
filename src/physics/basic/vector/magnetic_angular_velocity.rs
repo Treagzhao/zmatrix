@@ -1633,6 +1633,8 @@ mod tests {
     fn test_from_array_with_unit() {
         // 测试从数组和单位类型创建磁角速度向量
         let array = [1.0, 2.0, 3.0];
+
+        // 测试 TeslaRadPerSecond 单位
         let magnetic_angular_velocity_vec =
             Vector3::<MagneticAngularVelocity>::from_array_with_unit(
                 array,
@@ -1652,7 +1654,7 @@ mod tests {
             3.0
         );
 
-        // 测试不同单位类型
+        // 测试 MillTeslaRadPerSecond 单位
         let array = [1000.0, 2000.0, 3000.0];
         let magnetic_angular_velocity_vec =
             Vector3::<MagneticAngularVelocity>::from_array_with_unit(
@@ -1679,7 +1681,61 @@ mod tests {
             3000.0
         );
 
-        // 测试高斯单位
+        // 测试 MicroTeslaRadPerSecond 单位
+        let array = [1000000.0, 2000000.0, 3000000.0];
+        let magnetic_angular_velocity_vec =
+            Vector3::<MagneticAngularVelocity>::from_array_with_unit(
+                array,
+                MagneticAngularVelocityType::MicroTeslaRadPerSecond,
+            );
+
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .x
+                .as_micro_tesla_rad_per_second(),
+            1000000.0
+        );
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .y
+                .as_micro_tesla_rad_per_second(),
+            2000000.0
+        );
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .z
+                .as_micro_tesla_rad_per_second(),
+            3000000.0
+        );
+
+        // 测试 NanoTeslaRadPerSecond 单位
+        let array = [1000000000.0, 2000000000.0, 3000000000.0];
+        let magnetic_angular_velocity_vec =
+            Vector3::<MagneticAngularVelocity>::from_array_with_unit(
+                array,
+                MagneticAngularVelocityType::NanoTeslaRadPerSecond,
+            );
+
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .x
+                .as_nano_tesla_rad_per_second(),
+            1000000000.0
+        );
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .y
+                .as_nano_tesla_rad_per_second(),
+            2000000000.0
+        );
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .z
+                .as_nano_tesla_rad_per_second(),
+            3000000000.0
+        );
+
+        // 测试 GaussRadPerSecond 单位
         let array = [10000.0, 20000.0, 30000.0];
         let magnetic_angular_velocity_vec =
             Vector3::<MagneticAngularVelocity>::from_array_with_unit(
@@ -1698,6 +1754,60 @@ mod tests {
         assert_relative_eq!(
             magnetic_angular_velocity_vec.z.as_gauss_rad_per_second(),
             30000.0
+        );
+
+        // 测试 MillGaussRadPerSecond 单位
+        let array = [10000000.0, 20000000.0, 30000000.0];
+        let magnetic_angular_velocity_vec =
+            Vector3::<MagneticAngularVelocity>::from_array_with_unit(
+                array,
+                MagneticAngularVelocityType::MillGaussRadPerSecond,
+            );
+
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .x
+                .as_mill_gauss_rad_per_second(),
+            10000000.0
+        );
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .y
+                .as_mill_gauss_rad_per_second(),
+            20000000.0
+        );
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .z
+                .as_mill_gauss_rad_per_second(),
+            30000000.0
+        );
+
+        // 测试 KiloGaussRadPerSecond 单位
+        let array = [10.0, 20.0, 30.0];
+        let magnetic_angular_velocity_vec =
+            Vector3::<MagneticAngularVelocity>::from_array_with_unit(
+                array,
+                MagneticAngularVelocityType::KiloGaussRadPerSecond,
+            );
+
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .x
+                .as_kilo_gauss_rad_per_second(),
+            10.0
+        );
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .y
+                .as_kilo_gauss_rad_per_second(),
+            20.0
+        );
+        assert_relative_eq!(
+            magnetic_angular_velocity_vec
+                .z
+                .as_kilo_gauss_rad_per_second(),
+            30.0
         );
     }
 }

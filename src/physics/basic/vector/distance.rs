@@ -406,4 +406,31 @@ mod tests {
         assert_relative_eq!(distance_ly.y.as_light_year(), 2.0);
         assert_relative_eq!(distance_ly.z.as_light_year(), 3.0);
     }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试从数组和单位类型创建距离向量
+        let array = [1000.0, 2000.0, 3000.0];
+        let distance_vec = Vector3::<Distance>::from_array_with_unit(array, DistanceType::M);
+        
+        assert_relative_eq!(distance_vec.x.as_m(), 1000.0);
+        assert_relative_eq!(distance_vec.y.as_m(), 2000.0);
+        assert_relative_eq!(distance_vec.z.as_m(), 3000.0);
+        
+        // 测试不同单位类型
+        let array = [1.5, 2.5, 3.5];
+        let distance_vec = Vector3::<Distance>::from_array_with_unit(array, DistanceType::KM);
+        
+        assert_relative_eq!(distance_vec.x.as_km(), 1.5);
+        assert_relative_eq!(distance_vec.y.as_km(), 2.5);
+        assert_relative_eq!(distance_vec.z.as_km(), 3.5);
+        
+        // 测试光年单位
+        let array = [1.0, 2.0, 3.0];
+        let distance_vec = Vector3::<Distance>::from_array_with_unit(array, DistanceType::LightYear);
+        
+        assert_relative_eq!(distance_vec.x.as_light_year(), 1.0);
+        assert_relative_eq!(distance_vec.y.as_light_year(), 2.0);
+        assert_relative_eq!(distance_vec.z.as_light_year(), 3.0);
+    }
 }

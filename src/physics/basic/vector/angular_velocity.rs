@@ -387,4 +387,23 @@ mod test {
         assert_eq!(array[1], -1.0);
         assert_eq!(array[2], 1e-10);
     }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试从数组和单位类型创建角速度向量
+        let array = [1.0, 2.0, 3.0];
+        let angular_velocity_vec = Vector3::<AngularVelocity>::from_array_with_unit(array, AngularVelocityType::RadperSecond);
+        
+        assert_relative_eq!(angular_velocity_vec.x.as_rad_per_second(), 1.0);
+        assert_relative_eq!(angular_velocity_vec.y.as_rad_per_second(), 2.0);
+        assert_relative_eq!(angular_velocity_vec.z.as_rad_per_second(), 3.0);
+        
+        // 测试不同单位类型
+        let array = [57.2958, 114.5916, 171.8873];
+        let angular_velocity_vec = Vector3::<AngularVelocity>::from_array_with_unit(array, AngularVelocityType::DegPerSecond);
+        
+        assert_relative_eq!(angular_velocity_vec.x.as_deg_per_second(), 57.2958);
+        assert_relative_eq!(angular_velocity_vec.y.as_deg_per_second(), 114.5916);
+        assert_relative_eq!(angular_velocity_vec.z.as_deg_per_second(), 171.8873);
+    }
 }

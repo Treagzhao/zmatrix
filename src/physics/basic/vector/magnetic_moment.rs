@@ -459,4 +459,31 @@ mod tests {
         assert_relative_eq!(coef_from_nano_j_per_tesla_micro_j_per_tesla.x.get_value(), 1000000.0, epsilon = 1e-10);
         assert_relative_eq!(coef_from_nano_j_per_tesla_nano_j_per_tesla.x.get_value(), 1000000000.0, epsilon = 1e-10);
     }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试从数组和单位类型创建磁矩向量
+        let array = [1.0, 2.0, 3.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::AM2);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_am2(), 1.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_am2(), 2.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_am2(), 3.0);
+        
+        // 测试不同单位类型
+        let array = [1000.0, 2000.0, 3000.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::MillAM2);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_mill_am2(), 1000.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_mill_am2(), 2000.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_mill_am2(), 3000.0);
+        
+        // 测试焦耳每特斯拉单位
+        let array = [1.0, 2.0, 3.0];
+        let magnetic_moment_vec = Vector3::<MagneticMoment>::from_array_with_unit(array, MagneticMomentType::JPerTesla);
+        
+        assert_relative_eq!(magnetic_moment_vec.x.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(magnetic_moment_vec.y.as_j_per_tesla(), 2.0);
+        assert_relative_eq!(magnetic_moment_vec.z.as_j_per_tesla(), 3.0);
+    }
 }

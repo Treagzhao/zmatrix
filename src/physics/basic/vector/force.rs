@@ -331,4 +331,46 @@ mod tests {
         assert_relative_eq!(coef_from_mega_newton_kilo.x.get_value(), 0.001, epsilon = 1e-10);
         assert_relative_eq!(coef_from_mega_newton_mega.x.get_value(), 0.000001, epsilon = 1e-10);
     }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试 from_array_with_unit 方法
+        let array = [1.0, 2.0, 3.0];
+        
+        // 测试 Newton 单位
+        let force_vec = Vector3::<Force>::from_array_with_unit(array, ForceType::Newton);
+        assert_relative_eq!(force_vec.x.as_newton(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec.y.as_newton(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec.z.as_newton(), 3.0, epsilon = 1e-10);
+        
+        // 测试 MillNewton 单位
+        let force_vec_mill = Vector3::<Force>::from_array_with_unit(array, ForceType::MillNewton);
+        assert_relative_eq!(force_vec_mill.x.as_mill_newton(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec_mill.y.as_mill_newton(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec_mill.z.as_mill_newton(), 3.0, epsilon = 1e-10);
+        
+        // 测试 MicroNewton 单位
+        let force_vec_micro = Vector3::<Force>::from_array_with_unit(array, ForceType::MicroNewton);
+        assert_relative_eq!(force_vec_micro.x.as_micro_newton(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec_micro.y.as_micro_newton(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec_micro.z.as_micro_newton(), 3.0, epsilon = 1e-10);
+        
+        // 测试 NanoNewton 单位
+        let force_vec_nano = Vector3::<Force>::from_array_with_unit(array, ForceType::NanoNewton);
+        assert_relative_eq!(force_vec_nano.x.as_nano_newton(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec_nano.y.as_nano_newton(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec_nano.z.as_nano_newton(), 3.0, epsilon = 1e-10);
+        
+        // 测试 KiloNewton 单位
+        let force_vec_kilo = Vector3::<Force>::from_array_with_unit(array, ForceType::KiloNewton);
+        assert_relative_eq!(force_vec_kilo.x.as_kilo_newton(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec_kilo.y.as_kilo_newton(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec_kilo.z.as_kilo_newton(), 3.0, epsilon = 1e-10);
+        
+        // 测试 MegaNewton 单位
+        let force_vec_mega = Vector3::<Force>::from_array_with_unit(array, ForceType::MegaNewton);
+        assert_relative_eq!(force_vec_mega.x.as_mega_newton(), 1.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec_mega.y.as_mega_newton(), 2.0, epsilon = 1e-10);
+        assert_relative_eq!(force_vec_mega.z.as_mega_newton(), 3.0, epsilon = 1e-10);
+    }
 }

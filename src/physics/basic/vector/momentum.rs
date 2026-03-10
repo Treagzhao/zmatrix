@@ -128,4 +128,23 @@ mod tests {
         assert_relative_eq!(original_momentum_vec.y.as_kg_m_s(), reconstructed_momentum_vec.y.as_kg_m_s());
         assert_relative_eq!(original_momentum_vec.z.as_kg_m_s(), reconstructed_momentum_vec.z.as_kg_m_s());
     }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试从数组和单位类型创建动量向量
+        let array = [10.0, 20.0, 30.0];
+        let momentum_vec = Vector3::<Momentum>::from_array_with_unit(array, MomentumType::KgMperSecond);
+        
+        assert_relative_eq!(momentum_vec.x.as_kg_m_s(), 10.0);
+        assert_relative_eq!(momentum_vec.y.as_kg_m_s(), 20.0);
+        assert_relative_eq!(momentum_vec.z.as_kg_m_s(), 30.0);
+        
+        // 测试不同单位类型
+        let array = [1.0, 2.0, 3.0];
+        let momentum_vec = Vector3::<Momentum>::from_array_with_unit(array, MomentumType::KgKmperSecond);
+        
+        assert_relative_eq!(momentum_vec.x.as_kg_km_s(), 1.0);
+        assert_relative_eq!(momentum_vec.y.as_kg_km_s(), 2.0);
+        assert_relative_eq!(momentum_vec.z.as_kg_km_s(), 3.0);
+    }
 }

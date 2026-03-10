@@ -1128,4 +1128,22 @@ mod tests {
         assert_relative_eq!(q2, 0.0, epsilon = 1e-12);
         assert_relative_eq!(q3, 1.0, epsilon = 1e-12);
     }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试 from_array_with_unit 方法
+        let array = [1.0, 2.0, 3.0];
+        
+        // 测试 Rad 单位
+        let angular_vec = Vector3::<Angular>::from_array_with_unit(array, AngularType::Rad);
+        assert_relative_eq!(angular_vec.x.as_rad(), 1.0);
+        assert_relative_eq!(angular_vec.y.as_rad(), 2.0);
+        assert_relative_eq!(angular_vec.z.as_rad(), 3.0);
+        
+        // 测试 Deg 单位
+        let angular_vec_deg = Vector3::<Angular>::from_array_with_unit(array, AngularType::Deg);
+        assert_relative_eq!(angular_vec_deg.x.as_deg(), 1.0);
+        assert_relative_eq!(angular_vec_deg.y.as_deg(), 2.0);
+        assert_relative_eq!(angular_vec_deg.z.as_deg(), 3.0);
+    }
 }

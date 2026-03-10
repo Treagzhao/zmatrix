@@ -331,4 +331,31 @@ mod tests {
         assert_relative_eq!(coef_from_mnm_knm.x.get_value(), 0.001, epsilon = 1e-10);
         assert_relative_eq!(coef_from_mnm_mnm.x.get_value(), 0.000001, epsilon = 1e-10);
     }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试从数组和单位类型创建力矩向量
+        let array = [1.0, 2.0, 3.0];
+        let torque_vec = Vector3::<Torque>::from_array_with_unit(array, TorqueType::NM);
+        
+        assert_relative_eq!(torque_vec.x.as_nm(), 1.0);
+        assert_relative_eq!(torque_vec.y.as_nm(), 2.0);
+        assert_relative_eq!(torque_vec.z.as_nm(), 3.0);
+        
+        // 测试不同单位类型
+        let array = [1000.0, 2000.0, 3000.0];
+        let torque_vec = Vector3::<Torque>::from_array_with_unit(array, TorqueType::MillNM);
+        
+        assert_relative_eq!(torque_vec.x.as_mill_nm(), 1000.0);
+        assert_relative_eq!(torque_vec.y.as_mill_nm(), 2000.0);
+        assert_relative_eq!(torque_vec.z.as_mill_nm(), 3000.0);
+        
+        // 测试千牛米单位
+        let array = [0.001, 0.002, 0.003];
+        let torque_vec = Vector3::<Torque>::from_array_with_unit(array, TorqueType::KNM);
+        
+        assert_relative_eq!(torque_vec.x.as_knm(), 0.001);
+        assert_relative_eq!(torque_vec.y.as_knm(), 0.002);
+        assert_relative_eq!(torque_vec.z.as_knm(), 0.003);
+    }
 }

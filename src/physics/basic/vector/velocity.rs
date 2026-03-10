@@ -299,4 +299,34 @@ mod tests {
         assert_relative_eq!(coef_vec.y.get_value(), 1e-15);
         assert_relative_eq!(coef_vec.z.get_value(), 1e-20);
     }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试 from_array_with_unit 方法
+        let array = [10.0, 20.0, 30.0];
+        
+        // 测试 MPerSecond 单位
+        let velocity_vec = Vector3::<Velocity>::from_array_with_unit(array, VelocityType::MPerSecond);
+        assert_relative_eq!(velocity_vec.x.as_m_per_sec(), 10.0);
+        assert_relative_eq!(velocity_vec.y.as_m_per_sec(), 20.0);
+        assert_relative_eq!(velocity_vec.z.as_m_per_sec(), 30.0);
+        
+        // 测试 KmPerHour 单位
+        let velocity_vec_kmh = Vector3::<Velocity>::from_array_with_unit(array, VelocityType::KmPerHour);
+        assert_relative_eq!(velocity_vec_kmh.x.as_km_per_h(), 10.0);
+        assert_relative_eq!(velocity_vec_kmh.y.as_km_per_h(), 20.0);
+        assert_relative_eq!(velocity_vec_kmh.z.as_km_per_h(), 30.0);
+        
+        // 测试 KmPerSecond 单位
+        let velocity_vec_kms = Vector3::<Velocity>::from_array_with_unit(array, VelocityType::KmPerSecond);
+        assert_relative_eq!(velocity_vec_kms.x.as_km_per_sec(), 10.0);
+        assert_relative_eq!(velocity_vec_kms.y.as_km_per_sec(), 20.0);
+        assert_relative_eq!(velocity_vec_kms.z.as_km_per_sec(), 30.0);
+        
+        // 测试 LightSpeed 单位
+        let velocity_vec_light = Vector3::<Velocity>::from_array_with_unit(array, VelocityType::LightSpeed);
+        assert_relative_eq!(velocity_vec_light.x.as_light_speed(), 10.0);
+        assert_relative_eq!(velocity_vec_light.y.as_light_speed(), 20.0);
+        assert_relative_eq!(velocity_vec_light.z.as_light_speed(), 30.0);
+    }
 }

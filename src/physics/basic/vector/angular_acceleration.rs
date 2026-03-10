@@ -147,4 +147,22 @@ mod test {
         assert_relative_eq!(original_angular_acceleration_vec.y.as_rad_per_second2(), reconstructed_angular_acceleration_vec.y.as_rad_per_second2());
         assert_relative_eq!(original_angular_acceleration_vec.z.as_rad_per_second2(), reconstructed_angular_acceleration_vec.z.as_rad_per_second2());
     }
+
+    #[test]
+    fn test_from_array_with_unit() {
+        // 测试 from_array_with_unit 方法
+        let array = [1.0, 2.0, 3.0];
+        
+        // 测试 RadperSecond2 单位
+        let angular_acceleration_vec = Vector3::<AngularAcceleration>::from_array_with_unit(array, AngularAccelerationType::RadperSecond2);
+        assert_relative_eq!(angular_acceleration_vec.x.as_rad_per_second2(), 1.0);
+        assert_relative_eq!(angular_acceleration_vec.y.as_rad_per_second2(), 2.0);
+        assert_relative_eq!(angular_acceleration_vec.z.as_rad_per_second2(), 3.0);
+        
+        // 测试 DegPerSecond2 单位
+        let angular_acceleration_vec_deg = Vector3::<AngularAcceleration>::from_array_with_unit(array, AngularAccelerationType::DegPerSecond2);
+        assert_relative_eq!(angular_acceleration_vec_deg.x.as_deg_per_second2(), 1.0);
+        assert_relative_eq!(angular_acceleration_vec_deg.y.as_deg_per_second2(), 2.0);
+        assert_relative_eq!(angular_acceleration_vec_deg.z.as_deg_per_second2(), 3.0);
+    }
 }

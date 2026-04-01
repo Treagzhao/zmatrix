@@ -191,6 +191,25 @@ impl<T: VectorQuantity + Default> Vector3<T> {
         result.set_value(max_val);
         result
     }
+
+    // 返回三个分量中绝对值最大的值
+    pub fn abs_max(&self) -> T {
+        let x_val = self.x.default_unit_value().abs();
+        let y_val = self.y.default_unit_value().abs();
+        let z_val = self.z.default_unit_value().abs();
+
+        let mut max_abs_val = x_val;
+        if y_val > max_abs_val {
+            max_abs_val = y_val;
+        }
+        if z_val > max_abs_val {
+            max_abs_val = z_val;
+        }
+
+        let mut result = T::default();
+        result.set_value(max_abs_val);
+        result
+    }
 }
 
 impl<T: VectorQuantity + Default> Vector3<T> {
@@ -1218,6 +1237,89 @@ mod tests {
         );
         let max_val8 = vec8.max();
         assert_relative_eq!(max_val8.as_m_per_sec(), 15.0);
+    }
+
+    #[test]
+    fn test_vector3_abs_max() {
+        // 测试x分量绝对值最大的情况
+        let vec1 = Vector3::new(
+            Distance::from_m(-10.0),
+            Distance::from_m(5.0),
+            Distance::from_m(3.0),
+        );
+        let abs_max_val1 = vec1.abs_max();
+        assert_relative_eq!(abs_max_val1.as_m(), 10.0);
+
+        // 测试y分量绝对值最大的情况
+        let vec2 = Vector3::new(
+            Distance::from_m(5.0),
+            Distance::from_m(-10.0),
+            Distance::from_m(3.0),
+        );
+        let abs_max_val2 = vec2.abs_max();
+        assert_relative_eq!(abs_max_val2.as_m(), 10.0);
+
+        // 测试z分量绝对值最大的情况
+        let vec3 = Vector3::new(
+            Distance::from_m(5.0),
+            Distance::from_m(3.0),
+            Distance::from_m(-10.0),
+        );
+        let abs_max_val3 = vec3.abs_max();
+        assert_relative_eq!(abs_max_val3.as_m(), 10.0);
+
+        // 测试所有分量相等的情况
+        let vec4 = Vector3::new(
+            Distance::from_m(-5.0),
+            Distance::from_m(-5.0),
+            Distance::from_m(-5.0),
+        );
+        let abs_max_val4 = vec4.abs_max();
+        assert_relative_eq!(abs_max_val4.as_m(), 5.0);
+
+        // 测试混合正负数的情况
+        let vec5 = Vector3::new(
+            Distance::from_m(-8.0),
+            Distance::from_m(5.0),
+            Distance::from_m(-3.0),
+        );
+        let abs_max_val5 = vec5.abs_max();
+        assert_relative_eq!(abs_max_val5.as_m(), 8.0);
+
+        // 测试混合单位的情况
+        let vec6 = Vector3::new(
+            Distance::from_m(-1000.0), // 1000米
+            Distance::from_km(1.5),   // 1500米
+            Distance::from_m(500.0),  // 500米
+        );
+        let abs_max_val6 = vec6.abs_max();
+        assert_relative_eq!(abs_max_val6.as_m(), 1500.0);
+
+        // 测试其他物理量类型
+        let vec7 = Vector3::new(
+            Force::from_newton(-15.0),
+            Force::from_newton(20.0),
+            Force::from_newton(-5.0),
+        );
+        let abs_max_val7 = vec7.abs_max();
+        assert_relative_eq!(abs_max_val7.as_newton(), 20.0);
+
+        let vec8 = Vector3::new(
+            Velocity::from_m_per_sec(-10.0),
+            Velocity::from_m_per_sec(5.0),
+            Velocity::from_m_per_sec(-15.0),
+        );
+        let abs_max_val8 = vec8.abs_max();
+        assert_relative_eq!(abs_max_val8.as_m_per_sec(), 15.0);
+
+        // 测试零值的情况
+        let vec9 = Vector3::new(
+            Distance::from_m(0.0),
+            Distance::from_m(0.0),
+            Distance::from_m(0.0),
+        );
+        let abs_max_val9 = vec9.abs_max();
+        assert_relative_eq!(abs_max_val9.as_m(), 0.0);
     }
 
     #[test]

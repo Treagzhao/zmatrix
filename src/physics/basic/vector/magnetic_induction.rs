@@ -1,5 +1,6 @@
 use std::ops::{Div, Mul};
 use crate::physics::basic::{AngularVelocity, Coef, MagneticAngularVelocity, MagneticInduction, MagneticInductionType, Vector3};
+use crate::utils::float;
 
 impl Mul<AngularVelocity> for Vector3<MagneticInduction>{
     type Output = Vector3<MagneticAngularVelocity>;
@@ -17,6 +18,51 @@ impl Mul<AngularVelocity> for Vector3<MagneticInduction>{
 }
 
 impl Vector3<MagneticInduction> {
+    pub fn limit_float(&self, threshold: f64, magnetic_induction_type: MagneticInductionType) -> Self {
+        let (x, y, z) = match magnetic_induction_type {
+            MagneticInductionType::Tesla => (
+                float::limit_float(self.x.as_tesla(), threshold),
+                float::limit_float(self.y.as_tesla(), threshold),
+                float::limit_float(self.z.as_tesla(), threshold),
+            ),
+            MagneticInductionType::Gauss => (
+                float::limit_float(self.x.as_gauss(), threshold),
+                float::limit_float(self.y.as_gauss(), threshold),
+                float::limit_float(self.z.as_gauss(), threshold),
+            ),
+            MagneticInductionType::MillTesla => (
+                float::limit_float(self.x.as_milli_tesla(), threshold),
+                float::limit_float(self.y.as_milli_tesla(), threshold),
+                float::limit_float(self.z.as_milli_tesla(), threshold),
+            ),
+            MagneticInductionType::MicroTesla => (
+                float::limit_float(self.x.as_micro_tesla(), threshold),
+                float::limit_float(self.y.as_micro_tesla(), threshold),
+                float::limit_float(self.z.as_micro_tesla(), threshold),
+            ),
+            MagneticInductionType::NanoTesla => (
+                float::limit_float(self.x.as_nano_tesla(), threshold),
+                float::limit_float(self.y.as_nano_tesla(), threshold),
+                float::limit_float(self.z.as_nano_tesla(), threshold),
+            ),
+            MagneticInductionType::MillGauss => (
+                float::limit_float(self.x.as_mill_gauss(), threshold),
+                float::limit_float(self.y.as_mill_gauss(), threshold),
+                float::limit_float(self.z.as_mill_gauss(), threshold),
+            ),
+            MagneticInductionType::KiloGauss => (
+                float::limit_float(self.x.as_kilo_gauss(), threshold),
+                float::limit_float(self.y.as_kilo_gauss(), threshold),
+                float::limit_float(self.z.as_kilo_gauss(), threshold),
+            ),
+        };
+        Self {
+            x: MagneticInduction { v: x, default_type: magnetic_induction_type },
+            y: MagneticInduction { v: y, default_type: magnetic_induction_type },
+            z: MagneticInduction { v: z, default_type: magnetic_induction_type },
+        }
+    }
+
     pub fn to_vector3_coef(&self, magnetic_induction_type: MagneticInductionType) -> Vector3<Coef> {
         match magnetic_induction_type {
             MagneticInductionType::Tesla => {
@@ -88,7 +134,50 @@ impl Vector3<MagneticInduction> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
-    
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            MagneticInduction::from_tesla(1.0),
+            MagneticInduction::from_tesla(-5.0),
+            MagneticInduction::from_tesla(3.0),
+        );
+        let result = v.limit_float(3.0, MagneticInductionType::Tesla);
+        assert_relative_eq!(result.x.as_tesla(), 1.0);
+        assert_relative_eq!(result.y.as_tesla(), -3.0);
+        assert_relative_eq!(result.z.as_tesla(), 3.0);
+
+        let result = v.limit_float(1e10, MagneticInductionType::Gauss);
+        assert_relative_eq!(result.x.as_gauss(), 10000.0);
+        assert_relative_eq!(result.y.as_gauss(), -50000.0);
+        assert_relative_eq!(result.z.as_gauss(), 30000.0);
+
+        let result = v.limit_float(1e10, MagneticInductionType::MillTesla);
+        assert_relative_eq!(result.x.as_milli_tesla(), 1000.0);
+        assert_relative_eq!(result.y.as_milli_tesla(), -5000.0);
+        assert_relative_eq!(result.z.as_milli_tesla(), 3000.0);
+
+        let result = v.limit_float(1e10, MagneticInductionType::MicroTesla);
+        assert_relative_eq!(result.x.as_micro_tesla(), 1000000.0);
+        assert_relative_eq!(result.y.as_micro_tesla(), -5000000.0);
+        assert_relative_eq!(result.z.as_micro_tesla(), 3000000.0);
+
+        let result = v.limit_float(1e10, MagneticInductionType::NanoTesla);
+        assert_relative_eq!(result.x.as_nano_tesla(), 1000000000.0);
+        assert_relative_eq!(result.y.as_nano_tesla(), -5000000000.0);
+        assert_relative_eq!(result.z.as_nano_tesla(), 3000000000.0);
+
+        let result = v.limit_float(1e10, MagneticInductionType::MillGauss);
+        assert_relative_eq!(result.x.as_mill_gauss(), 10000000.0);
+        assert_relative_eq!(result.y.as_mill_gauss(), -50000000.0);
+        assert_relative_eq!(result.z.as_mill_gauss(), 30000000.0);
+
+        let result = v.limit_float(1e10, MagneticInductionType::KiloGauss);
+        assert_relative_eq!(result.x.as_kilo_gauss(), 10.0);
+        assert_relative_eq!(result.y.as_kilo_gauss(), -50.0);
+        assert_relative_eq!(result.z.as_kilo_gauss(), 30.0);
+    }
+
     #[test]
     fn test_to_vector3_coef_tesla() {
         let magnetic_vec = Vector3::new(

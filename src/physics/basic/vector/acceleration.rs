@@ -1,6 +1,32 @@
 use crate::physics::basic::{Acceleration, AccelerationType, Coef, Vector3};
+use crate::utils::float;
 
 impl Vector3<Acceleration> {
+    pub fn limit_float(&self, threshold: f64, acceleration_type: AccelerationType) -> Self {
+        let (x, y, z) = match acceleration_type {
+            AccelerationType::MPerSecond2 => (
+                float::limit_float(self.x.as_m_per_s2(), threshold),
+                float::limit_float(self.y.as_m_per_s2(), threshold),
+                float::limit_float(self.z.as_m_per_s2(), threshold),
+            ),
+            AccelerationType::KmPerHour2 => (
+                float::limit_float(self.x.as_km_per_h_2(), threshold),
+                float::limit_float(self.y.as_km_per_h_2(), threshold),
+                float::limit_float(self.z.as_km_per_h_2(), threshold),
+            ),
+            AccelerationType::G => (
+                float::limit_float(self.x.as_g(), threshold),
+                float::limit_float(self.y.as_g(), threshold),
+                float::limit_float(self.z.as_g(), threshold),
+            ),
+        };
+        Self {
+            x: Acceleration { v: x, default_type: acceleration_type },
+            y: Acceleration { v: y, default_type: acceleration_type },
+            z: Acceleration { v: z, default_type: acceleration_type },
+        }
+    }
+
     pub fn to_vector3_coef(&self, acceleration_type: AccelerationType) -> Vector3<Coef> {
         match acceleration_type {
             AccelerationType::MPerSecond2 => {
@@ -56,7 +82,30 @@ impl Vector3<Acceleration> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
-    
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            Acceleration::from_m_per_s2(1.0),
+            Acceleration::from_m_per_s2(-5.0),
+            Acceleration::from_m_per_s2(3.0),
+        );
+        let result = v.limit_float(3.0, AccelerationType::MPerSecond2);
+        assert_relative_eq!(result.x.as_m_per_s2(), 1.0);
+        assert_relative_eq!(result.y.as_m_per_s2(), -3.0);
+        assert_relative_eq!(result.z.as_m_per_s2(), 3.0);
+
+        let result = v.limit_float(1e10, AccelerationType::KmPerHour2);
+        assert_relative_eq!(result.x.as_km_per_h_2(), 12960.0);
+        assert_relative_eq!(result.y.as_km_per_h_2(), -64800.0);
+        assert_relative_eq!(result.z.as_km_per_h_2(), 38880.0);
+
+        let result = v.limit_float(1e10, AccelerationType::G);
+        assert_relative_eq!(result.x.as_g(), 1.0 / 9.80665);
+        assert_relative_eq!(result.y.as_g(), -5.0 / 9.80665);
+        assert_relative_eq!(result.z.as_g(), 3.0 / 9.80665);
+    }
+
     #[test]
     fn test_to_vector3_coef_m_per_s2() {
         let acceleration_vec = Vector3::new(

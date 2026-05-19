@@ -1,5 +1,6 @@
 use std::ops::Mul;
 use crate::physics::basic::{Coef, Mass, Momentum, Vector3, Velocity, VelocityType};
+use crate::utils::float;
 
 impl Mul<Mass> for Vector3<Velocity> {
     type Output = Vector3<Momentum>;
@@ -10,6 +11,36 @@ impl Mul<Mass> for Vector3<Velocity> {
 }
 
 impl Vector3<Velocity> {
+    pub fn limit_float(&self, threshold: f64, velocity_type: VelocityType) -> Self {
+        let (x, y, z) = match velocity_type {
+            VelocityType::MPerSecond => (
+                float::limit_float(self.x.as_m_per_sec(), threshold),
+                float::limit_float(self.y.as_m_per_sec(), threshold),
+                float::limit_float(self.z.as_m_per_sec(), threshold),
+            ),
+            VelocityType::KmPerHour => (
+                float::limit_float(self.x.as_km_per_h(), threshold),
+                float::limit_float(self.y.as_km_per_h(), threshold),
+                float::limit_float(self.z.as_km_per_h(), threshold),
+            ),
+            VelocityType::KmPerSecond => (
+                float::limit_float(self.x.as_km_per_sec(), threshold),
+                float::limit_float(self.y.as_km_per_sec(), threshold),
+                float::limit_float(self.z.as_km_per_sec(), threshold),
+            ),
+            VelocityType::LightSpeed => (
+                float::limit_float(self.x.as_light_speed(), threshold),
+                float::limit_float(self.y.as_light_speed(), threshold),
+                float::limit_float(self.z.as_light_speed(), threshold),
+            ),
+        };
+        Self {
+            x: Velocity { v: x, default_type: velocity_type },
+            y: Velocity { v: y, default_type: velocity_type },
+            z: Velocity { v: z, default_type: velocity_type },
+        }
+    }
+
     pub fn to_vector3_coef(&self, velocity_type: VelocityType) -> Vector3<Coef> {
         match velocity_type {
             VelocityType::MPerSecond => {
@@ -69,6 +100,35 @@ impl Vector3<Velocity> {
 mod tests {
     use approx::assert_relative_eq;
     use super::*;
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            Velocity::from_m_per_sec(1.0),
+            Velocity::from_m_per_sec(-5.0),
+            Velocity::from_m_per_sec(3.0),
+        );
+        let result = v.limit_float(3.0, VelocityType::MPerSecond);
+        assert_relative_eq!(result.x.as_m_per_sec(), 1.0);
+        assert_relative_eq!(result.y.as_m_per_sec(), -3.0);
+        assert_relative_eq!(result.z.as_m_per_sec(), 3.0);
+
+        let result = v.limit_float(1e10, VelocityType::KmPerHour);
+        assert_relative_eq!(result.x.as_km_per_h(), 3.6);
+        assert_relative_eq!(result.y.as_km_per_h(), -18.0);
+        assert_relative_eq!(result.z.as_km_per_h(), 10.8);
+
+        let result = v.limit_float(1e10, VelocityType::KmPerSecond);
+        assert_relative_eq!(result.x.as_km_per_sec(), 0.001);
+        assert_relative_eq!(result.y.as_km_per_sec(), -0.005);
+        assert_relative_eq!(result.z.as_km_per_sec(), 0.003);
+
+        let result = v.limit_float(1e10, VelocityType::LightSpeed);
+        assert_relative_eq!(result.x.as_light_speed(), 1.0 / 299792458.0);
+        assert_relative_eq!(result.y.as_light_speed(), -5.0 / 299792458.0);
+        assert_relative_eq!(result.z.as_light_speed(), 3.0 / 299792458.0);
+    }
+
     #[test]
     fn test_to_momentum() {
         let vec = Vector3::new(Velocity::from_m_per_sec(1.0), Velocity::from_m_per_sec(2.0), Velocity::from_m_per_sec(3.0));

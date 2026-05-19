@@ -4,6 +4,36 @@ use crate::physics::basic::{Angular, AngularVelocity, AngularVelocityType, Coef,
 use crate::utils::float;
 
 impl Vector3<AngularVelocity> {
+    pub fn limit_float(&self, threshold: f64, angular_velocity_type: AngularVelocityType) -> Self {
+        let (x, y, z) = match angular_velocity_type {
+            AngularVelocityType::RadperSecond => (
+                float::limit_float(self.x.as_rad_per_second(), threshold),
+                float::limit_float(self.y.as_rad_per_second(), threshold),
+                float::limit_float(self.z.as_rad_per_second(), threshold),
+            ),
+            AngularVelocityType::DegPerSecond => (
+                float::limit_float(self.x.as_deg_per_second(), threshold),
+                float::limit_float(self.y.as_deg_per_second(), threshold),
+                float::limit_float(self.z.as_deg_per_second(), threshold),
+            ),
+            AngularVelocityType::RadperHour => (
+                float::limit_float(self.x.as_rad_per_hour(), threshold),
+                float::limit_float(self.y.as_rad_per_hour(), threshold),
+                float::limit_float(self.z.as_rad_per_hour(), threshold),
+            ),
+            AngularVelocityType::DegperHour => (
+                float::limit_float(self.x.as_deg_per_hour(), threshold),
+                float::limit_float(self.y.as_deg_per_hour(), threshold),
+                float::limit_float(self.z.as_deg_per_hour(), threshold),
+            ),
+        };
+        Self {
+            x: AngularVelocity { v: x, default_type: angular_velocity_type },
+            y: AngularVelocity { v: y, default_type: angular_velocity_type },
+            z: AngularVelocity { v: z, default_type: angular_velocity_type },
+        }
+    }
+
     //滤波
     pub fn filter(&self, limit: f64) -> Self {
         let x = float::limit_float(self.x.as_rad_per_second(), limit); // 这个limit是从lagacy里粘贴出来的，我也不知道含义.
@@ -92,6 +122,33 @@ mod test {
     use approx::assert_relative_eq;
     use super::*;
     #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            AngularVelocity::from_rad_per_second(1.0),
+            AngularVelocity::from_rad_per_second(-5.0),
+            AngularVelocity::from_rad_per_second(3.0),
+        );
+        let result = v.limit_float(3.0, AngularVelocityType::RadperSecond);
+        assert_relative_eq!(result.x.as_rad_per_second(), 1.0);
+        assert_relative_eq!(result.y.as_rad_per_second(), -3.0);
+        assert_relative_eq!(result.z.as_rad_per_second(), 3.0);
+
+        let result = v.limit_float(1e10, AngularVelocityType::DegPerSecond);
+        assert_relative_eq!(result.x.as_deg_per_second(), 57.29577951308232);
+        assert_relative_eq!(result.y.as_deg_per_second(), -286.4788975654116);
+        assert_relative_eq!(result.z.as_deg_per_second(), 171.88733853924697);
+
+        let result = v.limit_float(1e10, AngularVelocityType::RadperHour);
+        assert_relative_eq!(result.x.as_rad_per_hour(), 3600.0);
+        assert_relative_eq!(result.y.as_rad_per_hour(), -18000.0);
+        assert_relative_eq!(result.z.as_rad_per_hour(), 10800.0);
+
+        let result = v.limit_float(1e10, AngularVelocityType::DegperHour);
+        assert_relative_eq!(result.x.as_deg_per_hour(), 206264.80624709636);
+        assert_relative_eq!(result.y.as_deg_per_hour(), -1031324.0312354818);
+        assert_relative_eq!(result.z.as_deg_per_hour(), 618794.4187412891);
+    }
+
     #[test]
     fn test_filter() {
         let vec = Vector3::new(AngularVelocity::from_rad_per_second(1.0), AngularVelocity::from_rad_per_second(2.0), AngularVelocity::from_rad_per_second(3.0));

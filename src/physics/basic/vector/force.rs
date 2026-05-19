@@ -1,8 +1,52 @@
 use crate::physics::basic::{
     Force, ForceType, Vector3, Coef,
 };
+use crate::utils::float;
 
 impl Vector3<Force> {
+    pub fn limit_float(&self, threshold: f64, force_type: ForceType) -> Self {
+        let (x, y, z) = match force_type {
+            ForceType::Newton => (
+                float::limit_float(self.x.as_newton(), threshold),
+                float::limit_float(self.y.as_newton(), threshold),
+                float::limit_float(self.z.as_newton(), threshold),
+            ),
+            ForceType::MillNewton => (
+                float::limit_float(self.x.as_mill_newton(), threshold),
+                float::limit_float(self.y.as_mill_newton(), threshold),
+                float::limit_float(self.z.as_mill_newton(), threshold),
+            ),
+            ForceType::MicroNewton => (
+                float::limit_float(self.x.as_micro_newton(), threshold),
+                float::limit_float(self.y.as_micro_newton(), threshold),
+                float::limit_float(self.z.as_micro_newton(), threshold),
+            ),
+            ForceType::NanoNewton => (
+                float::limit_float(self.x.as_nano_newton(), threshold),
+                float::limit_float(self.y.as_nano_newton(), threshold),
+                float::limit_float(self.z.as_nano_newton(), threshold),
+            ),
+            ForceType::KiloNewton => (
+                float::limit_float(self.x.as_kilo_newton(), threshold),
+                float::limit_float(self.y.as_kilo_newton(), threshold),
+                float::limit_float(self.z.as_kilo_newton(), threshold),
+            ),
+            ForceType::MegaNewton => (
+                float::limit_float(self.x.as_mega_newton(), threshold),
+                float::limit_float(self.y.as_mega_newton(), threshold),
+                float::limit_float(self.z.as_mega_newton(), threshold),
+            ),
+        };
+        match force_type {
+            ForceType::Newton => Self { x: Force::from_newton(x), y: Force::from_newton(y), z: Force::from_newton(z) },
+            ForceType::MillNewton => Self { x: Force::from_mill_newton(x), y: Force::from_mill_newton(y), z: Force::from_mill_newton(z) },
+            ForceType::MicroNewton => Self { x: Force::from_micro_newton(x), y: Force::from_micro_newton(y), z: Force::from_micro_newton(z) },
+            ForceType::NanoNewton => Self { x: Force::from_nano_newton(x), y: Force::from_nano_newton(y), z: Force::from_nano_newton(z) },
+            ForceType::KiloNewton => Self { x: Force::from_kilo_newton(x), y: Force::from_kilo_newton(y), z: Force::from_kilo_newton(z) },
+            ForceType::MegaNewton => Self { x: Force::from_mega_newton(x), y: Force::from_mega_newton(y), z: Force::from_mega_newton(z) },
+        }
+    }
+
     pub fn to_vector3_coef(&self, force_type: ForceType) -> Vector3<Coef> {
         match force_type {
             ForceType::Newton => {
@@ -133,6 +177,44 @@ impl Vector3<Force> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            Force::from_newton(1.0),
+            Force::from_newton(-5.0),
+            Force::from_newton(3.0),
+        );
+        let result = v.limit_float(3.0, ForceType::Newton);
+        assert_relative_eq!(result.x.as_newton(), 1.0);
+        assert_relative_eq!(result.y.as_newton(), -3.0);
+        assert_relative_eq!(result.z.as_newton(), 3.0);
+
+        let result = v.limit_float(1e10, ForceType::MillNewton);
+        assert_relative_eq!(result.x.as_mill_newton(), 1000.0);
+        assert_relative_eq!(result.y.as_mill_newton(), -5000.0);
+        assert_relative_eq!(result.z.as_mill_newton(), 3000.0);
+
+        let result = v.limit_float(1e10, ForceType::MicroNewton);
+        assert_relative_eq!(result.x.as_micro_newton(), 1000000.0);
+        assert_relative_eq!(result.y.as_micro_newton(), -5000000.0);
+        assert_relative_eq!(result.z.as_micro_newton(), 3000000.0);
+
+        let result = v.limit_float(1e10, ForceType::NanoNewton);
+        assert_relative_eq!(result.x.as_nano_newton(), 1000000000.0);
+        assert_relative_eq!(result.y.as_nano_newton(), -5000000000.0);
+        assert_relative_eq!(result.z.as_nano_newton(), 3000000000.0);
+
+        let result = v.limit_float(1e10, ForceType::KiloNewton);
+        assert_relative_eq!(result.x.as_kilo_newton(), 0.001);
+        assert_relative_eq!(result.y.as_kilo_newton(), -0.005);
+        assert_relative_eq!(result.z.as_kilo_newton(), 0.003);
+
+        let result = v.limit_float(1e10, ForceType::MegaNewton);
+        assert_relative_eq!(result.x.as_mega_newton(), 0.000001);
+        assert_relative_eq!(result.y.as_mega_newton(), -0.000005);
+        assert_relative_eq!(result.z.as_mega_newton(), 0.000003);
+    }
 
     #[test]
     fn test_to_vector3_coef_newton() {

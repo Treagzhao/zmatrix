@@ -1,8 +1,52 @@
 use crate::physics::basic::{
     Torque, TorqueType, Vector3, Coef,
 };
+use crate::utils::float;
 
 impl Vector3<Torque> {
+    pub fn limit_float(&self, threshold: f64, torque_type: TorqueType) -> Self {
+        let (x, y, z) = match torque_type {
+            TorqueType::NM => (
+                float::limit_float(self.x.as_nm(), threshold),
+                float::limit_float(self.y.as_nm(), threshold),
+                float::limit_float(self.z.as_nm(), threshold),
+            ),
+            TorqueType::MillNM => (
+                float::limit_float(self.x.as_mill_nm(), threshold),
+                float::limit_float(self.y.as_mill_nm(), threshold),
+                float::limit_float(self.z.as_mill_nm(), threshold),
+            ),
+            TorqueType::MicroNM => (
+                float::limit_float(self.x.as_micro_nm(), threshold),
+                float::limit_float(self.y.as_micro_nm(), threshold),
+                float::limit_float(self.z.as_micro_nm(), threshold),
+            ),
+            TorqueType::NanoNM => (
+                float::limit_float(self.x.as_nano_nm(), threshold),
+                float::limit_float(self.y.as_nano_nm(), threshold),
+                float::limit_float(self.z.as_nano_nm(), threshold),
+            ),
+            TorqueType::KNM => (
+                float::limit_float(self.x.as_knm(), threshold),
+                float::limit_float(self.y.as_knm(), threshold),
+                float::limit_float(self.z.as_knm(), threshold),
+            ),
+            TorqueType::MNM => (
+                float::limit_float(self.x.as_mnm(), threshold),
+                float::limit_float(self.y.as_mnm(), threshold),
+                float::limit_float(self.z.as_mnm(), threshold),
+            ),
+        };
+        match torque_type {
+            TorqueType::NM => Self { x: Torque::from_nm(x), y: Torque::from_nm(y), z: Torque::from_nm(z) },
+            TorqueType::MillNM => Self { x: Torque::from_mill_nm(x), y: Torque::from_mill_nm(y), z: Torque::from_mill_nm(z) },
+            TorqueType::MicroNM => Self { x: Torque::from_micro_nm(x), y: Torque::from_micro_nm(y), z: Torque::from_micro_nm(z) },
+            TorqueType::NanoNM => Self { x: Torque::from_nano_nm(x), y: Torque::from_nano_nm(y), z: Torque::from_nano_nm(z) },
+            TorqueType::KNM => Self { x: Torque::from_knm(x), y: Torque::from_knm(y), z: Torque::from_knm(z) },
+            TorqueType::MNM => Self { x: Torque::from_mnm(x), y: Torque::from_mnm(y), z: Torque::from_mnm(z) },
+        }
+    }
+
     pub fn to_vector3_coef(&self, torque_type: TorqueType) -> Vector3<Coef> {
         match torque_type {
             TorqueType::NM => {
@@ -133,6 +177,44 @@ impl Vector3<Torque> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            Torque::from_nm(1.0),
+            Torque::from_nm(-5.0),
+            Torque::from_nm(3.0),
+        );
+        let result = v.limit_float(3.0, TorqueType::NM);
+        assert_relative_eq!(result.x.as_nm(), 1.0);
+        assert_relative_eq!(result.y.as_nm(), -3.0);
+        assert_relative_eq!(result.z.as_nm(), 3.0);
+
+        let result = v.limit_float(1e10, TorqueType::MillNM);
+        assert_relative_eq!(result.x.as_mill_nm(), 1000.0);
+        assert_relative_eq!(result.y.as_mill_nm(), -5000.0);
+        assert_relative_eq!(result.z.as_mill_nm(), 3000.0);
+
+        let result = v.limit_float(1e10, TorqueType::MicroNM);
+        assert_relative_eq!(result.x.as_micro_nm(), 1000000.0);
+        assert_relative_eq!(result.y.as_micro_nm(), -5000000.0);
+        assert_relative_eq!(result.z.as_micro_nm(), 3000000.0);
+
+        let result = v.limit_float(1e10, TorqueType::NanoNM);
+        assert_relative_eq!(result.x.as_nano_nm(), 1000000000.0);
+        assert_relative_eq!(result.y.as_nano_nm(), -5000000000.0);
+        assert_relative_eq!(result.z.as_nano_nm(), 3000000000.0);
+
+        let result = v.limit_float(1e10, TorqueType::KNM);
+        assert_relative_eq!(result.x.as_knm(), 0.001);
+        assert_relative_eq!(result.y.as_knm(), -0.005);
+        assert_relative_eq!(result.z.as_knm(), 0.003);
+
+        let result = v.limit_float(1e10, TorqueType::MNM);
+        assert_relative_eq!(result.x.as_mnm(), 0.000001);
+        assert_relative_eq!(result.y.as_mnm(), -0.000005);
+        assert_relative_eq!(result.z.as_mnm(), 0.000003);
+    }
 
     #[test]
     fn test_to_vector3_coef_nm() {

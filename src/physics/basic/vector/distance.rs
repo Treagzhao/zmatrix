@@ -3,6 +3,7 @@ use crate::physics::basic::{
 };
 use std::ops::{Div, Mul};
 use std::time::Duration;
+use crate::utils::float;
 
 impl Mul<Vector3<Momentum>> for Vector3<Distance> {
     type Output = Vector3<AngularMomentum>;
@@ -26,6 +27,31 @@ impl Div<Duration> for Vector3<Distance> {
 }
 
 impl Vector3<Distance> {
+    pub fn limit_float(&self, threshold: f64, distance_type: DistanceType) -> Self {
+        let (x, y, z) = match distance_type {
+            DistanceType::M => (
+                float::limit_float(self.x.as_m(), threshold),
+                float::limit_float(self.y.as_m(), threshold),
+                float::limit_float(self.z.as_m(), threshold),
+            ),
+            DistanceType::KM => (
+                float::limit_float(self.x.as_km(), threshold),
+                float::limit_float(self.y.as_km(), threshold),
+                float::limit_float(self.z.as_km(), threshold),
+            ),
+            DistanceType::LightYear => (
+                float::limit_float(self.x.as_light_year(), threshold),
+                float::limit_float(self.y.as_light_year(), threshold),
+                float::limit_float(self.z.as_light_year(), threshold),
+            ),
+        };
+        Self {
+            x: Distance { v: x, default_type: distance_type },
+            y: Distance { v: y, default_type: distance_type },
+            z: Distance { v: z, default_type: distance_type },
+        }
+    }
+
     pub fn to_vector3_coef(&self, distance_type: DistanceType) -> Vector3<Coef> {
         match distance_type {
             DistanceType::M => {
@@ -85,6 +111,29 @@ impl Vector3<Distance> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            Distance::from_m(1.0),
+            Distance::from_m(-5.0),
+            Distance::from_m(3.0),
+        );
+        let result = v.limit_float(3.0, DistanceType::M);
+        assert_relative_eq!(result.x.as_m(), 1.0);
+        assert_relative_eq!(result.y.as_m(), -3.0);
+        assert_relative_eq!(result.z.as_m(), 3.0);
+
+        let result = v.limit_float(1e10, DistanceType::KM);
+        assert_relative_eq!(result.x.as_km(), 0.001);
+        assert_relative_eq!(result.y.as_km(), -0.005);
+        assert_relative_eq!(result.z.as_km(), 0.003);
+
+        let result = v.limit_float(1e10, DistanceType::LightYear);
+        assert_relative_eq!(result.x.as_light_year(), 1.0 / 9.461e15, epsilon = 1e-19);
+        assert_relative_eq!(result.y.as_light_year(), -5.0 / 9.461e15, epsilon = 1e-19);
+        assert_relative_eq!(result.z.as_light_year(), 3.0 / 9.461e15, epsilon = 1e-19);
+    }
 
     #[test]
     fn test_distance() {

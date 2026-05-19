@@ -1,6 +1,27 @@
 use crate::physics::basic::{AngularAcceleration, AngularAccelerationType, Coef, Vector3};
+use crate::utils::float;
 
 impl Vector3<AngularAcceleration> {
+    pub fn limit_float(&self, threshold: f64, angular_acceleration_type: AngularAccelerationType) -> Self {
+        let (x, y, z) = match angular_acceleration_type {
+            AngularAccelerationType::RadperSecond2 => (
+                float::limit_float(self.x.as_rad_per_second2(), threshold),
+                float::limit_float(self.y.as_rad_per_second2(), threshold),
+                float::limit_float(self.z.as_rad_per_second2(), threshold),
+            ),
+            AngularAccelerationType::DegPerSecond2 => (
+                float::limit_float(self.x.as_deg_per_second2(), threshold),
+                float::limit_float(self.y.as_deg_per_second2(), threshold),
+                float::limit_float(self.z.as_deg_per_second2(), threshold),
+            ),
+        };
+        Self {
+            x: AngularAcceleration { v: x, default_type: angular_acceleration_type },
+            y: AngularAcceleration { v: y, default_type: angular_acceleration_type },
+            z: AngularAcceleration { v: z, default_type: angular_acceleration_type },
+        }
+    }
+
     pub fn to_f32_array(&self) -> [f32; 3] {
         let result: [f32; 3] = [self.x.as_rad_per_second2() as f32, self.y.as_rad_per_second2() as f32, self.z.as_rad_per_second2() as f32];
         result
@@ -57,6 +78,24 @@ impl Vector3<AngularAcceleration> {
 mod test {
     use approx::assert_relative_eq;
     use super::*;
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            AngularAcceleration::from_rad_per_second2(1.0),
+            AngularAcceleration::from_rad_per_second2(-5.0),
+            AngularAcceleration::from_rad_per_second2(3.0),
+        );
+        let result = v.limit_float(3.0, AngularAccelerationType::RadperSecond2);
+        assert_relative_eq!(result.x.as_rad_per_second2(), 1.0);
+        assert_relative_eq!(result.y.as_rad_per_second2(), -3.0);
+        assert_relative_eq!(result.z.as_rad_per_second2(), 3.0);
+
+        let result = v.limit_float(1e10, AngularAccelerationType::DegPerSecond2);
+        assert_relative_eq!(result.x.as_deg_per_second2(), 57.29577951308232);
+        assert_relative_eq!(result.y.as_deg_per_second2(), -286.4788975654116);
+        assert_relative_eq!(result.z.as_deg_per_second2(), 171.88733853924697);
+    }
 
     #[test]
     fn test_to_f32_array() {

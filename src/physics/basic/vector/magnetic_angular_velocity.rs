@@ -3,9 +3,59 @@ use crate::physics::basic::{
     AngularMomentum, Coef, MagneticAngularVelocity, MagneticAngularVelocityType, MagneticInduction,
     MagneticMoment, Vector3,
 };
+use crate::utils::float;
 const FLOAT_F64_E_6: f64 = 1e-6;
 
 impl Vector3<MagneticAngularVelocity> {
+    pub fn limit_float(&self, threshold: f64, magnetic_angular_velocity_type: MagneticAngularVelocityType) -> Self {
+        let (x, y, z) = match magnetic_angular_velocity_type {
+            MagneticAngularVelocityType::TeslaRadPerSecond => (
+                float::limit_float(self.x.as_tesla_rad_per_second(), threshold),
+                float::limit_float(self.y.as_tesla_rad_per_second(), threshold),
+                float::limit_float(self.z.as_tesla_rad_per_second(), threshold),
+            ),
+            MagneticAngularVelocityType::MillTeslaRadPerSecond => (
+                float::limit_float(self.x.as_mill_tesla_rad_per_second(), threshold),
+                float::limit_float(self.y.as_mill_tesla_rad_per_second(), threshold),
+                float::limit_float(self.z.as_mill_tesla_rad_per_second(), threshold),
+            ),
+            MagneticAngularVelocityType::MicroTeslaRadPerSecond => (
+                float::limit_float(self.x.as_micro_tesla_rad_per_second(), threshold),
+                float::limit_float(self.y.as_micro_tesla_rad_per_second(), threshold),
+                float::limit_float(self.z.as_micro_tesla_rad_per_second(), threshold),
+            ),
+            MagneticAngularVelocityType::NanoTeslaRadPerSecond => (
+                float::limit_float(self.x.as_nano_tesla_rad_per_second(), threshold),
+                float::limit_float(self.y.as_nano_tesla_rad_per_second(), threshold),
+                float::limit_float(self.z.as_nano_tesla_rad_per_second(), threshold),
+            ),
+            MagneticAngularVelocityType::GaussRadPerSecond => (
+                float::limit_float(self.x.as_gauss_rad_per_second(), threshold),
+                float::limit_float(self.y.as_gauss_rad_per_second(), threshold),
+                float::limit_float(self.z.as_gauss_rad_per_second(), threshold),
+            ),
+            MagneticAngularVelocityType::MillGaussRadPerSecond => (
+                float::limit_float(self.x.as_mill_gauss_rad_per_second(), threshold),
+                float::limit_float(self.y.as_mill_gauss_rad_per_second(), threshold),
+                float::limit_float(self.z.as_mill_gauss_rad_per_second(), threshold),
+            ),
+            MagneticAngularVelocityType::KiloGaussRadPerSecond => (
+                float::limit_float(self.x.as_kilo_gauss_rad_per_second(), threshold),
+                float::limit_float(self.y.as_kilo_gauss_rad_per_second(), threshold),
+                float::limit_float(self.z.as_kilo_gauss_rad_per_second(), threshold),
+            ),
+        };
+        match magnetic_angular_velocity_type {
+            MagneticAngularVelocityType::TeslaRadPerSecond => Self { x: MagneticAngularVelocity::from_tesla_rad_per_second(x), y: MagneticAngularVelocity::from_tesla_rad_per_second(y), z: MagneticAngularVelocity::from_tesla_rad_per_second(z) },
+            MagneticAngularVelocityType::MillTeslaRadPerSecond => Self { x: MagneticAngularVelocity::from_mill_tesla_rad_per_second(x), y: MagneticAngularVelocity::from_mill_tesla_rad_per_second(y), z: MagneticAngularVelocity::from_mill_tesla_rad_per_second(z) },
+            MagneticAngularVelocityType::MicroTeslaRadPerSecond => Self { x: MagneticAngularVelocity::from_micro_tesla_rad_per_second(x), y: MagneticAngularVelocity::from_micro_tesla_rad_per_second(y), z: MagneticAngularVelocity::from_micro_tesla_rad_per_second(z) },
+            MagneticAngularVelocityType::NanoTeslaRadPerSecond => Self { x: MagneticAngularVelocity::from_nano_tesla_rad_per_second(x), y: MagneticAngularVelocity::from_nano_tesla_rad_per_second(y), z: MagneticAngularVelocity::from_nano_tesla_rad_per_second(z) },
+            MagneticAngularVelocityType::GaussRadPerSecond => Self { x: MagneticAngularVelocity::from_gauss_rad_per_second(x), y: MagneticAngularVelocity::from_gauss_rad_per_second(y), z: MagneticAngularVelocity::from_gauss_rad_per_second(z) },
+            MagneticAngularVelocityType::MillGaussRadPerSecond => Self { x: MagneticAngularVelocity::from_mill_gauss_rad_per_second(x), y: MagneticAngularVelocity::from_mill_gauss_rad_per_second(y), z: MagneticAngularVelocity::from_mill_gauss_rad_per_second(z) },
+            MagneticAngularVelocityType::KiloGaussRadPerSecond => Self { x: MagneticAngularVelocity::from_kilo_gauss_rad_per_second(x), y: MagneticAngularVelocity::from_kilo_gauss_rad_per_second(y), z: MagneticAngularVelocity::from_kilo_gauss_rad_per_second(z) },
+        }
+    }
+
     pub fn to_vector3_coef(
         &self,
         magnetic_angular_velocity_type: MagneticAngularVelocityType,
@@ -192,6 +242,49 @@ impl Vector3<MagneticAngularVelocity> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            MagneticAngularVelocity::from_tesla_rad_per_second(1.0),
+            MagneticAngularVelocity::from_tesla_rad_per_second(-5.0),
+            MagneticAngularVelocity::from_tesla_rad_per_second(3.0),
+        );
+        let result = v.limit_float(3.0, MagneticAngularVelocityType::TeslaRadPerSecond);
+        assert_relative_eq!(result.x.as_tesla_rad_per_second(), 1.0);
+        assert_relative_eq!(result.y.as_tesla_rad_per_second(), -3.0);
+        assert_relative_eq!(result.z.as_tesla_rad_per_second(), 3.0);
+
+        let result = v.limit_float(1e10, MagneticAngularVelocityType::MillTeslaRadPerSecond);
+        assert_relative_eq!(result.x.as_mill_tesla_rad_per_second(), 1000.0);
+        assert_relative_eq!(result.y.as_mill_tesla_rad_per_second(), -5000.0);
+        assert_relative_eq!(result.z.as_mill_tesla_rad_per_second(), 3000.0);
+
+        let result = v.limit_float(1e10, MagneticAngularVelocityType::MicroTeslaRadPerSecond);
+        assert_relative_eq!(result.x.as_micro_tesla_rad_per_second(), 1000000.0);
+        assert_relative_eq!(result.y.as_micro_tesla_rad_per_second(), -5000000.0);
+        assert_relative_eq!(result.z.as_micro_tesla_rad_per_second(), 3000000.0);
+
+        let result = v.limit_float(1e10, MagneticAngularVelocityType::NanoTeslaRadPerSecond);
+        assert_relative_eq!(result.x.as_nano_tesla_rad_per_second(), 1000000000.0);
+        assert_relative_eq!(result.y.as_nano_tesla_rad_per_second(), -5000000000.0);
+        assert_relative_eq!(result.z.as_nano_tesla_rad_per_second(), 3000000000.0);
+
+        let result = v.limit_float(1e10, MagneticAngularVelocityType::GaussRadPerSecond);
+        assert_relative_eq!(result.x.as_gauss_rad_per_second(), 10000.0);
+        assert_relative_eq!(result.y.as_gauss_rad_per_second(), -50000.0);
+        assert_relative_eq!(result.z.as_gauss_rad_per_second(), 30000.0);
+
+        let result = v.limit_float(1e10, MagneticAngularVelocityType::MillGaussRadPerSecond);
+        assert_relative_eq!(result.x.as_mill_gauss_rad_per_second(), 10000000.0);
+        assert_relative_eq!(result.y.as_mill_gauss_rad_per_second(), -50000000.0);
+        assert_relative_eq!(result.z.as_mill_gauss_rad_per_second(), 30000000.0);
+
+        let result = v.limit_float(1e10, MagneticAngularVelocityType::KiloGaussRadPerSecond);
+        assert_relative_eq!(result.x.as_kilo_gauss_rad_per_second(), 10.0);
+        assert_relative_eq!(result.y.as_kilo_gauss_rad_per_second(), -50.0);
+        assert_relative_eq!(result.z.as_kilo_gauss_rad_per_second(), 30.0);
+    }
 
     #[test]
     fn test_to_vector3_coef_tesla_rad_per_second() {

@@ -1,7 +1,8 @@
 use super::*;
-use crate::constant::FLT64_ZERO;
+use crate::constant::get_flt64_zero;
 use crate::dense::error::OperationError;
 use crate::physics::basic::AngularType;
+use crate::utils::float;
 use crate::spatial_geometry::cos_matrix::CosMatrix;
 use crate::spatial_geometry::quaternion::Quaternion;
 #[derive(Default, Debug, Copy, Clone)]
@@ -51,6 +52,26 @@ impl RotationSeq {
 }
 
 impl Vector3<Angular> {
+    pub fn limit_float(&self, threshold: f64, angular_type: AngularType) -> Self {
+        let (x, y, z) = match angular_type {
+            AngularType::Rad => (
+                float::limit_float(self.x.as_rad(), threshold),
+                float::limit_float(self.y.as_rad(), threshold),
+                float::limit_float(self.z.as_rad(), threshold),
+            ),
+            AngularType::Deg => (
+                float::limit_float(self.x.as_deg(), threshold),
+                float::limit_float(self.y.as_deg(), threshold),
+                float::limit_float(self.z.as_deg(), threshold),
+            ),
+        };
+        Self {
+            x: Angular { v: x, default_type: angular_type },
+            y: Angular { v: y, default_type: angular_type },
+            z: Angular { v: z, default_type: angular_type },
+        }
+    }
+
     pub fn to_f32_array(&self) -> [f32; 3] {
         let result: [f32; 3] = [
             self.x.as_rad() as f32,
@@ -62,7 +83,7 @@ impl Vector3<Angular> {
 
     pub fn to_quaternion(&self) -> Quaternion {
         let norm = self.norm();
-        if norm.as_rad() < FLT64_ZERO {
+        if norm.as_rad() < get_flt64_zero() {
             return Quaternion::default();
         } else {
             let half_norm = norm * 0.5;
@@ -364,6 +385,24 @@ mod tests {
         let err = r.x();
         assert!(err.is_err());
     }
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            Angular::from_rad(1.0),
+            Angular::from_rad(-5.0),
+            Angular::from_rad(3.0),
+        );
+        let result = v.limit_float(3.0, AngularType::Rad);
+        assert_relative_eq!(result.x.as_rad(), 1.0);
+        assert_relative_eq!(result.y.as_rad(), -3.0);
+        assert_relative_eq!(result.z.as_rad(), 3.0);
+
+        let result = v.limit_float(1e10, AngularType::Deg);
+        assert_relative_eq!(result.x.as_deg(), 57.29577951308232);
+        assert_relative_eq!(result.y.as_deg(), -286.4788975654116);
+        assert_relative_eq!(result.z.as_deg(), 171.88733853924697);
+    }
+
     #[test]
     fn test_to_f32_array() {
         let vector = Vector3 {

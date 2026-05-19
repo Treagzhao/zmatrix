@@ -1,5 +1,5 @@
 use super::*;
-use crate::constant::FLT64_ZERO;
+use crate::constant::get_flt64_zero;
 use crate::dense::error::OperationError;
 use crate::dense::Matrix;
 use crate::physics::basic::{Angular, Coef, Vector3};
@@ -33,7 +33,7 @@ impl Quaternion {
             self.q0 * self.q0 + self.q1 * self.q1 + self.q2 * self.q2 + self.q3 * self.q3,
         );
         let mut result = Quaternion::default();
-        if tmp_norm > FLT64_ZERO {
+        if tmp_norm > get_flt64_zero() {
             if self.q0 < 0.0 {
                 tmp_norm = -tmp_norm;
             }
@@ -83,7 +83,7 @@ impl Quaternion {
     pub fn inverse(&self) -> Self {
         let norm_square =
             self.q0 * self.q0 + self.q1 * self.q1 + self.q2 * self.q2 + self.q3 * self.q3;
-        if norm_square > FLT64_ZERO {
+        if norm_square > get_flt64_zero() {
             Quaternion {
                 q0: self.q0 / norm_square,
                 q1: -self.q1 / norm_square,
@@ -199,7 +199,7 @@ impl Div for Quaternion {
 
         // 归一化并强制 w>=0
         let norm = f64::sqrt(rw * rw + rx * rx + ry * ry + rz * rz);
-        if norm > FLT64_ZERO {
+        if norm > get_flt64_zero() {
             rw /= norm;
             rx /= norm;
             ry /= norm;
@@ -247,7 +247,7 @@ impl Div for &Quaternion {
 
         // 归一化并强制 w>=0
         let norm = f64::sqrt(rw * rw + rx * rx + ry * ry + rz * rz);
-        if norm > FLT64_ZERO {
+        if norm > get_flt64_zero() {
             rw /= norm;
             rx /= norm;
             ry /= norm;
@@ -507,7 +507,7 @@ mod tests {
         let mut rz = -ax * by + ay * bx - az * bw + aw * bz;
         let mut rw = ax * bx + ay * by + az * bz + aw * bw;
         let norm = f64::sqrt(rw * rw + rx * rx + ry * ry + rz * rz);
-        if norm > FLT64_ZERO {
+        if norm > get_flt64_zero() {
             rw /= norm;
             rx /= norm;
             ry /= norm;

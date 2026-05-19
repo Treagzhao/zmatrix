@@ -1,6 +1,27 @@
 use crate::physics::basic::{Coef, Momentum, MomentumType, Vector3};
+use crate::utils::float;
 
 impl Vector3<Momentum> {
+    pub fn limit_float(&self, threshold: f64, momentum_type: MomentumType) -> Self {
+        let (x, y, z) = match momentum_type {
+            MomentumType::KgMperSecond => (
+                float::limit_float(self.x.as_kg_m_s(), threshold),
+                float::limit_float(self.y.as_kg_m_s(), threshold),
+                float::limit_float(self.z.as_kg_m_s(), threshold),
+            ),
+            MomentumType::KgKmperSecond => (
+                float::limit_float(self.x.as_kg_km_s(), threshold),
+                float::limit_float(self.y.as_kg_km_s(), threshold),
+                float::limit_float(self.z.as_kg_km_s(), threshold),
+            ),
+        };
+        Self {
+            x: Momentum { v: x, default_type: momentum_type },
+            y: Momentum { v: y, default_type: momentum_type },
+            z: Momentum { v: z, default_type: momentum_type },
+        }
+    }
+
     pub fn to_vector3_coef(&self, momentum_type: MomentumType) -> Vector3<Coef> {
         match momentum_type {
             MomentumType::KgMperSecond => {
@@ -52,7 +73,25 @@ impl Vector3<Momentum> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
-    
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            Momentum::from_kg_m_s(1.0),
+            Momentum::from_kg_m_s(-5.0),
+            Momentum::from_kg_m_s(3.0),
+        );
+        let result = v.limit_float(3.0, MomentumType::KgMperSecond);
+        assert_relative_eq!(result.x.as_kg_m_s(), 1.0);
+        assert_relative_eq!(result.y.as_kg_m_s(), -3.0);
+        assert_relative_eq!(result.z.as_kg_m_s(), 3.0);
+
+        let result = v.limit_float(1e10, MomentumType::KgKmperSecond);
+        assert_relative_eq!(result.x.as_kg_km_s(), 0.001);
+        assert_relative_eq!(result.y.as_kg_km_s(), -0.005);
+        assert_relative_eq!(result.z.as_kg_km_s(), 0.003);
+    }
+
     #[test]
     fn test_to_vector3_coef_kg_m_s() {
         let momentum_vec = Vector3::new(

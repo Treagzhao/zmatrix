@@ -1,8 +1,64 @@
 use crate::physics::basic::{
     MagneticMoment, MagneticMomentType, Vector3, Coef,
 };
+use crate::utils::float;
 
 impl Vector3<MagneticMoment> {
+    pub fn limit_float(&self, threshold: f64, magnetic_moment_type: MagneticMomentType) -> Self {
+        let (x, y, z) = match magnetic_moment_type {
+            MagneticMomentType::AM2 => (
+                float::limit_float(self.x.as_am2(), threshold),
+                float::limit_float(self.y.as_am2(), threshold),
+                float::limit_float(self.z.as_am2(), threshold),
+            ),
+            MagneticMomentType::MillAM2 => (
+                float::limit_float(self.x.as_mill_am2(), threshold),
+                float::limit_float(self.y.as_mill_am2(), threshold),
+                float::limit_float(self.z.as_mill_am2(), threshold),
+            ),
+            MagneticMomentType::MicroAM2 => (
+                float::limit_float(self.x.as_micro_am2(), threshold),
+                float::limit_float(self.y.as_micro_am2(), threshold),
+                float::limit_float(self.z.as_micro_am2(), threshold),
+            ),
+            MagneticMomentType::NanoAM2 => (
+                float::limit_float(self.x.as_nano_am2(), threshold),
+                float::limit_float(self.y.as_nano_am2(), threshold),
+                float::limit_float(self.z.as_nano_am2(), threshold),
+            ),
+            MagneticMomentType::JPerTesla => (
+                float::limit_float(self.x.as_j_per_tesla(), threshold),
+                float::limit_float(self.y.as_j_per_tesla(), threshold),
+                float::limit_float(self.z.as_j_per_tesla(), threshold),
+            ),
+            MagneticMomentType::MillJPerTesla => (
+                float::limit_float(self.x.as_mill_j_per_tesla(), threshold),
+                float::limit_float(self.y.as_mill_j_per_tesla(), threshold),
+                float::limit_float(self.z.as_mill_j_per_tesla(), threshold),
+            ),
+            MagneticMomentType::MicroJPerTesla => (
+                float::limit_float(self.x.as_micro_j_per_tesla(), threshold),
+                float::limit_float(self.y.as_micro_j_per_tesla(), threshold),
+                float::limit_float(self.z.as_micro_j_per_tesla(), threshold),
+            ),
+            MagneticMomentType::NanoJPerTesla => (
+                float::limit_float(self.x.as_nano_j_per_tesla(), threshold),
+                float::limit_float(self.y.as_nano_j_per_tesla(), threshold),
+                float::limit_float(self.z.as_nano_j_per_tesla(), threshold),
+            ),
+        };
+        match magnetic_moment_type {
+            MagneticMomentType::AM2 => Self { x: MagneticMoment::from_am2(x), y: MagneticMoment::from_am2(y), z: MagneticMoment::from_am2(z) },
+            MagneticMomentType::MillAM2 => Self { x: MagneticMoment::from_mill_am2(x), y: MagneticMoment::from_mill_am2(y), z: MagneticMoment::from_mill_am2(z) },
+            MagneticMomentType::MicroAM2 => Self { x: MagneticMoment::from_micro_am2(x), y: MagneticMoment::from_micro_am2(y), z: MagneticMoment::from_micro_am2(z) },
+            MagneticMomentType::NanoAM2 => Self { x: MagneticMoment::from_nano_am2(x), y: MagneticMoment::from_nano_am2(y), z: MagneticMoment::from_nano_am2(z) },
+            MagneticMomentType::JPerTesla => Self { x: MagneticMoment::from_j_per_tesla(x), y: MagneticMoment::from_j_per_tesla(y), z: MagneticMoment::from_j_per_tesla(z) },
+            MagneticMomentType::MillJPerTesla => Self { x: MagneticMoment::from_mill_j_per_tesla(x), y: MagneticMoment::from_mill_j_per_tesla(y), z: MagneticMoment::from_mill_j_per_tesla(z) },
+            MagneticMomentType::MicroJPerTesla => Self { x: MagneticMoment::from_micro_j_per_tesla(x), y: MagneticMoment::from_micro_j_per_tesla(y), z: MagneticMoment::from_micro_j_per_tesla(z) },
+            MagneticMomentType::NanoJPerTesla => Self { x: MagneticMoment::from_nano_j_per_tesla(x), y: MagneticMoment::from_nano_j_per_tesla(y), z: MagneticMoment::from_nano_j_per_tesla(z) },
+        }
+    }
+
     pub fn to_vector3_coef(&self, magnetic_moment_type: MagneticMomentType) -> Vector3<Coef> {
         match magnetic_moment_type {
             MagneticMomentType::AM2 => {
@@ -169,6 +225,54 @@ impl Vector3<MagneticMoment> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            MagneticMoment::from_am2(1.0),
+            MagneticMoment::from_am2(-5.0),
+            MagneticMoment::from_am2(3.0),
+        );
+        let result = v.limit_float(3.0, MagneticMomentType::AM2);
+        assert_relative_eq!(result.x.as_am2(), 1.0);
+        assert_relative_eq!(result.y.as_am2(), -3.0);
+        assert_relative_eq!(result.z.as_am2(), 3.0);
+
+        let result = v.limit_float(1e10, MagneticMomentType::MillAM2);
+        assert_relative_eq!(result.x.as_mill_am2(), 1000.0);
+        assert_relative_eq!(result.y.as_mill_am2(), -5000.0);
+        assert_relative_eq!(result.z.as_mill_am2(), 3000.0);
+
+        let result = v.limit_float(1e10, MagneticMomentType::MicroAM2);
+        assert_relative_eq!(result.x.as_micro_am2(), 1000000.0);
+        assert_relative_eq!(result.y.as_micro_am2(), -5000000.0);
+        assert_relative_eq!(result.z.as_micro_am2(), 3000000.0);
+
+        let result = v.limit_float(1e10, MagneticMomentType::NanoAM2);
+        assert_relative_eq!(result.x.as_nano_am2(), 1000000000.0);
+        assert_relative_eq!(result.y.as_nano_am2(), -5000000000.0);
+        assert_relative_eq!(result.z.as_nano_am2(), 3000000000.0);
+
+        let result = v.limit_float(1e10, MagneticMomentType::JPerTesla);
+        assert_relative_eq!(result.x.as_j_per_tesla(), 1.0);
+        assert_relative_eq!(result.y.as_j_per_tesla(), -5.0);
+        assert_relative_eq!(result.z.as_j_per_tesla(), 3.0);
+
+        let result = v.limit_float(1e10, MagneticMomentType::MillJPerTesla);
+        assert_relative_eq!(result.x.as_mill_j_per_tesla(), 1000.0);
+        assert_relative_eq!(result.y.as_mill_j_per_tesla(), -5000.0);
+        assert_relative_eq!(result.z.as_mill_j_per_tesla(), 3000.0);
+
+        let result = v.limit_float(1e10, MagneticMomentType::MicroJPerTesla);
+        assert_relative_eq!(result.x.as_micro_j_per_tesla(), 1000000.0);
+        assert_relative_eq!(result.y.as_micro_j_per_tesla(), -5000000.0);
+        assert_relative_eq!(result.z.as_micro_j_per_tesla(), 3000000.0);
+
+        let result = v.limit_float(1e10, MagneticMomentType::NanoJPerTesla);
+        assert_relative_eq!(result.x.as_nano_j_per_tesla(), 1000000000.0);
+        assert_relative_eq!(result.y.as_nano_j_per_tesla(), -5000000000.0);
+        assert_relative_eq!(result.z.as_nano_j_per_tesla(), 3000000000.0);
+    }
 
     #[test]
     fn test_to_vector3_coef_am2() {

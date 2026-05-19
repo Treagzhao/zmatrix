@@ -1,6 +1,47 @@
 use crate::physics::basic::{AngularMomentum, AngularMomentumType, Coef, Vector3};
+use crate::utils::float;
 
 impl Vector3<AngularMomentum> {
+    pub fn limit_float(&self, threshold: f64, angular_momentum_type: AngularMomentumType) -> Self {
+        let (x, y, z) = match angular_momentum_type {
+            AngularMomentumType::KgM2perSecond => (
+                float::limit_float(self.x.as_kg_m2_per_second(), threshold),
+                float::limit_float(self.y.as_kg_m2_per_second(), threshold),
+                float::limit_float(self.z.as_kg_m2_per_second(), threshold),
+            ),
+            AngularMomentumType::KgKm2perSecond => (
+                float::limit_float(self.x.as_kg_km2_per_second(), threshold),
+                float::limit_float(self.y.as_kg_km2_per_second(), threshold),
+                float::limit_float(self.z.as_kg_km2_per_second(), threshold),
+            ),
+            AngularMomentumType::Nms => (
+                float::limit_float(self.x.as_nms(), threshold),
+                float::limit_float(self.y.as_nms(), threshold),
+                float::limit_float(self.z.as_nms(), threshold),
+            ),
+            AngularMomentumType::MillNms => (
+                float::limit_float(self.x.as_mill_nms(), threshold),
+                float::limit_float(self.y.as_mill_nms(), threshold),
+                float::limit_float(self.z.as_mill_nms(), threshold),
+            ),
+            AngularMomentumType::MicroNms => (
+                float::limit_float(self.x.as_micro_nms(), threshold),
+                float::limit_float(self.y.as_micro_nms(), threshold),
+                float::limit_float(self.z.as_micro_nms(), threshold),
+            ),
+            AngularMomentumType::NanoNms => (
+                float::limit_float(self.x.as_nano_nms(), threshold),
+                float::limit_float(self.y.as_nano_nms(), threshold),
+                float::limit_float(self.z.as_nano_nms(), threshold),
+            ),
+        };
+        Self {
+            x: AngularMomentum { v: x, default_type: angular_momentum_type },
+            y: AngularMomentum { v: y, default_type: angular_momentum_type },
+            z: AngularMomentum { v: z, default_type: angular_momentum_type },
+        }
+    }
+
     pub fn to_vector3_coef(&self, angular_momentum_type: AngularMomentumType) -> Vector3<Coef> {
         match angular_momentum_type {
             AngularMomentumType::KgM2perSecond => {
@@ -68,7 +109,45 @@ impl Vector3<AngularMomentum> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
-    
+
+    #[test]
+    fn test_limit_float() {
+        let v = Vector3::new(
+            AngularMomentum::from_kg_m2_per_second(1.0),
+            AngularMomentum::from_kg_m2_per_second(-5.0),
+            AngularMomentum::from_kg_m2_per_second(3.0),
+        );
+        let result = v.limit_float(3.0, AngularMomentumType::KgM2perSecond);
+        assert_relative_eq!(result.x.as_kg_m2_per_second(), 1.0);
+        assert_relative_eq!(result.y.as_kg_m2_per_second(), -3.0);
+        assert_relative_eq!(result.z.as_kg_m2_per_second(), 3.0);
+
+        let result = v.limit_float(1e10, AngularMomentumType::KgKm2perSecond);
+        assert_relative_eq!(result.x.as_kg_km2_per_second(), 0.000001);
+        assert_relative_eq!(result.y.as_kg_km2_per_second(), -0.000005);
+        assert_relative_eq!(result.z.as_kg_km2_per_second(), 0.000003);
+
+        let result = v.limit_float(1e10, AngularMomentumType::Nms);
+        assert_relative_eq!(result.x.as_nms(), 1.0);
+        assert_relative_eq!(result.y.as_nms(), -5.0);
+        assert_relative_eq!(result.z.as_nms(), 3.0);
+
+        let result = v.limit_float(1e10, AngularMomentumType::MillNms);
+        assert_relative_eq!(result.x.as_mill_nms(), 1000.0);
+        assert_relative_eq!(result.y.as_mill_nms(), -5000.0);
+        assert_relative_eq!(result.z.as_mill_nms(), 3000.0);
+
+        let result = v.limit_float(1e10, AngularMomentumType::MicroNms);
+        assert_relative_eq!(result.x.as_micro_nms(), 1000000.0);
+        assert_relative_eq!(result.y.as_micro_nms(), -5000000.0);
+        assert_relative_eq!(result.z.as_micro_nms(), 3000000.0);
+
+        let result = v.limit_float(1e10, AngularMomentumType::NanoNms);
+        assert_relative_eq!(result.x.as_nano_nms(), 1000000000.0);
+        assert_relative_eq!(result.y.as_nano_nms(), -5000000000.0);
+        assert_relative_eq!(result.z.as_nano_nms(), 3000000000.0);
+    }
+
     #[test]
     fn test_to_vector3_coef_kg_m2_s() {
         let angular_momentum_vec = Vector3::new(

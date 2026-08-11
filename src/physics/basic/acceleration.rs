@@ -64,6 +64,14 @@ impl Mul<Duration> for Acceleration {
     }
 }
 
+impl Mul<chrono::TimeDelta> for Acceleration {
+    type Output = Velocity;
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let v = self.as_m_per_s2() * time_delta_to_secs_f64(&rhs);
+        Velocity::from_m_per_sec(v)
+    }
+}
+
 // 引用版本：Acceleration * Duration -> Velocity
 impl<'a> Mul<Duration> for &'a Acceleration {
     type Output = Velocity;
@@ -76,6 +84,20 @@ impl<'a> Mul<&'a Duration> for Acceleration {
 impl<'a, 'b> Mul<&'b Duration> for &'a Acceleration {
     type Output = Velocity;
     fn mul(self, rhs: &'b Duration) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_s2() * rhs.as_secs_f64()) }
+}
+
+// 引用版本：Acceleration * TimeDelta -> Velocity
+impl<'a> Mul<chrono::TimeDelta> for &'a Acceleration {
+    type Output = Velocity;
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_s2() * time_delta_to_secs_f64(&rhs)) }
+}
+impl<'a> Mul<&'a chrono::TimeDelta> for Acceleration {
+    type Output = Velocity;
+    fn mul(self, rhs: &'a chrono::TimeDelta) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_s2() * time_delta_to_secs_f64(rhs)) }
+}
+impl<'a, 'b> Mul<&'b chrono::TimeDelta> for &'a Acceleration {
+    type Output = Velocity;
+    fn mul(self, rhs: &'b chrono::TimeDelta) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_s2() * time_delta_to_secs_f64(rhs)) }
 }
 
 
@@ -275,6 +297,19 @@ mod tests {
         let v = a * d;
         assert_eq!(v.as_m_per_sec(), 1000.0);
     }
+
+    #[test]
+    fn test_acceleration_to_velocity_timedelta() {
+        let a = Acceleration::from_m_per_s2(1000.0);
+        let td = time_delta_from_secs_f64(1.0);
+        let v = a * td;
+        assert_eq!(v.as_m_per_sec(), 1000.0);
+
+        // 负时间 → 负速度
+        let neg_td = time_delta_from_secs_f64(-1.0);
+        let v_neg = a * neg_td;
+        assert_eq!(v_neg.as_m_per_sec(), -1000.0);
+    }
     #[test]
     fn test_acceleration_sub() {
         {
@@ -440,6 +475,16 @@ mod tests {
         assert_relative_eq!(v2.as_m_per_sec(), 4.0);
         let v3 = &a1 * dur;
         assert_relative_eq!(v3.as_m_per_sec(), 4.0);
+
+        // 混合引用：* TimeDelta
+        let td = time_delta_from_secs_f64(2.0);
+        let v4 = a1 * &td;
+        assert_relative_eq!(v4.as_m_per_sec(), 4.0);
+        let v5 = &a1 * td;
+        assert_relative_eq!(v5.as_m_per_sec(), 4.0);
+        let td2 = time_delta_from_secs_f64(2.0);
+        let v6 = &a1 * &td2;
+        assert_relative_eq!(v6.as_m_per_sec(), 4.0);
     }
 
     #[test]

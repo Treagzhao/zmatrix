@@ -1,5 +1,6 @@
 use crate::physics::basic::{
     Acceleration, Coef, Distance, Energy, EnergyType, Force, Mass, PhysicalQuantity, Velocity,
+    time_delta_from_secs_f64, time_delta_to_secs_f64,
 };
 use approx::assert_relative_eq;
 use std::any::Any;
@@ -355,6 +356,14 @@ impl Div<std::time::Duration> for Energy {
     }
 }
 
+impl Div<chrono::TimeDelta> for Energy {
+    type Output = crate::physics::basic::Power;
+    fn div(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let power_value = self.as_joule() / time_delta_to_secs_f64(&rhs);
+        crate::physics::basic::Power::from_watt(power_value)
+    }
+}
+
 // 引用版本：Energy / Duration -> Power
 impl<'a> Div<std::time::Duration> for &'a Energy {
     type Output = crate::physics::basic::Power;
@@ -367,6 +376,20 @@ impl<'a> Div<&'a std::time::Duration> for Energy {
 impl<'a, 'b> Div<&'b std::time::Duration> for &'a Energy {
     type Output = crate::physics::basic::Power;
     fn div(self, rhs: &'b std::time::Duration) -> Self::Output { crate::physics::basic::Power::from_watt(self.as_joule() / rhs.as_secs_f64()) }
+}
+
+// 引用版本：Energy / TimeDelta -> Power
+impl<'a> Div<chrono::TimeDelta> for &'a Energy {
+    type Output = crate::physics::basic::Power;
+    fn div(self, rhs: chrono::TimeDelta) -> Self::Output { crate::physics::basic::Power::from_watt(self.as_joule() / time_delta_to_secs_f64(&rhs)) }
+}
+impl<'a> Div<&'a chrono::TimeDelta> for Energy {
+    type Output = crate::physics::basic::Power;
+    fn div(self, rhs: &'a chrono::TimeDelta) -> Self::Output { crate::physics::basic::Power::from_watt(self.as_joule() / time_delta_to_secs_f64(rhs)) }
+}
+impl<'a, 'b> Div<&'b chrono::TimeDelta> for &'a Energy {
+    type Output = crate::physics::basic::Power;
+    fn div(self, rhs: &'b chrono::TimeDelta) -> Self::Output { crate::physics::basic::Power::from_watt(self.as_joule() / time_delta_to_secs_f64(rhs)) }
 }
 
 // 能量 ÷ 距离 = 力
@@ -969,6 +992,19 @@ mod tests {
     }
 
     #[test]
+    fn test_energy_div_timedelta() {
+        let energy = Energy::from_joule(100.0); // 100 J
+        let td = time_delta_from_secs_f64(5.0);
+        let power: crate::physics::basic::Power = energy / td;
+        assert_relative_eq!(power.as_watt(), 20.0);
+
+        // 负时间 → 负功率
+        let neg_td = time_delta_from_secs_f64(-5.0);
+        let power_neg: crate::physics::basic::Power = energy / neg_td;
+        assert_relative_eq!(power_neg.as_watt(), -20.0);
+    }
+
+    #[test]
     fn test_energy_div_distance() {
         let energy = Energy::from_joule(60.0); // 60 J
         let distance = Distance::from_m(3.0); // 3 m
@@ -1010,6 +1046,16 @@ mod tests {
         assert_relative_eq!(p2.as_watt(), 5.0);
         let p3 = &e1 / dur;
         assert_relative_eq!(p3.as_watt(), 5.0);
+
+        // 混合引用：/ TimeDelta
+        let td = time_delta_from_secs_f64(2.0);
+        let p4 = e1 / &td;
+        assert_relative_eq!(p4.as_watt(), 5.0);
+        let p5 = &e1 / td;
+        assert_relative_eq!(p5.as_watt(), 5.0);
+        let td2 = time_delta_from_secs_f64(2.0);
+        let p6 = &e1 / &td2;
+        assert_relative_eq!(p6.as_watt(), 5.0);
 
         // 混合引用：/ Distance
         let f2 = e1 / &Distance::from_m(2.0);

@@ -4,7 +4,9 @@ version = "0.3.1"
 edition = "2021"
 authors = ["Treagzhao"]
 license = "MIT"
-description = "This is a matrix calculation lib"
+description = "Compile-time dimensional analysis & physics-aware linear algebra for aerospace and robotics"
+repository = "https://github.com/Treagzhao/zmatrix"
+documentation = "https://docs.rs/zmatrix"
 
 
 [dependencies]

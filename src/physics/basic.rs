@@ -900,6 +900,16 @@ mod tests {
         assert_eq!(MagneticAngularVelocity::from_tesla_rad_per_second(1.0).unit_display_name(), "MagneticAngularVelocity (T·rad/s)");
         assert_eq!(format!("{}", MagneticAngularVelocity::from_tesla_rad_per_second(1.0)), "1");
     }
+
+    #[test]
+    fn test_vector3_display() {
+        let v: Vector3<Distance> = Vector3::new(
+            Distance::from_m(1.0),
+            Distance::from_m(2.0),
+            Distance::from_m(3.0),
+        );
+        assert_eq!(format!("{}", v), "(1, 2, 3)");
+    }
 }
 
 // 手动实现 VectorQuantity trait 给所有支持向量的物理量

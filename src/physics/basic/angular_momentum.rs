@@ -12,7 +12,7 @@ impl Default for AngularMomentum {
 impl PhysicalQuantity for AngularMomentum {
     fn as_any(&self) -> &dyn Any {
         self
-}
+    }
 
     fn is_zero(&self) -> bool {
         self.v == 0.0

@@ -13,7 +13,7 @@ impl Default for Power {
 impl PhysicalQuantity for Power {
     fn as_any(&self) -> &dyn Any {
         self
-}
+    }
 
     fn is_zero(&self) -> bool {
         self.v == 0.0

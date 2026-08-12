@@ -281,6 +281,57 @@ let velocity = Velocity::from_m_per_sec(5.0); // 5 m/s
 let power_from_force: Power = force * velocity; // 50 W
 ```
 
+## 带物理量的矩阵运算
+
+矩阵的 `product` 方法支持不同类型的物理量元素，输出类型由物理量之间的乘法关系自动推导：
+
+```rust
+use zmatrix::dense::Matrix;
+use zmatrix::physics::basic::*;
+
+// F = m × a — 质量行向量 × 加速度矩阵 = 力行向量
+let m: Matrix<1, 2, Mass> = Matrix::new([
+    [Mass::from_kg(2.0), Mass::from_kg(3.0)]
+]);
+let a: Matrix<2, 2, Acceleration> = Matrix::new([
+    [Acceleration::from_m_per_s2(5.0), Acceleration::from_m_per_s2(0.0)],
+    [Acceleration::from_m_per_s2(0.0), Acceleration::from_m_per_s2(4.0)],
+]);
+// Mass × Acceleration = Force，自动推导输出类型
+let f: Matrix<1, 2, Force> = m.product(&a).unwrap();
+// → [[10.0 N, 12.0 N]]
+
+// W = F × d — 力行向量 × 位移列向量 = 能量
+let f: Matrix<1, 3, Force> = Matrix::new([
+    [Force::from_newton(10.0), Force::from_newton(20.0), Force::from_newton(30.0)]
+]);
+let d: Matrix<3, 1, Distance> = Matrix::new([
+    [Distance::from_m(2.0)],
+    [Distance::from_m(0.5)],
+    [Distance::from_m(1.0)],
+]);
+// Force × Distance = Energy
+let w: Matrix<1, 1, Energy> = f.product(&d).unwrap();
+// → [[60.0 J]]
+
+// 方向余弦矩阵 × 位置向量 = 旋转后的位置
+let dcm: Matrix<3, 3, Coef> = Matrix::new([
+    [Coef::new(0.0), Coef::new(-1.0), Coef::new(0.0)],
+    [Coef::new(1.0), Coef::new(0.0),  Coef::new(0.0)],
+    [Coef::new(0.0), Coef::new(0.0),  Coef::new(1.0)],
+]);
+let pos: Matrix<3, 1, Distance> = Matrix::new([
+    [Distance::from_m(1.0)],
+    [Distance::from_m(0.0)],
+    [Distance::from_m(0.0)],
+]);
+// Coef × Distance = Distance
+let rotated: Matrix<3, 1, Distance> = dcm.product(&pos).unwrap();
+// → [[0.0 m], [1.0 m], [0.0 m]]
+```
+
+编译期类型检查保证维数和量纲正确性——如果矩阵维度不匹配或两个物理量之间没有定义乘法关系（如 `Force × Velocity` 期待得到 `Power`），编译就会报错。
+
 ### 角动量单位系统
 
 角动量支持多种单位，满足不同精度和领域的计算需求：

@@ -1,5 +1,6 @@
 use crate::physics::basic;
 use std::any::Any;
+use std::fmt::{Display, Formatter};
 use std::ops::Div;
 
 mod acceleration;
@@ -34,6 +35,9 @@ pub trait PhysicalQuantity: Any {
     fn default_unit_value(&self) -> f64;
 
     fn set_value(&mut self, value: f64);
+
+    /// 返回物理量名称和单位，如 "Distance (m)", "Velocity (m/s)"
+    fn unit_display_name(&self) -> String;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -65,6 +69,7 @@ pub struct Distance {
     default_type: DistanceType,
     v: f64,
 }
+
 /// 速度物理量结构体
 ///
 /// 表示物体运动的快慢和方向，支持多种单位制
@@ -82,6 +87,7 @@ pub struct Velocity {
     v: f64,
 }
 
+
 /// 加速度物理量结构体
 ///
 /// 表示速度变化的快慢，支持多种单位制
@@ -98,6 +104,7 @@ pub struct Acceleration {
     default_type: AccelerationType,
     v: f64,
 }
+
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum AccelerationType {
     MPerSecond2,
@@ -127,6 +134,7 @@ pub struct Angular {
     default_type: AngularType,
     v: f64,
 }
+
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 pub enum AngularVelocityType {
     #[default]
@@ -153,6 +161,7 @@ pub struct AngularVelocity {
     v: f64,
 }
 
+
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum AngularAccelerationType {
     RadperSecond2,
@@ -175,6 +184,7 @@ pub struct AngularAcceleration {
     default_type: AngularAccelerationType,
     v: f64,
 }
+
 /// 系数物理量结构体
 ///
 /// 表示无量纲的系数或比例因子
@@ -190,6 +200,7 @@ pub struct AngularAcceleration {
 pub struct Coef {
     v: f64,
 }
+
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum MassType {
     Kg,
@@ -212,6 +223,7 @@ pub struct Mass {
     default_type: MassType,
     pub v: f64,
 }
+
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum AngularMomentumType {
     KgM2perSecond,  // 每秒1千克1平方米
@@ -237,6 +249,7 @@ pub struct AngularMomentum {
     default_type: AngularMomentumType,
     pub v: f64,
 }
+
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum MomentumType {
     KgMperSecond,  // 每秒1千克1米
@@ -258,6 +271,7 @@ pub struct Momentum {
     default_type: MomentumType,
     pub v: f64,
 }
+
 
 /// 三维向量结构体
 ///
@@ -284,6 +298,12 @@ pub struct Vector3<T: VectorQuantity + Default> {
     pub z: T,
 }
 
+impl<T: VectorQuantity + Default + Display> Display for Vector3<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {}, {})", self.x, self.y, self.z)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AreaType {
     M2,
@@ -306,6 +326,7 @@ pub struct Area {
     default_type: AreaType,
     pub v: f64,
 }
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum MagneticInductionType {
     Gauss,
@@ -333,6 +354,7 @@ pub struct MagneticInduction {
     default_type: MagneticInductionType,
     pub v: f64,
 }
+
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum MagneticMomentType {
@@ -363,6 +385,7 @@ pub struct MagneticMoment {
     pub v: f64,
 }
 
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TorqueType {
     NM,      // 牛顿·米 (N·m)
@@ -389,6 +412,7 @@ pub struct Torque {
     default_type: TorqueType,
     pub v: f64,
 }
+
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum EnergyType {
@@ -420,6 +444,7 @@ pub struct Energy {
     pub v: f64,
 }
 
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ForceType {
     Newton,      // 牛顿 (N)
@@ -446,6 +471,7 @@ pub struct Force {
     default_type: ForceType,
     pub v: f64,
 }
+
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PowerType {
@@ -475,6 +501,7 @@ pub struct Power {
     pub v: f64,
 }
 
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum MagneticAngularVelocityType {
     TeslaRadPerSecond,      // 特斯拉·弧度/秒 (T·rad/s)
@@ -503,6 +530,7 @@ pub struct MagneticAngularVelocity {
     pub v: f64,
 }
 
+
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum VolumeType {
     M3,
@@ -525,6 +553,7 @@ pub struct Volume {
     pub v: f64,
 }
 
+
 impl Default for Distance {
     fn default() -> Self {
         Distance::from_m(0.0)
@@ -534,7 +563,7 @@ impl Default for Distance {
 impl PhysicalQuantity for Distance {
     fn as_any(&self) -> &dyn Any {
         self
-    }
+}
     fn is_zero(&self) -> bool {
         self.v == 0.0
     }
@@ -545,6 +574,9 @@ impl PhysicalQuantity for Distance {
 
     fn set_value(&mut self, value: f64) {
         self.v = value;
+    }
+    fn unit_display_name(&self) -> String {
+        "Distance (m)".to_string()
     }
 }
 
@@ -557,7 +589,7 @@ impl Default for Angular {
 impl PhysicalQuantity for Angular {
     fn as_any(&self) -> &dyn Any {
         self
-    }
+}
     fn is_zero(&self) -> bool {
         self.v == 0.0
     }
@@ -567,6 +599,9 @@ impl PhysicalQuantity for Angular {
 
     fn set_value(&mut self, value: f64) {
         self.v = value;
+    }
+    fn unit_display_name(&self) -> String {
+        "Angular (rad)".to_string()
     }
 }
 
@@ -617,6 +652,39 @@ pub fn time_delta_to_secs_f64(td: &chrono::TimeDelta) -> f64 {
     td.num_seconds() as f64 + td.subsec_nanos() as f64 * 1e-9
 }
 
+
+// Display impls for physical quantities — show f64 value only (unit is available via unit_display_name)
+
+// Display impls for physical quantities — show f64 value (unit available via unit_display_name)
+macro_rules! impl_display_physics {
+    ($type:ty) => {
+        impl std::fmt::Display for $type {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.default_unit_value())
+            }
+        }
+    };
+}
+
+impl_display_physics!(Distance);
+impl_display_physics!(Velocity);
+impl_display_physics!(Acceleration);
+impl_display_physics!(Angular);
+impl_display_physics!(AngularVelocity);
+impl_display_physics!(AngularAcceleration);
+impl_display_physics!(Coef);
+impl_display_physics!(Mass);
+impl_display_physics!(Momentum);
+impl_display_physics!(AngularMomentum);
+impl_display_physics!(Area);
+impl_display_physics!(Volume);
+impl_display_physics!(MagneticInduction);
+impl_display_physics!(MagneticMoment);
+impl_display_physics!(Torque);
+impl_display_physics!(Energy);
+impl_display_physics!(Force);
+impl_display_physics!(Power);
+impl_display_physics!(MagneticAngularVelocity);
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -152,7 +152,7 @@ impl Sub<f64> for Velocity {
 impl PhysicalQuantity for Velocity {
     fn as_any(&self) -> &dyn Any {
         self
-    }
+}
     fn is_zero(&self) -> bool {
         self.v == 0.0
     }
@@ -161,6 +161,9 @@ impl PhysicalQuantity for Velocity {
     }
     fn set_value(&mut self, value: f64) {
         self.v = value;
+    }
+    fn unit_display_name(&self) -> String {
+        "Velocity (m/s)".to_string()
     }
 }
 

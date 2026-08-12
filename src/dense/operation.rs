@@ -4,7 +4,6 @@ use array_init::array_init;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::*;
 use std::fmt::Display;
-use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::sync::{mpsc, Arc};
 use std::thread;
@@ -185,16 +184,21 @@ where
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Default + Display + Send + Sync + Copy + Add<Output = T> + Mul<Output = T> + Sum,
+    T: Copy + Send + Sync,
 {
-    pub fn product<const COLS2: usize>(
+    pub fn product<const COLS2: usize, U, V>(
         &self,
-        target: &Matrix<COLS, COLS2, T>,
-    ) -> Result<Matrix<ROWS, COLS2, T>, error::OperationError> {
-        let mut data = [[T::default(); COLS2]; ROWS];
+        target: &Matrix<COLS, COLS2, U>,
+    ) -> Result<Matrix<ROWS, COLS2, V>, error::OperationError>
+    where
+        T: Mul<U, Output = V>,
+        U: Copy + Send + Sync,
+        V: Add<Output = V> + Default + Copy + Send + Sync,
+    {
+        let mut data = [[V::default(); COLS2]; ROWS];
         for i in 0..ROWS {
             for j in 0..COLS2 {
-                let mut sum = T::default();
+                let mut sum = V::default();
                 for k in 0..COLS {
                     sum = sum + self.data[i][k] * target.data[k][j];
                 }

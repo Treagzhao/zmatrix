@@ -558,4 +558,60 @@ mod tests {
         let neg_d5 = -d5;
         assert_relative_eq!(neg_d5.as_light_year(), -1.0);
     }
+
+    #[test]
+    fn test_matrix_product_with_physics() {
+        use crate::dense::Matrix;
+
+        // 距离行向量 × Coef矩阵 = 线性组合后的距离行向量
+        // Distance * Coef = Distance，由物理量 Mul trait 推导
+        let pos: Matrix<1, 2, Distance> = Matrix::new([
+            [Distance::from_m(10.0), Distance::from_m(20.0)]
+        ]);
+        let coef: Matrix<2, 2, Coef> = Matrix::new([
+            [Coef::new(1.0), Coef::new(2.0)],
+            [Coef::new(3.0), Coef::new(4.0)],
+        ]);
+
+        // [10, 20] × [[1,2],[3,4]] = [1*10+3*20, 2*10+4*20] = [70, 100]
+        let result: Matrix<1, 2, Distance> = pos.product(&coef).unwrap();
+        assert_relative_eq!(result.get(0, 0).unwrap().as_m(), 70.0);
+        assert_relative_eq!(result.get(1, 0).unwrap().as_m(), 100.0);
+    }
+
+    #[test]
+    fn test_matrix_product_f_equals_ma() {
+        use crate::dense::Matrix;
+
+        // F = m × a
+        // Mass × Acceleration = Force
+        let m: Matrix<1, 2, Mass> = Matrix::new([[Mass::from_kg(2.0), Mass::from_kg(3.0)]]);
+        let a: Matrix<2, 2, Acceleration> = Matrix::new([
+            [Acceleration::from_m_per_s2(5.0), Acceleration::from_m_per_s2(0.0)],
+            [Acceleration::from_m_per_s2(0.0), Acceleration::from_m_per_s2(4.0)],
+        ]);
+        // [2,3] × [[5,0],[0,4]] = [2*5 + 3*0, 2*0 + 3*4] = [10, 12]
+        let f: Matrix<1, 2, Force> = m.product(&a).unwrap();
+        assert_relative_eq!(f.get(0, 0).unwrap().as_newton(), 10.0);
+        assert_relative_eq!(f.get(1, 0).unwrap().as_newton(), 12.0);
+    }
+
+    #[test]
+    fn test_matrix_product_work_equals_force_times_distance() {
+        use crate::dense::Matrix;
+
+        // W = F × d
+        // Force × Distance = Energy
+        let f: Matrix<1, 3, Force> = Matrix::new([
+            [Force::from_newton(10.0), Force::from_newton(20.0), Force::from_newton(30.0)]
+        ]);
+        let d: Matrix<3, 1, Distance> = Matrix::new([
+            [Distance::from_m(2.0)],
+            [Distance::from_m(0.5)],
+            [Distance::from_m(1.0)],
+        ]);
+        // [10, 20, 30] × [[2],[0.5],[1]] = [10*2 + 20*0.5 + 30*1] = [60]
+        let w: Matrix<1, 1, Energy> = f.product(&d).unwrap();
+        assert_relative_eq!(w.get(0, 0).unwrap().as_joule(), 60.0);
+    }
 }

@@ -62,6 +62,15 @@ impl Div<Duration> for AngularAcceleration {
     }
 }
 
+impl Div<chrono::TimeDelta> for AngularAcceleration {
+    type Output = AngularVelocity;
+
+    fn div(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let v = self.as_rad_per_second2() / time_delta_to_secs_f64(&rhs);
+        AngularVelocity::from_rad_per_second(v)
+    }
+}
+
 
 impl Add for AngularAcceleration {
     type Output = Self;
@@ -138,6 +147,15 @@ impl Mul<Duration> for AngularAcceleration {
     }
 }
 
+impl Mul<chrono::TimeDelta> for AngularAcceleration {
+    type Output = AngularVelocity;
+
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let v = self.as_rad_per_second2() * time_delta_to_secs_f64(&rhs);
+        AngularVelocity::from_rad_per_second(v)
+    }
+}
+
 // 引用版本：AngularAcceleration * Duration -> AngularVelocity
 impl<'a> Mul<Duration> for &'a AngularAcceleration {
     type Output = AngularVelocity;
@@ -150,6 +168,20 @@ impl<'a> Mul<&'a Duration> for AngularAcceleration {
 impl<'a, 'b> Mul<&'b Duration> for &'a AngularAcceleration {
     type Output = AngularVelocity;
     fn mul(self, rhs: &'b Duration) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second2() * rhs.as_secs_f64()) }
+}
+
+// 引用版本：AngularAcceleration * TimeDelta -> AngularVelocity
+impl<'a> Mul<chrono::TimeDelta> for &'a AngularAcceleration {
+    type Output = AngularVelocity;
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second2() * time_delta_to_secs_f64(&rhs)) }
+}
+impl<'a> Mul<&'a chrono::TimeDelta> for AngularAcceleration {
+    type Output = AngularVelocity;
+    fn mul(self, rhs: &'a chrono::TimeDelta) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second2() * time_delta_to_secs_f64(rhs)) }
+}
+impl<'a, 'b> Mul<&'b chrono::TimeDelta> for &'a AngularAcceleration {
+    type Output = AngularVelocity;
+    fn mul(self, rhs: &'b chrono::TimeDelta) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second2() * time_delta_to_secs_f64(rhs)) }
 }
 
 // 从角加速度变成线加速度
@@ -275,6 +307,27 @@ mod tests {
         let alpha1 = AngularAcceleration::from_rad_per_second2(PI);
         let omg = alpha1 * duration;
         assert_relative_eq!(omg.as_rad_per_second(), 10.0* PI);
+    }
+
+    #[test]
+    fn test_angular_acceleration_change_timedelta() {
+        let alpha = AngularAcceleration::from_rad_per_second2(PI);
+        let td = time_delta_from_secs_f64(10.0);
+        let omg = alpha / td;
+        assert_relative_eq!(omg.as_rad_per_second(), 0.1 * PI);
+
+        // 负时间 → 负角速度
+        let neg_td = time_delta_from_secs_f64(-10.0);
+        let omg_neg = alpha / neg_td;
+        assert_relative_eq!(omg_neg.as_rad_per_second(), -0.1 * PI);
+
+        // 乘法
+        let omg2 = alpha * td;
+        assert_relative_eq!(omg2.as_rad_per_second(), 10.0 * PI);
+
+        // 负时间乘法
+        let omg_neg2 = alpha * neg_td;
+        assert_relative_eq!(omg_neg2.as_rad_per_second(), -10.0 * PI);
     }
 
     #[test]
@@ -449,6 +502,16 @@ mod tests {
         assert_relative_eq!(w2.as_rad_per_second(), 2.0 * std::f64::consts::PI);
         let w3 = &a1 * dur;
         assert_relative_eq!(w3.as_rad_per_second(), 2.0 * std::f64::consts::PI);
+
+        // 混合引用：* TimeDelta
+        let td = time_delta_from_secs_f64(2.0);
+        let w4 = a1 * &td;
+        assert_relative_eq!(w4.as_rad_per_second(), 2.0 * std::f64::consts::PI);
+        let w5 = &a1 * td;
+        assert_relative_eq!(w5.as_rad_per_second(), 2.0 * std::f64::consts::PI);
+        let td2 = time_delta_from_secs_f64(2.0);
+        let w6 = &a1 * &td2;
+        assert_relative_eq!(w6.as_rad_per_second(), 2.0 * std::f64::consts::PI);
 
         // 混合引用：* Distance
         let acc2 = a1 * &Distance::from_m(2.0);

@@ -605,6 +605,18 @@ impl<T: VectorQuantity + Default> Default for Vector3<T> {
         }
     }
 }
+
+/// 从 f64 秒数创建 chrono::TimeDelta（支持负数）
+pub fn time_delta_from_secs_f64(secs: f64) -> chrono::TimeDelta {
+    let nanos = (secs * 1_000_000_000.0) as i64;
+    chrono::TimeDelta::nanoseconds(nanos)
+}
+
+/// 将 chrono::TimeDelta 转换为 f64 秒数
+pub fn time_delta_to_secs_f64(td: &chrono::TimeDelta) -> f64 {
+    td.num_seconds() as f64 + td.subsec_nanos() as f64 * 1e-9
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

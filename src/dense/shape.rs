@@ -237,7 +237,7 @@ mod tests {
         let m = Matrix::<0, 0, f64>::new([[]; 0]);
         let result = m.sum_column();
         assert_eq!(result.size(), (1, 0));
-        assert_eq!(result.data, [[]]);
+        assert_eq!(result.data, [[] as [f64; 0]; 1]);
     }
 
     #[test]

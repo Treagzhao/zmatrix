@@ -1,6 +1,7 @@
 use std::ops::Mul;
 use std::time::Duration;
-use crate::physics::basic::{Angular, AngularVelocity, AngularVelocityType, Coef, Vector3};
+use crate::physics::basic::{Angular, AngularVelocity, AngularVelocityType, Coef, Vector3,
+    time_delta_from_secs_f64, time_delta_to_secs_f64};
 use crate::utils::float;
 
 impl Vector3<AngularVelocity> {
@@ -117,6 +118,17 @@ impl Mul<Duration> for Vector3<AngularVelocity> {
     }
 }
 
+impl Mul<chrono::TimeDelta> for Vector3<AngularVelocity> {
+    type Output = Vector3<Angular>;
+
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let x= self.x * rhs;
+        let y= self.y * rhs;
+        let z = self.z * rhs;
+        Vector3::new(x, y, z)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use approx::assert_relative_eq;
@@ -191,6 +203,23 @@ mod test {
         assert_relative_eq!(v2.x.as_rad(),2.0);
         assert_relative_eq!(v2.y.as_rad(),4.0);
         assert_relative_eq!(v2.z.as_rad(),6.0);
+    }
+
+    #[test]
+    fn test_convert_timedelta(){
+        let v:Vector3<AngularVelocity> = Vector3::new(AngularVelocity::from_rad_per_second(1.0),AngularVelocity::from_rad_per_second(2.0),AngularVelocity::from_rad_per_second(3.0));
+        let td = time_delta_from_secs_f64(2.0);
+        let v2 = v * td;
+        assert_relative_eq!(v2.x.as_rad(),2.0);
+        assert_relative_eq!(v2.y.as_rad(),4.0);
+        assert_relative_eq!(v2.z.as_rad(),6.0);
+
+        // 负时间 → 负角度
+        let neg_td = time_delta_from_secs_f64(-2.0);
+        let v_neg = v * neg_td;
+        assert_relative_eq!(v_neg.x.as_rad(),-2.0);
+        assert_relative_eq!(v_neg.y.as_rad(),-4.0);
+        assert_relative_eq!(v_neg.z.as_rad(),-6.0);
     }
 
     #[test]

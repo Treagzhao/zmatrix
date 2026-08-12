@@ -25,16 +25,16 @@ fn main() {
     let velocity = Velocity::from_m_per_sec(20.0); // 20 m/s
     let acceleration = Acceleration::from_m_per_s2(4.0); // 4 m/s²
     let time = velocity / acceleration; // 5 s
-    println!("   20 m/s ÷ 4 m/s² = {} s", time.as_secs_f64());
-    println!("   验证: 4 m/s² × {} s = {} m/s\n", time.as_secs_f64(), (acceleration * time).as_m_per_sec());
+    println!("   20 m/s ÷ 4 m/s² = {} s", time_delta_to_secs_f64(&time));
+    println!("   验证: 4 m/s² × {} s = {} m/s\n", time_delta_to_secs_f64(&time), (acceleration * time).as_m_per_sec());
 
     // 4. 距离 ÷ 速度 = 时间
     println!("4. 距离 ÷ 速度 = 时间");
     let distance = Distance::from_m(200.0); // 200 m
     let velocity = Velocity::from_m_per_sec(25.0); // 25 m/s
     let time = distance / velocity; // 8 s
-    println!("   200 m ÷ 25 m/s = {} s", time.as_secs_f64());
-    println!("   验证: 25 m/s × {} s = {} m\n", time.as_secs_f64(), (velocity * time).as_m());
+    println!("   200 m ÷ 25 m/s = {} s", time_delta_to_secs_f64(&time));
+    println!("   验证: 25 m/s × {} s = {} m\n", time_delta_to_secs_f64(&time), (velocity * time).as_m());
 
     // 5. 功率 ÷ 力 = 速度
     println!("5. 功率 ÷ 力 = 速度");
@@ -57,8 +57,8 @@ fn main() {
     let omega = AngularVelocity::from_rad_per_second(12.0); // 12 rad/s
     let alpha = AngularAcceleration::from_rad_per_second2(3.0); // 3 rad/s²
     let time = omega / alpha; // 4 s
-    println!("   12 rad/s ÷ 3 rad/s² = {} s", time.as_secs_f64());
-    println!("   验证: 3 rad/s² × {} s = {} rad/s\n", time.as_secs_f64(), (alpha * time).as_rad_per_second());
+    println!("   12 rad/s ÷ 3 rad/s² = {} s", time_delta_to_secs_f64(&time));
+    println!("   验证: 3 rad/s² × {} s = {} rad/s\n", time_delta_to_secs_f64(&time), (alpha * time).as_rad_per_second());
 
     // 实际应用示例
     println!("=== 实际应用示例 ===");
@@ -71,7 +71,7 @@ fn main() {
     let braking_distance = initial_velocity * braking_time; // 制动距离
     println!("   初始速度: {} km/h", initial_velocity.as_km_per_h());
     println!("   减速度: {} m/s²", deceleration.as_m_per_s2());
-    println!("   制动时间: {:.2} s", braking_time.as_secs_f64());
+    println!("   制动时间: {:.2} s", time_delta_to_secs_f64(&braking_time));
     println!("   制动距离: {:.2} m", braking_distance.as_m());
 
     // 电机功率计算

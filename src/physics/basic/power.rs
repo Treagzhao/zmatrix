@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use crate::physics::basic::{Coef, Power, PowerType, PhysicalQuantity, Energy, Velocity, Force};
+use crate::physics::basic::{Coef, Power, PowerType, PhysicalQuantity, Energy, Velocity, Force,
+    time_delta_from_secs_f64, time_delta_to_secs_f64};
 use approx::assert_relative_eq;
 
 impl Default for Power {
@@ -339,11 +340,27 @@ impl Mul<std::time::Duration> for Power {
     }
 }
 
+impl Mul<chrono::TimeDelta> for Power {
+    type Output = Energy; // 能量，单位：焦耳
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let energy_value = self.as_watt() * time_delta_to_secs_f64(&rhs);
+        Energy::from_joule(energy_value)
+    }
+}
+
 // 时间与功率的乘积（得到能量，满足交换律）
 impl Mul<Power> for std::time::Duration {
     type Output = Energy; // 能量，单位：焦耳
     fn mul(self, rhs: Power) -> Self::Output {
         let energy_value = self.as_secs_f64() * rhs.as_watt();
+        Energy::from_joule(energy_value)
+    }
+}
+
+impl Mul<Power> for chrono::TimeDelta {
+    type Output = Energy; // 能量，单位：焦耳
+    fn mul(self, rhs: Power) -> Self::Output {
+        let energy_value = time_delta_to_secs_f64(&self) * rhs.as_watt();
         Energy::from_joule(energy_value)
     }
 }
@@ -444,6 +461,23 @@ mod tests {
         let energy: Energy = power * time; // 500 J
         
         assert_relative_eq!(energy.as_joule(), 500.0);
+    }
+
+    #[test]
+    fn test_power_mul_timedelta() {
+        let power = Power::from_watt(100.0); // 100 W
+        let td = time_delta_from_secs_f64(5.0);
+        let energy: Energy = power * td;
+        assert_relative_eq!(energy.as_joule(), 500.0);
+
+        // 负时间 → 负能量
+        let neg_td = time_delta_from_secs_f64(-5.0);
+        let energy_neg: Energy = power * neg_td;
+        assert_relative_eq!(energy_neg.as_joule(), -500.0);
+
+        // 交换律：TimeDelta * Power
+        let energy_comm: Energy = td * power;
+        assert_relative_eq!(energy_comm.as_joule(), 500.0);
     }
 
     #[test]

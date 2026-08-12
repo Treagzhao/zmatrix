@@ -1,5 +1,6 @@
 use crate::physics::basic::{
     AngularMomentum, Coef, Distance, DistanceType, Mass, Momentum, Vector3, Velocity,
+    time_delta_from_secs_f64, time_delta_to_secs_f64,
 };
 use std::ops::{Div, Mul};
 use std::time::Duration;
@@ -19,6 +20,17 @@ impl Div<Duration> for Vector3<Distance> {
     type Output = Vector3<Velocity>;
 
     fn div(self, rhs: Duration) -> Self::Output {
+        let x = self.x / rhs;
+        let y = self.y / rhs;
+        let z = self.z / rhs;
+        Vector3::<Velocity>::new(x, y, z)
+    }
+}
+
+impl Div<chrono::TimeDelta> for Vector3<Distance> {
+    type Output = Vector3<Velocity>;
+
+    fn div(self, rhs: chrono::TimeDelta) -> Self::Output {
         let x = self.x / rhs;
         let y = self.y / rhs;
         let z = self.z / rhs;
@@ -164,6 +176,27 @@ mod tests {
         assert_relative_eq!(v.x.as_m_per_sec(), 1.0);
         assert_relative_eq!(v.y.as_m_per_sec(), 2.0);
         assert_relative_eq!(v.z.as_m_per_sec(), 3.0);
+    }
+
+    #[test]
+    fn test_distance_to_velocity_timedelta() {
+        let a: Vector3<Distance> = Vector3::new(
+            Distance::from_m(10.0),
+            Distance::from_m(20.0),
+            Distance::from_m(30.0),
+        );
+        let td = time_delta_from_secs_f64(10.0);
+        let v = a / td;
+        assert_relative_eq!(v.x.as_m_per_sec(), 1.0);
+        assert_relative_eq!(v.y.as_m_per_sec(), 2.0);
+        assert_relative_eq!(v.z.as_m_per_sec(), 3.0);
+
+        // 负时间 → 负速度
+        let neg_td = time_delta_from_secs_f64(-10.0);
+        let v_neg = a / neg_td;
+        assert_relative_eq!(v_neg.x.as_m_per_sec(), -1.0);
+        assert_relative_eq!(v_neg.y.as_m_per_sec(), -2.0);
+        assert_relative_eq!(v_neg.z.as_m_per_sec(), -3.0);
     }
 
     #[test]

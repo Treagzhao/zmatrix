@@ -60,6 +60,15 @@ impl Div<Duration> for Distance {
         Velocity::from_m_per_sec(v)
     }
 }
+
+impl Div<chrono::TimeDelta> for Distance {
+    type Output = Velocity;
+
+    fn div(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let v = self.as_m() / time_delta_to_secs_f64(&rhs);
+        Velocity::from_m_per_sec(v)
+    }
+}
 impl Add for Distance {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
@@ -244,12 +253,12 @@ impl<'a> Div<Distance> for &'a Distance {
     fn div(self, rhs: Distance) -> Self::Output { Coef::new(self.as_m() / rhs.as_m()) }
 }
 
-// 距离 ÷ 速度 = 时间
+// 距离 ÷ 速度 = 有符号时间
 impl Div<Velocity> for Distance {
-    type Output = std::time::Duration;
+    type Output = chrono::TimeDelta;
     fn div(self, rhs: Velocity) -> Self::Output {
         let time_value = self.as_m() / rhs.as_m_per_sec();
-        std::time::Duration::from_secs_f64(time_value)
+        time_delta_from_secs_f64(time_value)
     }
 }
 
@@ -295,6 +304,25 @@ mod tests {
         let duration = Duration::from_secs(60 * 60 * 24);
         let v = d1 / duration;
         assert_eq!(v.as_km_per_h(), 50.0);
+    }
+
+    #[test]
+    fn test_to_velocity_with_timedelta() {
+        let d1 = Distance::from_m(1000.0);
+        let td = time_delta_from_secs_f64(5.0);
+        let v = d1 / td;
+        assert_eq!(v.as_m_per_sec(), 200.0);
+
+        // 负时间：距离为正，时间负 → 速度负
+        let neg_td = time_delta_from_secs_f64(-5.0);
+        let v_neg = d1 / neg_td;
+        assert_eq!(v_neg.as_m_per_sec(), -200.0);
+
+        // 距离为负
+        let d_neg = Distance::from_m(-100.0);
+        let td2 = time_delta_from_secs_f64(2.0);
+        let v2 = d_neg / td2;
+        assert_eq!(v2.as_m_per_sec(), -50.0);
     }
 
     #[test]
@@ -455,7 +483,12 @@ mod tests {
         let velocity = Velocity::from_m_per_sec(20.0); // 20 m/s
         let time = distance / velocity; // 5 s
         
-        assert_relative_eq!(time.as_secs_f64(), 5.0);
+        assert_relative_eq!(time_delta_to_secs_f64(&time), 5.0);
+
+        // 距离和速度方向相反 → 负数时间
+        let dist_neg = Distance::from_m(-100.0);
+        let time_neg = dist_neg / velocity;
+        assert_relative_eq!(time_delta_to_secs_f64(&time_neg), -5.0);
     }
 
     #[test]

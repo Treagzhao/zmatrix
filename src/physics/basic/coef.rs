@@ -115,6 +115,15 @@ impl Mul<Duration> for Coef {
     }
 }
 
+impl Mul<chrono::TimeDelta> for Coef {
+    type Output = Coef;
+
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let v = self.get_value() * time_delta_to_secs_f64(&rhs);
+        Coef { v }
+    }
+}
+
 impl Div for Coef {
     type Output = Coef;
     fn div(self, rhs: Self) -> Self::Output {
@@ -341,6 +350,16 @@ mod tests {
         let coef = Coef::new(2.0);
         let result = coef * Duration::from_secs(10);
         assert_eq!(result.get_value(), 20.0);
+
+        let coef = Coef::new(2.0);
+        let td = time_delta_from_secs_f64(10.0);
+        let result = coef * td;
+        assert_eq!(result.get_value(), 20.0);
+
+        // 负时间
+        let neg_td = time_delta_from_secs_f64(-3.0);
+        let result_neg = coef * neg_td;
+        assert_eq!(result_neg.get_value(), -6.0);
 
         let coef = Coef::new(2.0);
         let result = 2.0 * coef;

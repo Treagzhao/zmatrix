@@ -178,7 +178,7 @@ impl Mul<f64> for Acceleration {
 impl PhysicalQuantity for Acceleration {
     fn as_any(&self) -> &dyn Any {
         self
-    }
+}
     fn is_zero(&self) -> bool {
         self.v == 0.0
     }
@@ -188,6 +188,9 @@ impl PhysicalQuantity for Acceleration {
 
     fn set_value(&mut self, value: f64) {
         self.v = value;
+    }
+    fn unit_display_name(&self) -> String {
+        "Acceleration (m/s²)".to_string()
     }
 }
 

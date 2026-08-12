@@ -174,7 +174,7 @@ fn convert_tesla_value(v: f64, from: MagneticInductionType, to: MagneticInductio
 impl PhysicalQuantity for MagneticInduction {
     fn as_any(&self) -> &dyn Any {
         self
-    }
+}
 
     fn is_zero(&self) -> bool {
         self.v == 0.0
@@ -186,6 +186,9 @@ impl PhysicalQuantity for MagneticInduction {
 
     fn set_value(&mut self, value: f64) {
         self.v = value;
+    }
+    fn unit_display_name(&self) -> String {
+        "MagneticInduction (T)".to_string()
     }
 }
 

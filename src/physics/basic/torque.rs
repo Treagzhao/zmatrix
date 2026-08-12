@@ -12,7 +12,7 @@ impl Default for Torque {
 impl PhysicalQuantity for Torque {
     fn as_any(&self) -> &dyn Any {
         self
-    }
+}
 
     fn is_zero(&self) -> bool {
         self.v == 0.0
@@ -24,6 +24,9 @@ impl PhysicalQuantity for Torque {
 
     fn set_value(&mut self, value: f64) {
         self.v = value;
+    }
+    fn unit_display_name(&self) -> String {
+        "Torque (N·m)".to_string()
     }
 }
 

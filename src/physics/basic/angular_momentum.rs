@@ -25,6 +25,9 @@ impl PhysicalQuantity for AngularMomentum {
     fn set_value(&mut self, value: f64) {
         self.v = value;
     }
+    fn unit_display_name(&self) -> String {
+        "AngularMomentum (kg·m²/s)".to_string()
+    }
 }
 
 impl AngularMomentum {

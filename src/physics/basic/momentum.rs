@@ -54,6 +54,9 @@ impl PhysicalQuantity for Momentum {
     fn set_value(&mut self, value: f64) {
         self.v = value;
     }
+    fn unit_display_name(&self) -> String {
+        "Momentum (kg·m/s)".to_string()
+    }
 }
 
 

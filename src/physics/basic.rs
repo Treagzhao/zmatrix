@@ -838,6 +838,68 @@ mod tests {
             assert_relative_eq!(a.default_unit_value(), a.as_rad(), epsilon = 1e-12);
         }
     }
+
+    #[test]
+    fn test_unit_display_name_and_display() {
+        // 验证所有物理量的 unit_display_name 与 Display 实现
+
+        assert_eq!(Distance::from_m(1.5).unit_display_name(), "Distance (m)");
+        assert_eq!(format!("{}", Distance::from_m(2.5)), "2.5");
+
+        assert_eq!(Velocity::from_m_per_sec(3.0).unit_display_name(), "Velocity (m/s)");
+        assert_eq!(format!("{}", Velocity::from_km_per_h(36.0)), "10");
+
+        assert_eq!(Acceleration::from_m_per_s2(9.8).unit_display_name(), "Acceleration (m/s²)");
+        assert_eq!(format!("{}", Acceleration::from_g(1.0)), format!("{}", 9.80665));
+
+        assert_eq!(Angular::from_rad(1.0).unit_display_name(), "Angular (rad)");
+        assert_eq!(format!("{}", Angular::from_deg(180.0)), format!("{}", std::f64::consts::PI));
+
+        assert_eq!(AngularVelocity::from_rad_per_second(2.0).unit_display_name(), "AngularVelocity (rad/s)");
+        assert_eq!(format!("{}", AngularVelocity::from_rad_per_second(2.0)), "2");
+
+        assert_eq!(AngularAcceleration::from_rad_per_second2(1.0).unit_display_name(), "AngularAcceleration (rad/s²)");
+        assert_eq!(format!("{}", AngularAcceleration::from_rad_per_second2(3.0)), "3");
+
+        assert_eq!(Coef::new(3.14).unit_display_name(), "Coef");
+        assert_eq!(format!("{}", Coef::new(3.14)), "3.14");
+
+        assert_eq!(Mass::from_kg(1.0).unit_display_name(), "Mass (kg)");
+        assert_eq!(format!("{}", Mass::from_kg(5.0)), "5");
+
+        assert_eq!(Momentum::from_kg_m_s(10.0).unit_display_name(), "Momentum (kg·m/s)");
+        assert_eq!(format!("{}", Momentum::from_kg_m_s(10.0)), "10");
+
+        assert_eq!(AngularMomentum::from_kg_m2_per_second(100.0).unit_display_name(), "AngularMomentum (kg·m²/s)");
+        assert_eq!(format!("{}", AngularMomentum::from_nms(50.0)), "50");
+
+        assert_eq!(Area::from_m2(4.0).unit_display_name(), "Area (m²)");
+        assert_eq!(format!("{}", Area::from_m2(12.0)), "12");
+
+        assert_eq!(Volume::from_m3(8.0).unit_display_name(), "Volume (m³)");
+        assert_eq!(format!("{}", Volume::from_m3(8.0)), "8");
+
+        assert_eq!(MagneticInduction::from_tesla(1.0).unit_display_name(), "MagneticInduction (T)");
+        assert_eq!(format!("{}", MagneticInduction::from_gauss(10000.0)), "1");
+
+        assert_eq!(MagneticMoment::from_am2(1.0).unit_display_name(), "MagneticMoment (A·m²)");
+        assert_eq!(format!("{}", MagneticMoment::from_am2(2.0)), "2");
+
+        assert_eq!(Torque::from_nm(10.0).unit_display_name(), "Torque (N·m)");
+        assert_eq!(format!("{}", Torque::from_nm(0.0)), "0");
+
+        assert_eq!(Energy::from_joule(42.0).unit_display_name(), "Energy (J)");
+        assert_eq!(format!("{}", Energy::from_joule(0.0)), "0");
+
+        assert_eq!(Force::from_newton(100.0).unit_display_name(), "Force (N)");
+        assert_eq!(format!("{}", Force::from_newton(100.0)), "100");
+
+        assert_eq!(Power::from_watt(60.0).unit_display_name(), "Power (W)");
+        assert_eq!(format!("{}", Power::from_watt(60.0)), "60");
+
+        assert_eq!(MagneticAngularVelocity::from_tesla_rad_per_second(1.0).unit_display_name(), "MagneticAngularVelocity (T·rad/s)");
+        assert_eq!(format!("{}", MagneticAngularVelocity::from_tesla_rad_per_second(1.0)), "1");
+    }
 }
 
 // 手动实现 VectorQuantity trait 给所有支持向量的物理量

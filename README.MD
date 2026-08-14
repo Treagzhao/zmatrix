@@ -39,7 +39,7 @@ let rotated: Matrix<2, 1, Distance> = rot.product(&pos).unwrap();
 
 ## 一、物理量系统
 
-19 种物理量，每种支持多种单位，物理量之间的运算在编译期进行量纲检查。
+25 种物理量，每种支持多种单位，物理量之间的运算在编译期进行量纲检查。
 
 ### 支持的物理量
 
@@ -63,6 +63,12 @@ let rotated: Matrix<2, 1, Distance> = rot.product(&pos).unwrap();
 | 磁感应强度 `MagneticInduction` | T, G, mT, μT, nT |
 | 磁矩 `MagneticMoment` | A·m², J/T |
 | 磁角速度 `MagneticAngularVelocity` | T·rad/s |
+| 电流 `ElectricCurrent` | A, mA, μA, kA |
+| 电压 `ElectricPotential` | V, mV, μV, kV |
+| 电阻 `ElectricResistance` | Ω, mΩ, kΩ, MΩ |
+| 电荷量 `ElectricCharge` | C, mC, μC, nC |
+| 电容 `ElectricCapacitance` | F, mF, μF, nF, pF |
+| 电导 `ElectricConductance` | S, mS, μS |
 | 系数 `Coef` | 无量纲 |
 
 ### 物理量运算
@@ -83,6 +89,16 @@ let energy: Energy = force * distance;             // W = F × d → 20000 J
 let angle = Angular::from_deg(180.0);
 let omega: AngularVelocity = angle / time;
 let alpha: AngularAcceleration = omega / time;
+
+// 电学（欧姆定律与功率）
+let current = ElectricCurrent::from_a(2.0);
+let resistance = ElectricResistance::from_ohm(5.0);
+let voltage: ElectricPotential = current * resistance;   // V = I × R → 10 V
+let power: Power = voltage * current;                    // P = V × I → 20 W
+
+// 电能
+let charge = ElectricCharge::from_coulomb(3.0);
+let energy2: Energy = charge * voltage;                  // E = Q × V → 30 J
 ```
 
 ---

@@ -1,5 +1,6 @@
 use crate::physics::basic::{
     Acceleration, Coef, Distance, Energy, EnergyType, Force, Mass, PhysicalQuantity, Velocity,
+    ElectricCharge, ElectricPotential,
     time_delta_from_secs_f64, time_delta_to_secs_f64,
 };
 use approx::assert_relative_eq;
@@ -416,6 +417,48 @@ impl<'a> Div<&'a Distance> for Energy {
 impl<'a> Div<Distance> for &'a Energy {
     type Output = Force;
     fn div(self, rhs: Distance) -> Self::Output { Force::from_newton(self.as_joule() / rhs.as_m()) }
+}
+
+// ElectricCharge × ElectricPotential → Energy (E = Q × V, 电能)
+impl Mul<ElectricPotential> for ElectricCharge {
+    type Output = Energy;
+    fn mul(self, rhs: ElectricPotential) -> Self::Output {
+        Energy::from_joule(self.as_coulomb() * rhs.as_v())
+    }
+}
+
+impl<'a, 'b> Mul<&'b ElectricPotential> for &'a ElectricCharge {
+    type Output = Energy;
+    fn mul(self, rhs: &'b ElectricPotential) -> Self::Output { Energy::from_joule(self.as_coulomb() * rhs.as_v()) }
+}
+impl<'a> Mul<&'a ElectricPotential> for ElectricCharge {
+    type Output = Energy;
+    fn mul(self, rhs: &'a ElectricPotential) -> Self::Output { Energy::from_joule(self.as_coulomb() * rhs.as_v()) }
+}
+impl<'a> Mul<ElectricPotential> for &'a ElectricCharge {
+    type Output = Energy;
+    fn mul(self, rhs: ElectricPotential) -> Self::Output { Energy::from_joule(self.as_coulomb() * rhs.as_v()) }
+}
+
+// ElectricPotential × ElectricCharge → Energy (E = V × Q, 满足交换律)
+impl Mul<ElectricCharge> for ElectricPotential {
+    type Output = Energy;
+    fn mul(self, rhs: ElectricCharge) -> Self::Output {
+        Energy::from_joule(self.as_v() * rhs.as_coulomb())
+    }
+}
+
+impl<'a, 'b> Mul<&'b ElectricCharge> for &'a ElectricPotential {
+    type Output = Energy;
+    fn mul(self, rhs: &'b ElectricCharge) -> Self::Output { Energy::from_joule(self.as_v() * rhs.as_coulomb()) }
+}
+impl<'a> Mul<&'a ElectricCharge> for ElectricPotential {
+    type Output = Energy;
+    fn mul(self, rhs: &'a ElectricCharge) -> Self::Output { Energy::from_joule(self.as_v() * rhs.as_coulomb()) }
+}
+impl<'a> Mul<ElectricCharge> for &'a ElectricPotential {
+    type Output = Energy;
+    fn mul(self, rhs: ElectricCharge) -> Self::Output { Energy::from_joule(self.as_v() * rhs.as_coulomb()) }
 }
 
 #[cfg(test)]

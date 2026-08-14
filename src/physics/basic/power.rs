@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{Coef, Power, PowerType, PhysicalQuantity, Energy, Velocity, Force,
+    ElectricCurrent, ElectricPotential,
     time_delta_from_secs_f64, time_delta_to_secs_f64};
 use approx::assert_relative_eq;
 
@@ -384,6 +385,48 @@ impl Mul<Force> for Velocity {
         let power_value = self.as_m_per_sec() * rhs.as_newton();
         Power::from_watt(power_value)
     }
+}
+
+// ElectricPotential × ElectricCurrent → Power (P = V × I, 电功率)
+impl Mul<ElectricCurrent> for ElectricPotential {
+    type Output = Power;
+    fn mul(self, rhs: ElectricCurrent) -> Self::Output {
+        Power::from_watt(self.as_v() * rhs.as_a())
+    }
+}
+
+impl<'a, 'b> Mul<&'b ElectricCurrent> for &'a ElectricPotential {
+    type Output = Power;
+    fn mul(self, rhs: &'b ElectricCurrent) -> Self::Output { Power::from_watt(self.as_v() * rhs.as_a()) }
+}
+impl<'a> Mul<&'a ElectricCurrent> for ElectricPotential {
+    type Output = Power;
+    fn mul(self, rhs: &'a ElectricCurrent) -> Self::Output { Power::from_watt(self.as_v() * rhs.as_a()) }
+}
+impl<'a> Mul<ElectricCurrent> for &'a ElectricPotential {
+    type Output = Power;
+    fn mul(self, rhs: ElectricCurrent) -> Self::Output { Power::from_watt(self.as_v() * rhs.as_a()) }
+}
+
+// ElectricCurrent × ElectricPotential → Power (P = I × V, 满足交换律)
+impl Mul<ElectricPotential> for ElectricCurrent {
+    type Output = Power;
+    fn mul(self, rhs: ElectricPotential) -> Self::Output {
+        Power::from_watt(self.as_a() * rhs.as_v())
+    }
+}
+
+impl<'a, 'b> Mul<&'b ElectricPotential> for &'a ElectricCurrent {
+    type Output = Power;
+    fn mul(self, rhs: &'b ElectricPotential) -> Self::Output { Power::from_watt(self.as_a() * rhs.as_v()) }
+}
+impl<'a> Mul<&'a ElectricPotential> for ElectricCurrent {
+    type Output = Power;
+    fn mul(self, rhs: &'a ElectricPotential) -> Self::Output { Power::from_watt(self.as_a() * rhs.as_v()) }
+}
+impl<'a> Mul<ElectricPotential> for &'a ElectricCurrent {
+    type Output = Power;
+    fn mul(self, rhs: ElectricPotential) -> Self::Output { Power::from_watt(self.as_a() * rhs.as_v()) }
 }
 
 #[cfg(test)]

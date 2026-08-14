@@ -296,4 +296,41 @@ mod tests {
         a.set_value(42.0);
         assert_relative_eq!(a.as_coulomb(), 42.0);
     }
+
+    #[test]
+    fn test_electric_charge_all_as_branches() {
+        let mc = ElectricCharge::from_milli_coulomb(1.0);
+        let uc = ElectricCharge::from_micro_coulomb(1.0);
+        let nc = ElectricCharge::from_nano_coulomb(1.0);
+
+        // as_milli_coulomb 非默认分支
+        assert_relative_eq!(mc.as_milli_coulomb(), 1.0);
+        assert_relative_eq!(uc.as_milli_coulomb(), 1e-3);
+        assert_relative_eq!(nc.as_milli_coulomb(), 1e-6);
+
+        // as_micro_coulomb 非默认分支
+        assert_relative_eq!(mc.as_micro_coulomb(), 1000.0000000000001);
+        assert_relative_eq!(uc.as_micro_coulomb(), 1.0);
+        assert_relative_eq!(nc.as_micro_coulomb(), 1e-3);
+
+        // as_nano_coulomb 非默认分支
+        assert_relative_eq!(mc.as_nano_coulomb(), 1e6);
+        assert_relative_eq!(uc.as_nano_coulomb(), 999.9999999999999);
+        assert_relative_eq!(nc.as_nano_coulomb(), 1.0);
+    }
+
+    #[test]
+    fn test_electric_charge_f64_and_ref_sub() {
+        let a = ElectricCharge::from_coulomb(10.0);
+        let b = ElectricCharge::from_coulomb(3.0);
+        // Add<f64>
+        assert_relative_eq!((a + 5.0).as_coulomb(), 15.0);
+        // Sub<f64>
+        assert_relative_eq!((a - 5.0).as_coulomb(), 5.0);
+        // Sub 引用形式
+        assert_relative_eq!((a - &b).as_coulomb(), 7.0);
+        assert_relative_eq!((&a - b).as_coulomb(), 7.0);
+        // f64 / 量
+        assert_relative_eq!((100.0 / a).as_coulomb(), 10.0);
+    }
 }

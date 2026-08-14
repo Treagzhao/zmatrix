@@ -351,4 +351,66 @@ mod tests {
         let result2: ElectricCurrent = r2 * l2;
         assert_relative_eq!(result2.as_a(), 6.0);
     }
+
+    #[test]
+    fn test_electric_current_all_as_branches() {
+        let ma = ElectricCurrent::from_milli_a(1.0);
+        let ua = ElectricCurrent::from_micro_a(1.0);
+        let ka = ElectricCurrent::from_kilo_a(1.0);
+
+        // as_milli_a 非默认分支
+        assert_relative_eq!(ma.as_milli_a(), 1.0);
+        assert_relative_eq!(ua.as_milli_a(), 1e-3);
+        assert_relative_eq!(ka.as_milli_a(), 1e6);
+
+        // as_micro_a 非默认分支
+        assert_relative_eq!(ma.as_micro_a(), 1000.0000000000001);
+        assert_relative_eq!(ua.as_micro_a(), 1.0);
+        assert_relative_eq!(ka.as_micro_a(), 1e9);
+
+        // as_kilo_a 非默认分支
+        assert_relative_eq!(ma.as_kilo_a(), 1e-6);
+        assert_relative_eq!(ua.as_kilo_a(), 9.999999999999999e-10);
+        assert_relative_eq!(ka.as_kilo_a(), 1.0);
+    }
+
+    #[test]
+    fn test_electric_current_f64_and_ref_sub() {
+        let a = ElectricCurrent::from_a(10.0);
+        let b = ElectricCurrent::from_a(3.0);
+        // Add<f64>
+        assert_relative_eq!((a + 5.0).as_a(), 15.0);
+        // Sub<f64>
+        assert_relative_eq!((a - 5.0).as_a(), 5.0);
+        // Sub 引用形式
+        assert_relative_eq!((a - &b).as_a(), 7.0);
+        assert_relative_eq!((&a - b).as_a(), 7.0);
+        // f64 / 量
+        assert_relative_eq!((100.0 / a).as_a(), 10.0);
+    }
+
+    #[test]
+    fn test_voltage_times_conductance_ref_forms() {
+        // V × G 引用形式
+        let v = ElectricPotential::from_v(2.0);
+        let g = ElectricConductance::from_siemens(3.0);
+        assert_relative_eq!((&v * &g).as_a(), 6.0);
+        let v2 = ElectricPotential::from_v(2.0);
+        let g2 = ElectricConductance::from_siemens(3.0);
+        assert_relative_eq!((v2 * &g2).as_a(), 6.0);
+        let v3 = ElectricPotential::from_v(2.0);
+        let g3 = ElectricConductance::from_siemens(3.0);
+        assert_relative_eq!((&v3 * g3).as_a(), 6.0);
+
+        // G × V 引用形式
+        let g4 = ElectricConductance::from_siemens(2.0);
+        let v4 = ElectricPotential::from_v(3.0);
+        assert_relative_eq!((&g4 * &v4).as_a(), 6.0);
+        let g5 = ElectricConductance::from_siemens(2.0);
+        let v5 = ElectricPotential::from_v(3.0);
+        assert_relative_eq!((g5 * &v5).as_a(), 6.0);
+        let g6 = ElectricConductance::from_siemens(2.0);
+        let v6 = ElectricPotential::from_v(3.0);
+        assert_relative_eq!((&g6 * v6).as_a(), 6.0);
+    }
 }

@@ -1105,4 +1105,48 @@ mod tests {
         let neg_p5 = -p5;
         assert_relative_eq!(neg_p5.as_watt(), -745.7);
     }
+
+    #[test]
+    fn test_voltage_times_current_is_power() {
+        // V × I（值×值）
+        let v = ElectricPotential::from_v(2.0);
+        let i = ElectricCurrent::from_a(3.0);
+        let p: Power = v * i;
+        assert_relative_eq!(p.as_watt(), 6.0);
+
+        // V × I 引用形式
+        let v2 = ElectricPotential::from_v(2.0);
+        let i2 = ElectricCurrent::from_a(3.0);
+        assert_relative_eq!((&v2 * &i2).as_watt(), 6.0);
+        let v3 = ElectricPotential::from_v(2.0);
+        let i3 = ElectricCurrent::from_a(3.0);
+        assert_relative_eq!((v3 * &i3).as_watt(), 6.0);
+        let v4 = ElectricPotential::from_v(2.0);
+        let i4 = ElectricCurrent::from_a(3.0);
+        assert_relative_eq!((&v4 * i4).as_watt(), 6.0);
+
+        // I × V（值×值）
+        let i5 = ElectricCurrent::from_a(2.0);
+        let v5 = ElectricPotential::from_v(3.0);
+        let p5: Power = i5 * v5;
+        assert_relative_eq!(p5.as_watt(), 6.0);
+
+        // I × V 引用形式
+        let i6 = ElectricCurrent::from_a(2.0);
+        let v6 = ElectricPotential::from_v(3.0);
+        assert_relative_eq!((&i6 * &v6).as_watt(), 6.0);
+        let i7 = ElectricCurrent::from_a(2.0);
+        let v7 = ElectricPotential::from_v(3.0);
+        assert_relative_eq!((i7 * &v7).as_watt(), 6.0);
+        let i8 = ElectricCurrent::from_a(2.0);
+        let v8 = ElectricPotential::from_v(3.0);
+        assert_relative_eq!((&i8 * v8).as_watt(), 6.0);
+    }
+
+    #[test]
+    fn test_power_as_any() {
+        let g: &dyn PhysicalQuantity = &Power::from_watt(1.23);
+        let d = g.as_any().downcast_ref::<Power>().unwrap();
+        assert_relative_eq!(d.as_watt(), 1.23);
+    }
 }

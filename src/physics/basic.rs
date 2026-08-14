@@ -11,6 +11,12 @@ mod angular_velocity;
 mod area;
 mod coef;
 mod distance;
+mod electric_capacitance;
+mod electric_charge;
+mod electric_conductance;
+mod electric_current;
+mod electric_potential;
+mod electric_resistance;
 mod energy;
 mod force;
 mod magnetic_angular_velocity;
@@ -553,6 +559,110 @@ pub struct Volume {
     pub v: f64,
 }
 
+// ── 电学物理量 ───────────────────────────────────────────────────────────────
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ElectricCurrentType {
+    A,
+    MilliA,
+    MicroA,
+    KiloA,
+}
+
+/// 电流物理量结构体
+///
+/// 表示电荷流动的速率，单位是安培 (A)
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ElectricCurrent {
+    default_type: ElectricCurrentType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ElectricPotentialType {
+    V,
+    MilliV,
+    MicroV,
+    KiloV,
+}
+
+/// 电压（电势差）物理量结构体
+///
+/// 表示两点间的电势差，单位是伏特 (V)
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ElectricPotential {
+    default_type: ElectricPotentialType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ElectricResistanceType {
+    Ohm,
+    MillOhm,
+    KiloOhm,
+    MegaOhm,
+}
+
+/// 电阻物理量结构体
+///
+/// 表示导体对电流的阻碍能力，单位是欧姆 (Ω)
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ElectricResistance {
+    default_type: ElectricResistanceType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ElectricChargeType {
+    Coulomb,
+    MilliCoulomb,
+    MicroCoulomb,
+    NanoCoulomb,
+}
+
+/// 电荷量物理量结构体
+///
+/// 表示物体所带的电荷量，单位是库仑 (C)
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ElectricCharge {
+    default_type: ElectricChargeType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ElectricCapacitanceType {
+    Farad,
+    MilliFarad,
+    MicroFarad,
+    NanoFarad,
+    PicoFarad,
+}
+
+/// 电容物理量结构体
+///
+/// 表示存储电荷的能力，单位是法拉 (F)
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ElectricCapacitance {
+    default_type: ElectricCapacitanceType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ElectricConductanceType {
+    Siemens,
+    MilliSiemens,
+    MicroSiemens,
+}
+
+/// 电导物理量结构体
+///
+/// 表示导体导电的能力（电阻的倒数），单位是西门子 (S)
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ElectricConductance {
+    default_type: ElectricConductanceType,
+    pub v: f64,
+}
+
 
 impl Default for Distance {
     fn default() -> Self {
@@ -685,6 +795,12 @@ impl_display_physics!(Energy);
 impl_display_physics!(Force);
 impl_display_physics!(Power);
 impl_display_physics!(MagneticAngularVelocity);
+impl_display_physics!(ElectricCurrent);
+impl_display_physics!(ElectricPotential);
+impl_display_physics!(ElectricResistance);
+impl_display_physics!(ElectricCharge);
+impl_display_physics!(ElectricCapacitance);
+impl_display_physics!(ElectricConductance);
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -899,6 +1015,25 @@ mod tests {
 
         assert_eq!(MagneticAngularVelocity::from_tesla_rad_per_second(1.0).unit_display_name(), "MagneticAngularVelocity (T·rad/s)");
         assert_eq!(format!("{}", MagneticAngularVelocity::from_tesla_rad_per_second(1.0)), "1");
+
+        // 电学物理量
+        assert_eq!(ElectricCurrent::from_a(2.5).unit_display_name(), "ElectricCurrent (A)");
+        assert_eq!(format!("{}", ElectricCurrent::from_a(2.5)), "2.5");
+
+        assert_eq!(ElectricPotential::from_v(12.0).unit_display_name(), "ElectricPotential (V)");
+        assert_eq!(format!("{}", ElectricPotential::from_v(12.0)), "12");
+
+        assert_eq!(ElectricResistance::from_ohm(100.0).unit_display_name(), "ElectricResistance (Ohm)");
+        assert_eq!(format!("{}", ElectricResistance::from_ohm(100.0)), "100");
+
+        assert_eq!(ElectricCharge::from_coulomb(5.0).unit_display_name(), "ElectricCharge (C)");
+        assert_eq!(format!("{}", ElectricCharge::from_coulomb(5.0)), "5");
+
+        assert_eq!(ElectricCapacitance::from_farad(0.001).unit_display_name(), "ElectricCapacitance (F)");
+        assert_eq!(format!("{}", ElectricCapacitance::from_farad(0.001)), "0.001");
+
+        assert_eq!(ElectricConductance::from_siemens(0.01).unit_display_name(), "ElectricConductance (S)");
+        assert_eq!(format!("{}", ElectricConductance::from_siemens(0.01)), "0.01");
     }
 
     #[test]

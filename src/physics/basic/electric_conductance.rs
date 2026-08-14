@@ -274,4 +274,33 @@ mod tests {
         a.set_value(42.0);
         assert_relative_eq!(a.as_siemens(), 42.0);
     }
+
+    #[test]
+    fn test_electric_conductance_all_as_branches() {
+        let ms = ElectricConductance::from_milli_siemens(1.0);
+        let us = ElectricConductance::from_micro_siemens(1.0);
+
+        // as_milli_siemens 非默认分支
+        assert_relative_eq!(ms.as_milli_siemens(), 1.0);
+        assert_relative_eq!(us.as_milli_siemens(), 1e-3);
+
+        // as_micro_siemens 非默认分支
+        assert_relative_eq!(ms.as_micro_siemens(), 1000.0000000000001);
+        assert_relative_eq!(us.as_micro_siemens(), 1.0);
+    }
+
+    #[test]
+    fn test_electric_conductance_f64_and_ref_sub() {
+        let a = ElectricConductance::from_siemens(10.0);
+        let b = ElectricConductance::from_siemens(3.0);
+        // Add<f64>
+        assert_relative_eq!((a + 5.0).as_siemens(), 15.0);
+        // Sub<f64>
+        assert_relative_eq!((a - 5.0).as_siemens(), 5.0);
+        // Sub 引用形式
+        assert_relative_eq!((a - &b).as_siemens(), 7.0);
+        assert_relative_eq!((&a - b).as_siemens(), 7.0);
+        // f64 / 量
+        assert_relative_eq!((100.0 / a).as_siemens(), 10.0);
+    }
 }

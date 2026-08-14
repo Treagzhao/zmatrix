@@ -351,4 +351,66 @@ mod tests {
         let result2: ElectricPotential = r2 * l2;
         assert_relative_eq!(result2.as_v(), 6.0);
     }
+
+    #[test]
+    fn test_electric_potential_all_as_branches() {
+        let mv = ElectricPotential::from_milli_v(1.0);
+        let uv = ElectricPotential::from_micro_v(1.0);
+        let kv = ElectricPotential::from_kilo_v(1.0);
+
+        // as_milli_v 非默认分支
+        assert_relative_eq!(mv.as_milli_v(), 1.0);
+        assert_relative_eq!(uv.as_milli_v(), 1e-3);
+        assert_relative_eq!(kv.as_milli_v(), 1e6);
+
+        // as_micro_v 非默认分支
+        assert_relative_eq!(mv.as_micro_v(), 1000.0000000000001);
+        assert_relative_eq!(uv.as_micro_v(), 1.0);
+        assert_relative_eq!(kv.as_micro_v(), 1e9);
+
+        // as_kilo_v 非默认分支
+        assert_relative_eq!(mv.as_kilo_v(), 1e-6);
+        assert_relative_eq!(uv.as_kilo_v(), 9.999999999999999e-10);
+        assert_relative_eq!(kv.as_kilo_v(), 1.0);
+    }
+
+    #[test]
+    fn test_electric_potential_f64_and_ref_sub() {
+        let a = ElectricPotential::from_v(10.0);
+        let b = ElectricPotential::from_v(3.0);
+        // Add<f64>
+        assert_relative_eq!((a + 5.0).as_v(), 15.0);
+        // Sub<f64>
+        assert_relative_eq!((a - 5.0).as_v(), 5.0);
+        // Sub 引用形式
+        assert_relative_eq!((a - &b).as_v(), 7.0);
+        assert_relative_eq!((&a - b).as_v(), 7.0);
+        // f64 / 量
+        assert_relative_eq!((100.0 / a).as_v(), 10.0);
+    }
+
+    #[test]
+    fn test_current_times_resistance_ref_forms() {
+        // I × R 引用形式
+        let i = ElectricCurrent::from_a(2.0);
+        let r = ElectricResistance::from_ohm(3.0);
+        assert_relative_eq!((&i * &r).as_v(), 6.0);
+        let i2 = ElectricCurrent::from_a(2.0);
+        let r2 = ElectricResistance::from_ohm(3.0);
+        assert_relative_eq!((i2 * &r2).as_v(), 6.0);
+        let i3 = ElectricCurrent::from_a(2.0);
+        let r3 = ElectricResistance::from_ohm(3.0);
+        assert_relative_eq!((&i3 * r3).as_v(), 6.0);
+
+        // R × I 引用形式
+        let r4 = ElectricResistance::from_ohm(2.0);
+        let i4 = ElectricCurrent::from_a(3.0);
+        assert_relative_eq!((&r4 * &i4).as_v(), 6.0);
+        let r5 = ElectricResistance::from_ohm(2.0);
+        let i5 = ElectricCurrent::from_a(3.0);
+        assert_relative_eq!((r5 * &i5).as_v(), 6.0);
+        let r6 = ElectricResistance::from_ohm(2.0);
+        let i6 = ElectricCurrent::from_a(3.0);
+        assert_relative_eq!((&r6 * i6).as_v(), 6.0);
+    }
 }

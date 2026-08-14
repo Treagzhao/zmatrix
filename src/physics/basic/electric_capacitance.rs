@@ -320,4 +320,51 @@ mod tests {
         a.set_value(42.0);
         assert_relative_eq!(a.as_farad(), 42.0);
     }
+
+    #[test]
+    fn test_electric_capacitance_all_as_branches() {
+        let mf = ElectricCapacitance::from_milli_farad(1.0);
+        let uf = ElectricCapacitance::from_micro_farad(1.0);
+        let nf = ElectricCapacitance::from_nano_farad(1.0);
+        let pf = ElectricCapacitance::from_pico_farad(1.0);
+
+        // as_milli_farad 非默认分支
+        assert_relative_eq!(mf.as_milli_farad(), 1.0);
+        assert_relative_eq!(uf.as_milli_farad(), 1e-3);
+        assert_relative_eq!(nf.as_milli_farad(), 1e-6);
+        assert_relative_eq!(pf.as_milli_farad(), 1e-9);
+
+        // as_micro_farad 非默认分支
+        assert_relative_eq!(mf.as_micro_farad(), 1000.0000000000001);
+        assert_relative_eq!(uf.as_micro_farad(), 1.0);
+        assert_relative_eq!(nf.as_micro_farad(), 1e-3);
+        assert_relative_eq!(pf.as_micro_farad(), 1e-6);
+
+        // as_nano_farad 非默认分支
+        assert_relative_eq!(mf.as_nano_farad(), 1e6);
+        assert_relative_eq!(uf.as_nano_farad(), 999.9999999999999);
+        assert_relative_eq!(nf.as_nano_farad(), 1.0);
+        assert_relative_eq!(pf.as_nano_farad(), 1e-3);
+
+        // as_pico_farad 非默认分支
+        assert_relative_eq!(mf.as_pico_farad(), 1e9);
+        assert_relative_eq!(uf.as_pico_farad(), 1e6);
+        assert_relative_eq!(nf.as_pico_farad(), 1000.0000000000001);
+        assert_relative_eq!(pf.as_pico_farad(), 1.0);
+    }
+
+    #[test]
+    fn test_electric_capacitance_f64_and_ref_sub() {
+        let a = ElectricCapacitance::from_farad(10.0);
+        let b = ElectricCapacitance::from_farad(3.0);
+        // Add<f64>
+        assert_relative_eq!((a + 5.0).as_farad(), 15.0);
+        // Sub<f64>
+        assert_relative_eq!((a - 5.0).as_farad(), 5.0);
+        // Sub 引用形式
+        assert_relative_eq!((a - &b).as_farad(), 7.0);
+        assert_relative_eq!((&a - b).as_farad(), 7.0);
+        // f64 / 量
+        assert_relative_eq!((100.0 / a).as_farad(), 10.0);
+    }
 }

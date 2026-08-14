@@ -1137,4 +1137,41 @@ mod tests {
         let neg_e5 = -e5;
         assert_relative_eq!(neg_e5.as_electron_volt(), -100.0);
     }
+
+    #[test]
+    fn test_charge_times_potential_is_energy() {
+        // Q × V（值×值）
+        let q = ElectricCharge::from_coulomb(2.0);
+        let v = ElectricPotential::from_v(3.0);
+        let e: Energy = q * v;
+        assert_relative_eq!(e.as_joule(), 6.0);
+
+        // Q × V 引用形式
+        let q2 = ElectricCharge::from_coulomb(2.0);
+        let v2 = ElectricPotential::from_v(3.0);
+        assert_relative_eq!((&q2 * &v2).as_joule(), 6.0);
+        let q3 = ElectricCharge::from_coulomb(2.0);
+        let v3 = ElectricPotential::from_v(3.0);
+        assert_relative_eq!((q3 * &v3).as_joule(), 6.0);
+        let q4 = ElectricCharge::from_coulomb(2.0);
+        let v4 = ElectricPotential::from_v(3.0);
+        assert_relative_eq!((&q4 * v4).as_joule(), 6.0);
+
+        // V × Q（值×值）
+        let v5 = ElectricPotential::from_v(2.0);
+        let q5 = ElectricCharge::from_coulomb(3.0);
+        let e5: Energy = v5 * q5;
+        assert_relative_eq!(e5.as_joule(), 6.0);
+
+        // V × Q 引用形式
+        let v6 = ElectricPotential::from_v(2.0);
+        let q6 = ElectricCharge::from_coulomb(3.0);
+        assert_relative_eq!((&v6 * &q6).as_joule(), 6.0);
+        let v7 = ElectricPotential::from_v(2.0);
+        let q7 = ElectricCharge::from_coulomb(3.0);
+        assert_relative_eq!((v7 * &q7).as_joule(), 6.0);
+        let v8 = ElectricPotential::from_v(2.0);
+        let q8 = ElectricCharge::from_coulomb(3.0);
+        assert_relative_eq!((&v8 * q8).as_joule(), 6.0);
+    }
 }

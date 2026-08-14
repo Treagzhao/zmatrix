@@ -39,7 +39,7 @@ let rotated: Matrix<2, 1, Distance> = rot.product(&pos).unwrap();
 
 ## 1. Physical Quantity System
 
-19 physical quantities, each with multiple units. Operations between quantities are dimensionally checked at compile time.
+25 physical quantities, each with multiple units. Operations between quantities are dimensionally checked at compile time.
 
 ### Supported Quantities
 
@@ -63,6 +63,12 @@ let rotated: Matrix<2, 1, Distance> = rot.product(&pos).unwrap();
 | `MagneticInduction` | T, G, mT, μT, nT |
 | `MagneticMoment` | A·m², J/T |
 | `MagneticAngularVelocity` | T·rad/s |
+| `ElectricCurrent` | A, mA, μA, kA |
+| `ElectricPotential` | V, mV, μV, kV |
+| `ElectricResistance` | Ω, mΩ, kΩ, MΩ |
+| `ElectricCharge` | C, mC, μC, nC |
+| `ElectricCapacitance` | F, mF, μF, nF, pF |
+| `ElectricConductance` | S, mS, μS |
 | `Coef` | dimensionless |
 
 ### Quantity Arithmetic
@@ -83,6 +89,16 @@ let energy: Energy = force * distance;           // W = F × d → 20000 J
 let angle = Angular::from_deg(180.0);
 let omega: AngularVelocity = angle / dt;
 let alpha: AngularAcceleration = omega / dt;
+
+// Electricity (Ohm's law & power)
+let current = ElectricCurrent::from_a(2.0);
+let resistance = ElectricResistance::from_ohm(5.0);
+let voltage: ElectricPotential = current * resistance;   // V = I × R → 10 V
+let power: Power = voltage * current;                    // P = V × I → 20 W
+
+// Electrical energy
+let charge = ElectricCharge::from_coulomb(3.0);
+let energy2: Energy = charge * voltage;                  // E = Q × V → 30 J
 ```
 
 ---

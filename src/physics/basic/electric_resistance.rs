@@ -296,4 +296,41 @@ mod tests {
         a.set_value(42.0);
         assert_relative_eq!(a.as_ohm(), 42.0);
     }
+
+    #[test]
+    fn test_electric_resistance_all_as_branches() {
+        let mo = ElectricResistance::from_mill_ohm(1.0);
+        let ko = ElectricResistance::from_kilo_ohm(1.0);
+        let mo2 = ElectricResistance::from_mega_ohm(1.0);
+
+        // as_mill_ohm 非默认分支
+        assert_relative_eq!(mo.as_mill_ohm(), 1.0);
+        assert_relative_eq!(ko.as_mill_ohm(), 1e6);
+        assert_relative_eq!(mo2.as_mill_ohm(), 1e9);
+
+        // as_kilo_ohm 非默认分支
+        assert_relative_eq!(mo.as_kilo_ohm(), 1e-6);
+        assert_relative_eq!(ko.as_kilo_ohm(), 1.0);
+        assert_relative_eq!(mo2.as_kilo_ohm(), 1e3);
+
+        // as_mega_ohm 非默认分支
+        assert_relative_eq!(mo.as_mega_ohm(), 1e-9);
+        assert_relative_eq!(ko.as_mega_ohm(), 1e-3);
+        assert_relative_eq!(mo2.as_mega_ohm(), 1.0);
+    }
+
+    #[test]
+    fn test_electric_resistance_f64_and_ref_sub() {
+        let a = ElectricResistance::from_ohm(10.0);
+        let b = ElectricResistance::from_ohm(3.0);
+        // Add<f64>
+        assert_relative_eq!((a + 5.0).as_ohm(), 15.0);
+        // Sub<f64>
+        assert_relative_eq!((a - 5.0).as_ohm(), 5.0);
+        // Sub 引用形式
+        assert_relative_eq!((a - &b).as_ohm(), 7.0);
+        assert_relative_eq!((&a - b).as_ohm(), 7.0);
+        // f64 / 量
+        assert_relative_eq!((100.0 / a).as_ohm(), 10.0);
+    }
 }

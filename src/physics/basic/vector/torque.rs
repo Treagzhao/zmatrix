@@ -1,7 +1,20 @@
+use std::ops::Mul;
 use crate::physics::basic::{
-    Torque, TorqueType, Vector3, Coef,
+    Torque, TorqueType, Vector3, Coef, AngularMomentum,
 };
 use crate::utils::float;
+
+// 力矩乘以时间（得到角动量），逐分量委托给标量实现
+impl Mul<chrono::TimeDelta> for Vector3<Torque> {
+    type Output = Vector3<AngularMomentum>;
+
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let x = self.x * rhs;
+        let y = self.y * rhs;
+        let z = self.z * rhs;
+        Vector3::<AngularMomentum>::new(x, y, z)
+    }
+}
 
 impl Vector3<Torque> {
     pub fn limit_float(&self, threshold: f64, torque_type: TorqueType) -> Self {
@@ -176,6 +189,29 @@ impl Vector3<Torque> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // 力矩 * 时间 = 角动量（角冲量），验证逐分量语义与负时间
+    #[test]
+    fn test_mul_timedelta() {
+        let t = Vector3::new(
+            Torque::from_nm(5.0),
+            Torque::from_nm(0.0),
+            Torque::from_nm(-1.0),
+        );
+        let l = t * chrono::TimeDelta::seconds(2);
+        assert_relative_eq!(l.x.as_nms(), 10.0);
+        assert_relative_eq!(l.y.as_nms(), 0.0);
+        assert_relative_eq!(l.z.as_nms(), -2.0);
+
+        // 负时间
+        let l_neg = t * chrono::TimeDelta::seconds(-1);
+        assert_relative_eq!(l_neg.x.as_nms(), -5.0);
+        assert_relative_eq!(l_neg.z.as_nms(), 1.0);
+
+        // 零时间
+        let l_zero = t * chrono::TimeDelta::zero();
+        assert_relative_eq!(l_zero.x.as_nms(), 0.0);
+    }
     use approx::assert_relative_eq;
 
     #[test]

@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{Coef, Torque, TorqueType, PhysicalQuantity, Distance, Energy, AngularMomentum, AngularVelocity, Force, Power};
+use crate::physics::basic::time_delta_to_secs_f64;
 
 impl Default for Torque {
     fn default() -> Self {
@@ -382,9 +383,74 @@ impl<'a> Mul<Distance> for &'a Torque {
     fn mul(self, rhs: Distance) -> Self::Output { Energy::from_joule(self.as_nm() * rhs.as_m()) }
 }
 
+// 力矩与时间的乘积（得到角动量）：N·m·s
+impl Mul<chrono::TimeDelta> for Torque {
+    type Output = AngularMomentum;
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let v = self.as_nm() * time_delta_to_secs_f64(&rhs);
+        AngularMomentum::from_nms(v)
+    }
+}
+
+// 引用版本：Torque * TimeDelta -> AngularMomentum
+impl<'a> Mul<chrono::TimeDelta> for &'a Torque {
+    type Output = AngularMomentum;
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        AngularMomentum::from_nms(self.as_nm() * time_delta_to_secs_f64(&rhs))
+    }
+}
+impl<'a> Mul<&'a chrono::TimeDelta> for Torque {
+    type Output = AngularMomentum;
+    fn mul(self, rhs: &'a chrono::TimeDelta) -> Self::Output {
+        AngularMomentum::from_nms(self.as_nm() * time_delta_to_secs_f64(rhs))
+    }
+}
+impl<'a, 'b> Mul<&'b chrono::TimeDelta> for &'a Torque {
+    type Output = AngularMomentum;
+    fn mul(self, rhs: &'b chrono::TimeDelta) -> Self::Output {
+        AngularMomentum::from_nms(self.as_nm() * time_delta_to_secs_f64(rhs))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // 力矩 * 时间 = 角动量（角冲量定理）：M·Δt = ΔL
+    #[test]
+    fn test_mul_timedelta() {
+        let t = Torque::from_nm(4.0);
+        let l = t * chrono::TimeDelta::seconds(2);
+        assert_relative_eq!(l.as_nms(), 8.0);
+
+        // 负时间：角冲量反向
+        let l_neg = t * chrono::TimeDelta::seconds(-2);
+        assert_relative_eq!(l_neg.as_nms(), -8.0);
+
+        // 零时间
+        let l_zero = t * chrono::TimeDelta::zero();
+        assert_relative_eq!(l_zero.as_nms(), 0.0);
+
+        // 引用变体
+        let l_ref = &t * chrono::TimeDelta::seconds(2);
+        assert_relative_eq!(l_ref.as_nms(), 8.0);
+        let td = chrono::TimeDelta::seconds(2);
+        let l_ref2 = t * &td;
+        assert_relative_eq!(l_ref2.as_nms(), 8.0);
+        let l_ref3 = &t * &td;
+        assert_relative_eq!(l_ref3.as_nms(), 8.0);
+
+        // 单位无关性：1 kN·m 作用 1 ms 与 1000 N·m 作用 1 ms 等价
+        let a = Torque::from_knm(1.0) * chrono::TimeDelta::milliseconds(1);
+        let b = Torque::from_nm(1000.0) * chrono::TimeDelta::milliseconds(1);
+        assert_relative_eq!(a.as_nms(), b.as_nms());
+
+        // 与既有 Torque / AngularVelocity = AngularMomentum 在数值上自洽：
+        // 同一个 8 N·m·s，既可由 M·Δt 得到，也可由 M/ω 得到
+        let omega = AngularVelocity::from_rad_per_second(2.0);
+        let l_from_div = Torque::from_nm(16.0) / omega; // 16/2 = 8 N·m·s
+        assert_relative_eq!(l_from_div.as_nms(), 8.0);
+    }
     use approx::assert_relative_eq;
 
     #[test]

@@ -24,7 +24,7 @@ println!("{} km", d.as_km()); // 1 km
 // 编译期量纲检查 — 物理公式即代码
 let v: Velocity = d / time_delta_from_secs_f64(10.0);    // ✅ 正确
 let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
-// let wrong: Area = d / time;  // ❌ 编译错误：量纲不匹配
+// let wrong: Area = d / time_delta_from_secs_f64(10.0);  // ❌ 编译错误：长度÷时间不是面积
 ```
 
 > **注意：物理量不能作为矩阵元素。**
@@ -37,7 +37,7 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 
 ## 一、物理量系统
 
-25 种物理量，每种支持多种单位，物理量之间的运算在编译期进行量纲检查。
+26 种物理量，每种支持多种单位，物理量之间的运算在编译期进行量纲检查。
 
 ### 支持的物理量
 
@@ -52,6 +52,7 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 | 面积 `Area` | m², km² |
 | 体积 `Volume` | m³, km³ |
 | 质量 `Mass` | kg, g |
+| 转动惯量 `Inertia` | kg·m², kg·mm² |
 | 动量 `Momentum` | kg·m/s, kg·km/s |
 | 角动量 `AngularMomentum` | kg·m²/s, kg·km²/s, N·m·s 系列 |
 | 力 `Force` | N, mN, μN, nN, kN, MN |
@@ -69,6 +70,21 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 | 电导 `ElectricConductance` | S, mS, μS |
 | 系数 `Coef` | 无量纲 |
 
+### 时间：统一使用 `chrono::TimeDelta`
+
+所有涉及时间的运算都接收 `chrono::TimeDelta`，**不支持** `std::time::Duration`。
+
+理由：`Duration` 无法表示负时长（反向制动、时间倒推都无法表达），而这是仿真中的真实需求。此前的双轨支持已在 `0.4.1` 移除。
+
+```rust
+use chrono::TimeDelta;
+
+let dt = TimeDelta::seconds(10);
+let dt2 = TimeDelta::milliseconds(500);
+let dt3 = time_delta_from_secs_f64(2.5);   // 浮点秒
+let dt4 = time_delta_from_secs_f64(-2.5);  // 负时长，Duration 表达不了
+```
+
 ### 物理量运算
 
 ```rust
@@ -83,10 +99,17 @@ let mass = Mass::from_kg(2.0);
 let force: Force = mass * acceleration;            // F = m × a → 20 N
 let energy: Energy = force * distance;             // W = F × d → 20000 J
 
+// 冲量定理：F·Δt = Δp
+let impulse: Momentum = force * time;              // 20 N × 10 s → 200 kg·m/s
+
 // 旋转运动学
 let angle = Angular::from_deg(180.0);
 let omega: AngularVelocity = angle / time;
 let alpha: AngularAcceleration = omega / time;
+
+// 角冲量：M·Δt = ΔL
+let torque = Torque::from_nm(5.0);
+let angular_impulse: AngularMomentum = torque * time;
 
 // 电学（欧姆定律与功率）
 let current = ElectricCurrent::from_a(2.0);
@@ -110,7 +133,7 @@ let energy2: Energy = charge * voltage;                  // E = Q × V → 30 J
 ```rust
 use zmatrix::dense::Matrix;
 
-let m1 = Matrix::<2, 3, f64>::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
+let mut m1 = Matrix::<2, 3, f64>::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
 let m2 = Matrix::<2, 3, f64>::new([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]);
 
 let sum = m1 + m2;
@@ -122,9 +145,9 @@ let transposed = m1.T();    // 转置
 let zeros = Matrix::<3, 3, f64>::zeros();
 let ones = Matrix::<3, 3, f64>::ones();
 
-// 获取与设置
-let val = m1.get(1, 2).unwrap();  // (col, row)
-m1.set(1, 2, 99.0).unwrap();
+// 获取与设置：参数顺序是 (列, 行)
+let val = m1.get(2, 1).unwrap();   // 第 2 列第 1 行
+m1.set(2, 1, 99.0).unwrap();
 ```
 
 > 注意：`*` 是**逐元素乘**（Hadamard 积），矩阵乘积请用 `.product()`。
@@ -161,20 +184,120 @@ let momentum = velocity * Mass::from_kg(1.0);
 // 位移向量 × 动量向量 = 角动量
 let angular_momentum = displacement * momentum;
 
-// 叉乘与点乘
+// 点乘：接收引用，返回同类型（Distance · Distance 仍是 Distance）
 let v1 = Vector3::new(Distance::from_m(1.0), Distance::from_m(0.0), Distance::from_m(0.0));
 let v2 = Vector3::new(Distance::from_m(0.0), Distance::from_m(1.0), Distance::from_m(0.0));
-let cross = v1.cross(v2);
-let dot: Area = v1.dot(v2);  // Distance × Distance = Area
+let dot: Distance = v1.dot(&v2);
+
+// 叉乘：接收引用，输出类型须实现 VectorQuantity
+let c1 = Vector3::new(Coef::new(1.0), Coef::new(0.0), Coef::new(0.0));
+let c2 = Vector3::new(Coef::new(0.0), Coef::new(1.0), Coef::new(0.0));
+let cross = c1.cross(&c2);
 
 // 反对称矩阵
 let skew = v1.skew_symmetric_matrix();    // 3×3
 let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 ```
 
+> **关于叉乘的类型约束**：`cross` 的输出类型是两元素类型相乘的结果，且该类型必须实现
+> `VectorQuantity`。`Distance × Distance = Area`，而 `Area` 不是向量量，因此
+> `Vector3<Distance>` **不能叉乘**；无量纲的 `Vector3<Coef>` 可以。
+
+### 向量的时间算术
+
+力域步进需要的六个运算，全部接收 `chrono::TimeDelta`：
+
+```rust
+let dt = TimeDelta::seconds(2);
+
+// 速度 ÷ 时间 = 加速度向量
+let velocity_vec = Vector3::new(
+    Velocity::from_m_per_sec(10.0),
+    Velocity::from_m_per_sec(4.0),
+    Velocity::from_m_per_sec(0.0),
+);
+let acc: Vector3<Acceleration> = velocity_vec / dt;
+
+// 加速度 × 时间 = 速度增量
+let dv: Vector3<Velocity> = acc * dt;
+
+// 力 × 时间 = 冲量（向量版冲量定理）
+let force_vec = Vector3::new(
+    Force::from_newton(1.0),
+    Force::from_newton(2.0),
+    Force::from_newton(3.0),
+);
+let impulse_vec: Vector3<Momentum> = force_vec * dt;
+
+// 力矩 × 时间 = 角冲量
+let torque_vec = Vector3::new(
+    Torque::from_nm(5.0),
+    Torque::from_nm(0.0),
+    Torque::from_nm(-1.0),
+);
+let ang_impulse: Vector3<AngularMomentum> = torque_vec * dt;
+```
+
 ---
 
-## 四、空间几何
+## 四、转动惯量与姿态动力学
+
+标量转动惯量 `Inertia`（kg·m²）配合角速度、角加速度、角动量、力矩，把刚体转动动力学整条链闭合在类型系统内。
+
+### 六个互逆运算
+
+```rust
+let j = Inertia::from_kg_m2(0.5);              // 飞轮转子惯量
+let omega = AngularVelocity::from_rad_per_second(10.0);
+let torque = Torque::from_nm(3.0);
+
+// 角动量：J·ω = L
+let l: AngularMomentum = j * omega;             // 5 kg·m²/s
+
+// 反解转速：L / J = ω
+let omega2: AngularVelocity = l / j;
+
+// 角加速度：M / J = ω̇
+let alpha: AngularAcceleration = torque / j;
+
+// 力矩：J·ω̇ = M
+let torque2: Torque = j * alpha;
+
+// 反解惯量：L / ω = J 与 M / ω̇ = J 两条独立路径
+let j1: Inertia = l / omega;
+let j2: Inertia = torque / alpha;
+```
+
+### 两种单位
+
+工程图纸与 CAD 通常以 kg·mm² 给出转动惯量（比 kg·m² 大 10⁶ 倍）：
+
+```rust
+let j_from_drawing = Inertia::from_kg_mm2(500_000.0);
+assert_eq!(j_from_drawing.as_kg_m2(), 0.5);   // 自动换算
+```
+
+### 飞轮加速全过程
+
+```rust
+// J = 0.5 kg·m² 的飞轮，施加 3 N·m 持续 2 秒
+let j = Inertia::from_kg_m2(0.5);
+let torque = Torque::from_nm(3.0);
+let dt = TimeDelta::seconds(2);
+
+let impulse: AngularMomentum = torque * dt;                    // 角冲量 6 N·m·s
+let omega: AngularVelocity = impulse / j;                      // ω = 12 rad/s
+let alpha: AngularAcceleration = torque / j;                   // ω̇ = 6 rad/s²
+assert_eq!(alpha.as_rad_per_second2() * 2.0, omega.as_rad_per_second());  // 两条路径一致
+```
+
+> **标量 vs 张量**：`Inertia` 描述绕**单一指定轴**的转动惯性。
+> 完整描述刚体在任意轴向上的惯性需要 3×3 转动惯量张量（含惯性积），
+> 姿态动力学中的陀螺力矩 `ω × (Jω)` 正是由张量非对角性产生的。张量支持尚未实现。
+
+---
+
+## 五、空间几何
 
 欧拉角、方向余弦矩阵（DCM）、四元数之间的相互转换。
 
@@ -196,10 +319,13 @@ let cos = euler.cos();
 ```rust
 let cos = CosMatrix::unit();
 
-// 获取行/列向量
-let x = cos.get_x_vector();
-let y = cos.get_y_vector();
-let z = cos.get_z_vector();
+// 获取行向量 / 列向量
+let x_row = cos.get_x_row_vector();
+let y_row = cos.get_y_row_vector();
+let z_row = cos.get_z_row_vector();
+let x_col = cos.get_x_col_vector();
+let y_col = cos.get_y_col_vector();
+let z_col = cos.get_z_col_vector();
 
 // 转置
 let cos_t = cos.transfer();
@@ -209,9 +335,12 @@ let q = cos.to_quaternion();
 let euler = cos.to_pry();  // XZY 转序
 let euler = cos.to_rpy();  // XYZ 转序
 
-// 矩阵乘法
-let cos_c = cos_a.product(cos_b);
-let vec = cos_c.product_vector(Vector3::new(1.0, 2.0, 3.0));
+// 矩阵乘法：接收引用；要作用的向量元素须实现 VectorQuantity（如 Coef）
+let cos_a = CosMatrix::unit();
+let cos_b = CosMatrix::unit();
+let cos_c = cos_a.product(&cos_b);
+let dir = Vector3::new(Coef::new(1.0), Coef::new(0.0), Coef::new(0.0));
+let vec = cos_c.product_vector(&dir);
 ```
 
 ### 四元数
@@ -227,6 +356,8 @@ let inverse = q.inverse();
 let cos = q.to_cos_matrix();
 
 // 四元数计算
+let q1 = Quaternion::new(1.0, 0.0, 0.0, 0.0);
+let q2 = Quaternion::new(0.0, 1.0, 0.0, 0.0);
 let sum = q1 + q2;
 let product = q1 * q2;
 let quotient = q1 / q2;
@@ -238,8 +369,13 @@ let quotient = q1 / q2;
 
 ```toml
 [dependencies]
-zmatrix = "0.3"
+zmatrix = "0.4"
+chrono = "0.4"
 ```
+
+> 时间运算使用 `chrono::TimeDelta`，因此需要将 `chrono` 一并加入依赖。
+> 也可以只用 `time_delta_from_secs_f64` / `time_delta_to_secs_f64` 两个辅助函数，
+> 无需直接 `use chrono`。
 
 ---
 

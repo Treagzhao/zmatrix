@@ -1,4 +1,3 @@
-use super::*;
 use crate::constant::get_flt64_zero;
 use crate::dense::error::OperationError;
 use crate::dense::Matrix;

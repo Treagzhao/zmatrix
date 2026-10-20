@@ -48,7 +48,6 @@ mod tests {
     use approx::assert_relative_eq;
 
     #[test]
-    #[test]
     fn test_sgn2_64() {
         // 测试正数
         assert_eq!(sgn2_64(10.0), 1);

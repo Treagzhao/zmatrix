@@ -4,7 +4,7 @@
 [![Codecov](https://codecov.io/gh/Treagzhao/zmatrix/branch/master/graph/badge.svg)](https://codecov.io/gh/Treagzhao/zmatrix)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-面向航空航天、机器人、物理仿真的 Rust 数学库。提供编译期量纲安全的物理量系统，以及支持物理量元素的泛型矩阵运算。
+面向航空航天、机器人、物理仿真的 Rust 数学库。提供编译期量纲安全的物理量系统，以及编译期定尺寸的泛型矩阵运算。
 
 > 📖 [English README](README.en.md)
 
@@ -25,15 +25,13 @@ println!("{} km", d.as_km()); // 1 km
 let v: Velocity = d / time_delta_from_secs_f64(10.0);    // ✅ 正确
 let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 // let wrong: Area = d / time;  // ❌ 编译错误：量纲不匹配
-
-// 带物理量的矩阵乘法 — 输出类型自动推导
-let rot: Matrix<2, 2, Coef> = Matrix::new([[Coef::new(0.0), Coef::new(-1.0)],
-                                            [Coef::new(1.0), Coef::new(0.0)]]);
-let pos: Matrix<2, 1, Distance> = Matrix::new([[Distance::from_m(3.0)],
-                                                [Distance::from_m(4.0)]]);
-let rotated: Matrix<2, 1, Distance> = rot.product(&pos).unwrap();
-// Coef × Distance = Distance，编译期自动推导 ✅
 ```
+
+> **注意：物理量不能作为矩阵元素。**
+> `Matrix<ROWS, COLS, T>` 的 `T` 由 `NumericElement` 限定为基础数字量（整数/浮点）。
+> 原因：单一 `T` 要求整个矩阵同量纲，而异量纲矩阵（状态转移阵、协方差阵、卡尔曼增益、
+> 雅可比）无法这样表达；无量纲的旋转矩阵请用
+> [`CosMatrix`](https://docs.rs/zmatrix/latest/zmatrix/spatial_geometry/cos_matrix/struct.CosMatrix.html)。
 
 ---
 
@@ -118,8 +116,7 @@ let m2 = Matrix::<2, 3, f64>::new([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]);
 let sum = m1 + m2;
 let diff = m1 - m2;
 let scaled = m1.scale(2.0);
-let transposed = !m1;       // 转置
-let transposed = m1.T();    // 等价写法
+let transposed = m1.T();    // 转置
 
 // 全0 / 全1 矩阵
 let zeros = Matrix::<3, 3, f64>::zeros();
@@ -130,36 +127,17 @@ let val = m1.get(1, 2).unwrap();  // (col, row)
 m1.set(1, 2, 99.0).unwrap();
 ```
 
-### 矩阵乘积 — 物理量类型推导
+> 注意：`*` 是**逐元素乘**（Hadamard 积），矩阵乘积请用 `.product()`。
 
-矩阵乘积支持不同类型的元素，输出类型由物理量之间的乘法关系自动推导：
+### 矩阵乘积
 
 ```rust
-// F = m × a
-let m: Matrix<1, 2, Mass> = Matrix::new([[Mass::from_kg(2.0), Mass::from_kg(3.0)]]);
-let a: Matrix<2, 2, Acceleration> = Matrix::new([
-    [Acceleration::from_m_per_s2(5.0), Acceleration::from_m_per_s2(0.0)],
-    [Acceleration::from_m_per_s2(0.0), Acceleration::from_m_per_s2(4.0)],
-]);
-let f: Matrix<1, 2, Force> = m.product(&a).unwrap();  // Mass × Accel = Force
-
-// W = F × d
-let f: Matrix<1, 3, Force> = Matrix::new([
-    [Force::from_newton(10.0), Force::from_newton(20.0), Force::from_newton(30.0)]
-]);
-let d: Matrix<3, 1, Distance> = Matrix::new([
-    [Distance::from_m(2.0)], [Distance::from_m(0.5)], [Distance::from_m(1.0)]
-]);
-let w: Matrix<1, 1, Energy> = f.product(&d).unwrap();  // Force × Dist = Energy
-
-// 方向余弦矩阵 × 位置向量
-let dcm: Matrix<3, 3, Coef> = /* ... */;
-let pos: Matrix<3, 1, Distance> = /* ... */;
-let rotated: Matrix<3, 1, Distance> = dcm.product(&pos).unwrap();
-// Coef × Distance = Distance ✅
+let a = Matrix::<2, 3, f64>::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
+let b = Matrix::<3, 2, f64>::new([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]);
+let c: Matrix<2, 2, f64> = a.product(&b).unwrap();
 ```
 
-如果量纲不匹配，编译就会报错。
+元素类型必须相同，且被限定为基础数字量（见上文关于物理量的说明）。
 
 ---
 

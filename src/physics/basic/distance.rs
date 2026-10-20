@@ -2,7 +2,6 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::time::Duration;
 use super::*;
 
-const LIGHT_SPEED: f64 = 299792458.0;
 const LIGHT_YEAR_TO_METER: f64 = 9460730472580800.0;
 
 impl Distance {
@@ -91,6 +90,10 @@ impl<'a> Add<Distance> for &'a Distance {
     fn add(self, rhs: Distance) -> Self::Output { Distance::from_m(self.as_m() + rhs.as_m()) }
 }
 
+// Distance + 裸 f64：按**当前存储单位**直接相加，不做单位换算 —— 有意设计。
+// 裸 f64 不带单位，库无从判断它代表哪种单位；擅自换算等于替调用方做假设。
+// 需要单位安全时改用两个物理量运算，如 `x + Distance::from_m(1.0)`。
+// 详见 `physics::basic` 模块文档「物理量与裸 f64 的运算」。
 impl Add<f64> for Distance {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -559,59 +562,8 @@ mod tests {
         assert_relative_eq!(neg_d5.as_light_year(), -1.0);
     }
 
-    #[test]
-    fn test_matrix_product_with_physics() {
-        use crate::dense::Matrix;
-
-        // 距离行向量 × Coef矩阵 = 线性组合后的距离行向量
-        // Distance * Coef = Distance，由物理量 Mul trait 推导
-        let pos: Matrix<1, 2, Distance> = Matrix::new([
-            [Distance::from_m(10.0), Distance::from_m(20.0)]
-        ]);
-        let coef: Matrix<2, 2, Coef> = Matrix::new([
-            [Coef::new(1.0), Coef::new(2.0)],
-            [Coef::new(3.0), Coef::new(4.0)],
-        ]);
-
-        // [10, 20] × [[1,2],[3,4]] = [1*10+3*20, 2*10+4*20] = [70, 100]
-        let result: Matrix<1, 2, Distance> = pos.product(&coef).unwrap();
-        assert_relative_eq!(result.get(0, 0).unwrap().as_m(), 70.0);
-        assert_relative_eq!(result.get(1, 0).unwrap().as_m(), 100.0);
-    }
-
-    #[test]
-    fn test_matrix_product_f_equals_ma() {
-        use crate::dense::Matrix;
-
-        // F = m × a
-        // Mass × Acceleration = Force
-        let m: Matrix<1, 2, Mass> = Matrix::new([[Mass::from_kg(2.0), Mass::from_kg(3.0)]]);
-        let a: Matrix<2, 2, Acceleration> = Matrix::new([
-            [Acceleration::from_m_per_s2(5.0), Acceleration::from_m_per_s2(0.0)],
-            [Acceleration::from_m_per_s2(0.0), Acceleration::from_m_per_s2(4.0)],
-        ]);
-        // [2,3] × [[5,0],[0,4]] = [2*5 + 3*0, 2*0 + 3*4] = [10, 12]
-        let f: Matrix<1, 2, Force> = m.product(&a).unwrap();
-        assert_relative_eq!(f.get(0, 0).unwrap().as_newton(), 10.0);
-        assert_relative_eq!(f.get(1, 0).unwrap().as_newton(), 12.0);
-    }
-
-    #[test]
-    fn test_matrix_product_work_equals_force_times_distance() {
-        use crate::dense::Matrix;
-
-        // W = F × d
-        // Force × Distance = Energy
-        let f: Matrix<1, 3, Force> = Matrix::new([
-            [Force::from_newton(10.0), Force::from_newton(20.0), Force::from_newton(30.0)]
-        ]);
-        let d: Matrix<3, 1, Distance> = Matrix::new([
-            [Distance::from_m(2.0)],
-            [Distance::from_m(0.5)],
-            [Distance::from_m(1.0)],
-        ]);
-        // [10, 20, 30] × [[2],[0.5],[1]] = [10*2 + 20*0.5 + 30*1] = [60]
-        let w: Matrix<1, 1, Energy> = f.product(&d).unwrap();
-        assert_relative_eq!(w.get(0, 0).unwrap().as_joule(), 60.0);
-    }
+    // 物理量不能作为矩阵元素：Matrix 的 T 被 NumericElement 限定为基础数字量。
+    // 原因见 src/dense/element.rs 的模块文档（异量纲矩阵无法用单一 T 表达，
+    // 且物理量的 Default 不保证是加法零元）。此约束由编译期保证，
+    // 见 dense/element.rs 中的 compile_fail doctest。
 }

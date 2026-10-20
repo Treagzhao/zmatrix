@@ -4,7 +4,7 @@
 [![Codecov](https://codecov.io/gh/Treagzhao/zmatrix/branch/master/graph/badge.svg)](https://codecov.io/gh/Treagzhao/zmatrix)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A Rust math library for aerospace, robotics, and physics simulation. Features a compile-time dimensional analysis system and generic matrix operations with typed physical quantities.
+A Rust math library for aerospace, robotics, and physics simulation. Features a compile-time dimensional analysis system and const-generic dense matrices.
 
 > 📖 [中文 README](README.MD)
 
@@ -25,15 +25,15 @@ println!("{} km", d.as_km()); // 1 km
 let v: Velocity = d / time_delta_from_secs_f64(10.0);    // ✅ Correct
 let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ Correct
 // let wrong: Area = d / dt;  // ❌ Compiler error: dimension mismatch
-
-// Typed matrix product — output type auto-derived
-let rot: Matrix<2, 2, Coef> = Matrix::new([[Coef::new(0.0), Coef::new(-1.0)],
-                                            [Coef::new(1.0), Coef::new(0.0)]]);
-let pos: Matrix<2, 1, Distance> = Matrix::new([[Distance::from_m(3.0)],
-                                                [Distance::from_m(4.0)]]);
-let rotated: Matrix<2, 1, Distance> = rot.product(&pos).unwrap();
-// Coef × Distance = Distance, derived at compile time ✅
 ```
+
+> **Physical quantities cannot be matrix elements.**
+> `T` in `Matrix<ROWS, COLS, T>` is bounded by `NumericElement` and thus restricted to
+> primitive numbers (integers and floats). A single `T` forces the whole matrix to share one
+> dimension, which cannot express the heterogeneous matrices engineers actually need
+> (state-transition, covariance, Kalman gain, Jacobian). For dimensionless rotation matrices
+> use
+> [`CosMatrix`](https://docs.rs/zmatrix/latest/zmatrix/spatial_geometry/cos_matrix/struct.CosMatrix.html).
 
 ---
 
@@ -118,8 +118,7 @@ let m2 = Matrix::<2, 3, f64>::new([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]);
 let sum = m1 + m2;
 let diff = m1 - m2;
 let scaled = m1.scale(2.0);
-let transposed = !m1;       // transpose
-let transposed = m1.T();    // equivalent
+let transposed = m1.T();    // transpose
 
 // All-zero / all-one matrices
 let zeros = Matrix::<3, 3, f64>::zeros();
@@ -130,36 +129,19 @@ let val = m1.get(1, 2).unwrap();  // (col, row)
 m1.set(1, 2, 99.0).unwrap();
 ```
 
-### Typed Matrix Product
-
-The `product` method accepts heterogeneous element types and derives the output type automatically:
+### Matrix Product
 
 ```rust
-// F = m × a
-let m: Matrix<1, 2, Mass> = Matrix::new([[Mass::from_kg(2.0), Mass::from_kg(3.0)]]);
-let a: Matrix<2, 2, Acceleration> = Matrix::new([
-    [Acceleration::from_m_per_s2(5.0), Acceleration::from_m_per_s2(0.0)],
-    [Acceleration::from_m_per_s2(0.0), Acceleration::from_m_per_s2(4.0)],
-]);
-let f: Matrix<1, 2, Force> = m.product(&a).unwrap();  // Mass × Accel = Force
-
-// W = F × d
-let f: Matrix<1, 3, Force> = Matrix::new([
-    [Force::from_newton(10.0), Force::from_newton(20.0), Force::from_newton(30.0)]
-]);
-let d: Matrix<3, 1, Distance> = Matrix::new([
-    [Distance::from_m(2.0)], [Distance::from_m(0.5)], [Distance::from_m(1.0)]
-]);
-let w: Matrix<1, 1, Energy> = f.product(&d).unwrap();  // Force × Dist = Energy
-
-// Direction cosine matrix × position vector
-let dcm: Matrix<3, 3, Coef> = /* ... */;
-let pos: Matrix<3, 1, Distance> = /* ... */;
-let rotated: Matrix<3, 1, Distance> = dcm.product(&pos).unwrap();
-// Coef × Distance = Distance ✅
+let a = Matrix::<2, 3, f64>::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
+let b = Matrix::<3, 2, f64>::new([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]);
+let c: Matrix<2, 2, f64> = a.product(&b).unwrap();
 ```
 
-Dimension mismatches are caught at compile time.
+Both operands must share the same element type, which is restricted to primitive numbers
+(see the note on physical quantities above).
+
+> Note: `*` is **element-wise** (Hadamard) multiplication. Use `.product()` for matrix
+> multiplication.
 
 ---
 

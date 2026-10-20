@@ -156,6 +156,10 @@ impl<'a> Add<Acceleration> for &'a Acceleration {
     fn add(self, rhs: Acceleration) -> Self::Output { Acceleration::from_m_per_s2(self.as_m_per_s2() + rhs.as_m_per_s2()) }
 }
 
+// Acceleration + 裸 f64：按**当前存储单位**直接相加，不做单位换算 —— 有意设计。
+// 裸 f64 不带单位，库无从判断它代表哪种单位；擅自换算等于替调用方做假设。
+// 需要单位安全时改用两个物理量运算，如 `x + Acceleration::from_m_per_s2(1.0)`。
+// 详见 `physics::basic` 模块文档「物理量与裸 f64 的运算」。
 impl Add<f64> for Acceleration {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -413,7 +417,7 @@ mod tests {
     #[test]
     fn test_as_any() {
         let d1 = Acceleration::from_m_per_s2(1000.0);
-        let d2 = d1.as_any().downcast_ref::<Acceleration>().unwrap();
+        let _d2 = d1.as_any().downcast_ref::<Acceleration>().unwrap();
     }
 
     #[test]

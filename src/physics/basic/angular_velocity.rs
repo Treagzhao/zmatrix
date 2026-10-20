@@ -147,6 +147,10 @@ impl<'a> Add<AngularVelocity> for &'a AngularVelocity {
     fn add(self, rhs: AngularVelocity) -> Self::Output { AngularVelocity::from_rad_per_second(self.as_rad_per_second() + rhs.as_rad_per_second()) }
 }
 
+// AngularVelocity + 裸 f64：按**当前存储单位**直接相加，不做单位换算 —— 有意设计。
+// 裸 f64 不带单位，库无从判断它代表哪种单位；擅自换算等于替调用方做假设。
+// 需要单位安全时改用两个物理量运算，如 `x + AngularVelocity::from_rad_per_second(1.0)`。
+// 详见 `physics::basic` 模块文档「物理量与裸 f64 的运算」。
 impl Add<f64> for AngularVelocity {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -544,7 +548,7 @@ mod tests {
     fn test_as_any() {
         let d1 = AngularVelocity::from_rad_per_second(1000.0);
         let d2 = d1.as_any();
-        let d3 = d2.downcast_ref::<AngularVelocity>().unwrap();
+        let _d3 = d2.downcast_ref::<AngularVelocity>().unwrap();
     }
 
     #[test]

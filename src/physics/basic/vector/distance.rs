@@ -1,6 +1,5 @@
 use crate::physics::basic::{
-    AngularMomentum, Coef, Distance, DistanceType, Mass, Momentum, Vector3, Velocity,
-    time_delta_from_secs_f64, time_delta_to_secs_f64,
+    AngularMomentum, Coef, Distance, DistanceType, Momentum, Vector3, Velocity,
 };
 use std::ops::{Div, Mul};
 use std::time::Duration;
@@ -122,6 +121,7 @@ impl Vector3<Distance> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::physics::basic::time_delta_from_secs_f64;
     use approx::assert_relative_eq;
 
     #[test]

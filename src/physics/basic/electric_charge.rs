@@ -1,7 +1,6 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{Coef, ElectricCharge, ElectricChargeType, PhysicalQuantity};
-use approx::assert_relative_eq;
 
 impl Default for ElectricCharge {
     fn default() -> Self {
@@ -118,6 +117,10 @@ impl<'a> Add<ElectricCharge> for &'a ElectricCharge {
     fn add(self, rhs: ElectricCharge) -> Self::Output { ElectricCharge::from_coulomb(self.as_coulomb() + rhs.as_coulomb()) }
 }
 
+// ElectricCharge + 裸 f64：按**当前存储单位**直接相加，不做单位换算 —— 有意设计。
+// 裸 f64 不带单位，库无从判断它代表哪种单位；擅自换算等于替调用方做假设。
+// 需要单位安全时改用两个物理量运算，如 `x + ElectricCharge::from_coulomb(1.0)`。
+// 详见 `physics::basic` 模块文档「物理量与裸 f64 的运算」。
 impl Add<f64> for ElectricCharge {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -214,6 +217,7 @@ impl Neg for ElectricCharge {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_relative_eq;
 
     #[test]
     fn test_electric_charge_create_and_convert() {

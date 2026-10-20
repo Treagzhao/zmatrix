@@ -1,4 +1,4 @@
-use zmatrix::physics::basic::{Energy, Distance, Mass, Velocity, Acceleration, PhysicalQuantity};
+use zmatrix::physics::basic::{Energy, Distance, Mass, Velocity, PhysicalQuantity};
 
 fn main() {
     println!("=== 能量物理量示例 ===\n");

@@ -16,7 +16,7 @@ fn create_random_quaternion() -> Quaternion {
 fn bench_quaternion_add(c: &mut Criterion) {
     let mut group = c.benchmark_group("quaternion_add");
     let mut cases: Vec<(Quaternion, Quaternion)> = Vec::new();
-    for i in 0..10 {
+    for _i in 0..10 {
         let q1 = create_random_quaternion();
         let q2 = create_random_quaternion();
         cases.push((q1, q2));
@@ -31,7 +31,7 @@ fn bench_quaternion_add(c: &mut Criterion) {
 fn bench_quaternion_multi(c: &mut Criterion) {
     let mut group = c.benchmark_group("quaternion_multi");
     let mut cases: Vec<(Quaternion, Quaternion)> = Vec::new();
-    for i in 0..10 {
+    for _i in 0..10 {
         let q1 = create_random_quaternion();
         let q2 = create_random_quaternion();
         cases.push((q1, q2));
@@ -46,7 +46,7 @@ fn bench_quaternion_multi(c: &mut Criterion) {
 fn bench_quaternion_div(c: &mut Criterion) {
     let mut group = c.benchmark_group("quaternion_div");
     let mut cases: Vec<(Quaternion, Quaternion)> = Vec::new();
-    for i in 0..10 {
+    for _i in 0..10 {
         let q1 = create_random_quaternion();
         let q2 = create_random_quaternion();
         cases.push((q1, q2));
@@ -61,7 +61,7 @@ fn bench_quaternion_div(c: &mut Criterion) {
 fn bench_quaternion_to_cos(c: &mut Criterion) {
     let mut group = c.benchmark_group("quaternion_to_cos_matrix");
     let mut cases: Vec<Quaternion> = Vec::new();
-    for i in 0..10 {
+    for _i in 0..10 {
         let q1 = create_random_quaternion();
         cases.push(q1);
     }
@@ -76,7 +76,7 @@ fn bench_quaternion_to_cos(c: &mut Criterion) {
 fn bench_quaternion_normalize(c: &mut Criterion) {
     let mut group = c.benchmark_group("quaternion_normalize");
     let mut cases: Vec<Quaternion> = Vec::new();
-    for i in 0..10 {
+    for _i in 0..10 {
         let q1 = create_random_quaternion();
         cases.push(q1);
     }

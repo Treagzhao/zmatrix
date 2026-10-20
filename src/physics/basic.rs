@@ -1,4 +1,43 @@
-use crate::physics::basic;
+//! 物理量系统：25 种物理量及其量纲安全运算。
+//!
+//! # 物理量与裸 `f64` 的运算
+//!
+//! `X + f64`、`X - f64`、`X * f64`、`X / f64` 这类实现，语义都是：
+//! **裸数直接作用于物理量的内部存储值，按其当前单位理解，不做任何单位换算。**
+//!
+//! 这是**有意设计**，不是缺陷。`f64` 自身不带单位，库无从判断它代表 1 m 还是 1 km；
+//! 若擅自按基准单位换算，等于替调用方做了一个它并未表达的假设。
+//!
+//! ```
+//! use zmatrix::physics::basic::Distance;
+//!
+//! // 由 from_km 构造：内部单位是 km，+ 1.0 即在 km 上加 1
+//! let a = Distance::from_km(1.0) + 1.0;
+//! // 由 from_m 构造：内部单位是 m，+ 1.0 即在 m 上加 1
+//! let b = Distance::from_m(1000.0) + 1.0;
+//!
+//! assert_eq!(a.as_km(), 2.0);
+//! assert_eq!(b.as_m(), 1001.0);
+//! ```
+//!
+//! 注意 `a` 与 `b` 在加 `1.0` **之前**是相等的（都是 1000 m），加完之后不等。
+//! 这就是"裸数与物理量混算"必须付出的代价 —— 单位信息在运算符里丢失了。
+//!
+//! **需要单位安全时，请让两个物理量直接运算**，把单位写进类型：
+//!
+//! ```
+//! use zmatrix::physics::basic::Distance;
+//!
+//! let a = Distance::from_km(1.0);
+//! let b = Distance::from_m(1000.0);
+//! let c = a + b;                  // 由编译器统一换算到 m，再相加
+//!
+//! assert_eq!(c.as_m(), 2000.0);
+//! ```
+//!
+//! 判定口径：只要参与运算的两侧有一侧是裸数，就没有单位保证；
+//! 两侧都是物理量时，单位由类型系统负责。
+
 use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::ops::Div;
@@ -808,10 +847,10 @@ mod tests {
     #[test]
     fn test_as_any() {
         let g: &dyn PhysicalQuantity = &Acceleration::from_g(1.23);
-        let d = g.as_any().downcast_ref::<Acceleration>().unwrap();
+        let _d = g.as_any().downcast_ref::<Acceleration>().unwrap();
 
         let g: &dyn PhysicalQuantity = &Area::from_m2(10.0);
-        let d = g.as_any().downcast_ref::<Area>().unwrap();
+        let _d = g.as_any().downcast_ref::<Area>().unwrap();
 
         let g: &dyn PhysicalQuantity = &Distance::from_m(10.0);
         let d = g.as_any().downcast_ref::<Distance>().unwrap();

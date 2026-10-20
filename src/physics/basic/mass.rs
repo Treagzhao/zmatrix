@@ -1,7 +1,6 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{Coef, Mass, MassType, Momentum, PhysicalQuantity, Velocity};
-use approx::assert_relative_eq;
 
 impl Default for Mass {
     fn default() -> Self {
@@ -84,6 +83,10 @@ impl<'a> Add<Mass> for &'a Mass {
     fn add(self, rhs: Mass) -> Self::Output { Mass::from_kg(self.as_kg() + rhs.as_kg()) }
 }
 
+// Mass + 裸 f64：按**当前存储单位**直接相加，不做单位换算 —— 有意设计。
+// 裸 f64 不带单位，库无从判断它代表哪种单位；擅自换算等于替调用方做假设。
+// 需要单位安全时改用两个物理量运算，如 `x + Mass::from_kg(1.0)`。
+// 详见 `physics::basic` 模块文档「物理量与裸 f64 的运算」。
 impl Add<f64> for Mass {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -197,6 +200,7 @@ impl Mul<Velocity> for Mass {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_relative_eq;
     #[test]
     fn test_mass() {
         let m1 = Mass::from_kg(1000.0);
@@ -215,7 +219,7 @@ mod tests {
     #[test]
     fn test_mass_as() {
         let m1 = Mass::from_kg(1000.0);
-        let m2 = m1.as_g();
+        let _m2 = m1.as_g();
         assert_eq!(m1.as_g(), 1000.0 * 1000.0);
         assert_eq!(m1.as_kg(), 1000.0);
 

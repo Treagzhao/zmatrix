@@ -1,6 +1,5 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::time::Duration;
-use crate::physics::basic::VelocityType::LightSpeed;
 use super::*;
 
 const VELOCITY_OF_LIGHT: f64 = 299_792.458;  // km/s
@@ -189,6 +188,10 @@ impl<'a> Add<Velocity> for &'a Velocity {
     fn add(self, rhs: Velocity) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_sec() + rhs.as_m_per_sec()) }
 }
 
+// Velocity + 裸 f64：按**当前存储单位**直接相加，不做单位换算 —— 有意设计。
+// 裸 f64 不带单位，库无从判断它代表哪种单位；擅自换算等于替调用方做假设。
+// 需要单位安全时改用两个物理量运算，如 `x + Velocity::from_m_per_sec(1.0)`。
+// 详见 `physics::basic` 模块文档「物理量与裸 f64 的运算」。
 impl Add<f64> for Velocity {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -349,7 +352,6 @@ impl<'a, 'b> Mul<&'b chrono::TimeDelta> for &'a Velocity {
 
 #[cfg(test)]
 mod tests {
-    use std::any::TypeId;
     use approx::assert_relative_eq;
     use super::*;
     #[test]
@@ -560,7 +562,7 @@ mod tests {
     fn test_as_any() {
         let v = Velocity::from_m_per_sec(1.0);
         let v_any = v.as_any();
-        let a = v_any.downcast_ref::<Velocity>().unwrap();
+        let _a = v_any.downcast_ref::<Velocity>().unwrap();
     }
 
     #[test]

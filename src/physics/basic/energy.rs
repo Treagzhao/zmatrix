@@ -1,9 +1,7 @@
 use crate::physics::basic::{
-    Acceleration, Coef, Distance, Energy, EnergyType, Force, Mass, PhysicalQuantity, Velocity,
-    ElectricCharge, ElectricPotential,
-    time_delta_from_secs_f64, time_delta_to_secs_f64,
+    Coef, Distance, Energy, EnergyType, Force, PhysicalQuantity, ElectricCharge, ElectricPotential,
+    time_delta_to_secs_f64,
 };
-use approx::assert_relative_eq;
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
@@ -464,6 +462,8 @@ impl<'a> Mul<ElectricCharge> for &'a ElectricPotential {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::physics::basic::time_delta_from_secs_f64;
+    use approx::assert_relative_eq;
 
     #[test]
     fn test_energy() {

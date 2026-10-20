@@ -1,9 +1,8 @@
-use super::*;
 use crate::dense::Matrix;
 use crate::physics::basic::vector::angular::{RotationSeq, TAG_X, TAG_Y, TAG_Z};
-use crate::physics::basic::{Angular, Coef, PhysicalQuantity, Vector3, VectorQuantity};
+use crate::physics::basic::{Angular, Coef, Vector3, VectorQuantity};
 use crate::spatial_geometry::quaternion::Quaternion;
-use crate::utils::float::{sgn, sgn2_64};
+use crate::utils::float::sgn;
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, Copy)]
@@ -482,12 +481,11 @@ impl CosMatrix {
         let y = Angular::atan2(data[2][0], data[2][2]);
         let z = Angular::atan2(data[0][1], data[1][1]);
         let tempf = data[2][1].abs();
-        let mut x: Angular = Angular::default();
-        if tempf > 1.0 {
-            x = Angular::asin(-data[2][1] / tempf);
+        let x: Angular = if tempf > 1.0 {
+            Angular::asin(-data[2][1] / tempf)
         } else {
-            x = Angular::asin(-data[2][1]);
-        }
+            Angular::asin(-data[2][1])
+        };
         Vector3::new(x, y, z)
     }
     // 欧拉角计算，xyz转序
@@ -796,6 +794,41 @@ mod tests {
         assert_relative_eq!(tmp_a.x.as_rad(), result.x.as_rad());
         assert_relative_eq!(tmp_a.y.as_rad(), result.y.as_rad());
         assert_relative_eq!(tmp_a.z.as_rad(), result.z.as_rad());
+    }
+
+    // to_pry / to_rpy 的 `if tempf > 1.0` 防御分支：|元素| > 1 时先把 asin 的入参
+    // 归一化到 [-1, 1]，避免 asin 返回 NaN。合法 DCM 的 |元素| 恒 ≤ 1，所以只有
+    // 退化矩阵（数值漂移或未经校验的输入）才走这条路径。
+    #[test]
+    fn test_pry_rpy_degenerate_guard() {
+        // to_pry: x = asin(-data[2][1])，取 data[2][1] = 1.5 触发 tempf > 1.0
+        let cos = CosMatrix::new([
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.5, 1.0],
+        ]);
+        let x = cos.to_pry().x.as_rad();
+        assert!(!x.is_nan(), "asin 入参未归一化会得到 NaN");
+        assert_relative_eq!(x, (-1.0f64).asin(), epsilon = 1e-12); // -π/2
+
+        // to_rpy: y = asin(data[2][0])，取 data[2][0] = 1.5 触发守卫
+        let cos = CosMatrix::new([
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [1.5, 0.0, 1.0],
+        ]);
+        let y = cos.to_rpy().y.as_rad();
+        assert!(!y.is_nan(), "asin 入参未归一化会得到 NaN");
+        assert_relative_eq!(y, 1.0f64.asin(), epsilon = 1e-12); // π/2
+
+        // 负向同样要走归一化分支：data[2][1] = -2.0 → asin(2.0/2.0) = asin(1) = π/2
+        let cos = CosMatrix::new([
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, -2.0, 1.0],
+        ]);
+        let x = cos.to_pry().x.as_rad();
+        assert_relative_eq!(x, 1.0f64.asin(), epsilon = 1e-12);
     }
 
     #[test]

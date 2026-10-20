@@ -1,4 +1,4 @@
-use zmatrix::physics::basic::{MagneticMoment, MagneticInduction, Energy, PhysicalQuantity};
+use zmatrix::physics::basic::{MagneticMoment, MagneticInduction, PhysicalQuantity};
 
 fn main() {
     println!("=== 磁矩物理量示例 ===\n");

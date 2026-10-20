@@ -1,4 +1,4 @@
-use std::ops::{Div, Mul};
+use std::ops::Mul;
 use crate::physics::basic::{AngularVelocity, Coef, MagneticAngularVelocity, MagneticInduction, MagneticInductionType, Vector3};
 use crate::utils::float;
 

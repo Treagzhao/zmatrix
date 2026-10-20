@@ -1,4 +1,4 @@
-use zmatrix::physics::basic::{VectorQuantity, Distance, Velocity, Force, Torque, MagneticInduction, Vector3, Mass, Energy, Power, Volume};
+use zmatrix::physics::basic::{Distance, Velocity, Force, Vector3};
 
 fn main() {
     println!("=== Vector3 类型约束验证示例 ===\n");

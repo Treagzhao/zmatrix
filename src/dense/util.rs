@@ -1,34 +1,7 @@
 use crate::dense::error;
 use std::convert::From;
 use std::fmt::Display;
-use std::ops::{Add, Mul, Sub};
-use std::sync::{mpsc, Arc};
-use std::thread;
-
-pub struct CalculateResult<T>
-where
-    T: Copy + Send + Sync + Default,
-{
-    pub x: usize,
-    pub y: usize,
-    pub value: T,
-}
-
-pub fn convert_to_f64<T>(value: T) -> Result<f64, error::OperationError>
-where
-    T: std::convert::Into<f64>,
-    f64: From<T>,
-{
-    let result = value.try_into();
-    match result {
-        Ok(value) => Ok(value),
-        Err(_) => {
-            return Result::Err(error::OperationError {
-                message: "value error".to_string(),
-            });
-        }
-    }
-}
+use std::ops::{Add, Mul};
 
 pub fn print_single_line<const ROWS: usize, const COLS: usize, T>(data: &[[T;COLS];ROWS], digits: u8) -> String
 where
@@ -57,60 +30,6 @@ pub fn get_boundary_char(row: usize, height: usize) -> (String, String) {
     }
 }
 
-pub fn calculate_in_threads<'a, const ROWS: usize, const COLS: usize, T, F>(
-    a_data: &'a [[T;COLS];ROWS],
-    b_data: &'a [[T;COLS];ROWS],
-    func: F,
-) -> Result<[[T;COLS];ROWS], error::OperationError>
-where
-    T: Copy + Send + Sync + Default,
-    F: Fn(T, T) -> T + Send + Sync + Copy,
-{
-    let mut result = [[T::default(); COLS]; ROWS];
-    thread::scope(|scope| {
-        let a_vec: Arc<&'a [[T;COLS];ROWS]> = Arc::new(a_data);
-        let b_vec: Arc<&'a [[T;COLS];ROWS]> = Arc::new(b_data);
-        let (sender, receiver) = mpsc::channel::<CalculateResult<T>>();
-        for row in 0..ROWS {
-            for col in 0..COLS {
-                let self_data = a_vec.clone();
-                let other_data = b_vec.clone();
-                let s = sender.clone();
-                scope.spawn(move || {
-                    let value = func(self_data[row][col], other_data[row][col]);
-                    s.send(CalculateResult { x: col, y: row, value })
-                });
-            }
-        }
-        drop(sender);
-        for rv in receiver {
-            result[rv.y][rv.x] = rv.value;
-        }
-    });
-    Result::Ok(result)
-}
-
-pub fn calculate_multi<const A_ROWS: usize, const A_COLS: usize, const B_COLS: usize, T>(
-    a: &[[T;A_COLS];A_ROWS],
-    b: &[[T;B_COLS];A_COLS],  // Assuming matrix multiplication dimensions
-    cur_row: usize,
-    cur_col: usize,
-) -> Result<CalculateResult<T>, error::OperationError>
-where
-    T: Copy + Display + Default + Send + Sync + Mul<Output = T> + Add<Output = T>,
-{
-    let mut sum: T = T::default();
-    for i in 0..A_COLS {
-        let value = a[cur_row][i] * b[i][cur_col];
-        sum = sum + value;
-    }
-    Result::Ok(CalculateResult {
-        x: cur_col,
-        y: cur_row,
-        value: sum,
-    })
-}
-
 pub fn determinant_in_one_permutation<const N: usize, T>(
     data: &[[T;N];N],
     permutation: &Vec<u64>,
@@ -119,13 +38,8 @@ where
     T: Copy + Display + Default + Send + Sync + From<i8> + Add<Output=T> + Mul<Output=T>,
 {
     let inverse = inversion_number(permutation);
-    let mut ceof: i8 = 0;
-    if inverse % 2 == 0 {
-        ceof = 1
-    } else {
-        ceof = -1;
-    }
-    let key = print_permutation(permutation);
+    let ceof: i8 = if inverse % 2 == 0 { 1 } else { -1 };
+    let _key = print_permutation(permutation);
     let mut sum = T::default() + T::from(1i8);
     for (i, item) in permutation.iter().enumerate() {
         let y = i;
@@ -204,28 +118,6 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_try_convert_to_f64() {
-        let a: i32 = 10;
-        let a_r = convert_to_f64(a);
-        assert!(match a_r {
-            Ok(_) => true,
-            Err(_) => false,
-        });
-        if let Ok(x) = a_r {
-            assert_eq!(x, a as f64);
-        }
-        let b: i16 = 32343;
-        let b_r = convert_to_f64(b);
-        assert!(match a_r {
-            Ok(_) => true,
-            Err(_) => false,
-        });
-        if let Ok(x) = b_r {
-            assert_eq!(x, b as f64);
-        }
-    }
-
-    #[test]
     fn test_print_single_line() {
         let a: [[i32;5];1] = [[1, 2, 3, 4, 15]];
         let result = print_single_line(&a, 1);
@@ -250,32 +142,6 @@ mod test {
     }
 
     #[test]
-    fn test_calculate_in_threads() {
-        let a: [[i32;3];2] = [[1, 2, 3], [4, 15, 18]];
-        let b: [[i32;3];2] = [[2, 4, 6], [8, 10, 22]];
-        let result = calculate_in_threads(&a, &b, |a, b| -> i32 {
-            return a + b;
-        });
-        assert!(result.is_ok());
-        if let Ok(arr) = result {
-            assert_eq!(arr, [[3, 6, 9], [12, 25, 40]]);
-        }
-    }
-
-    #[test]
-    fn test_calculate_multi() {
-        let a: [[i32;3];2] = [[1, 2, 3], [4, 5, 6]];
-        let b: [[i32;4];3] = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]];
-        let result = calculate_multi(&a, &b, 0, 1);
-        assert!(result.is_ok());
-        if let Ok(res) = result {
-            assert_eq!(res.x, 1);
-            assert_eq!(res.y, 0);
-            assert_eq!(res.value, 44);
-        }
-    }
-
-    #[test]
     fn test_fill_in_permutation() {
         let a: Vec<u64> = vec![1, 2, 3, 4];
         let mut flags: Vec<bool> = vec![false; a.len()];
@@ -283,7 +149,7 @@ mod test {
         let mut result: Vec<Vec<u64>> = Vec::new();
         let res = fill_in_permutation(&a, &mut flags, &mut list, &mut result, 0);
         assert!(res.is_ok());
-        if let Ok(vec) = res {
+        if let Ok(_vec) = res {
             println!("{:?}", result);
             assert_eq!(24, result.len());
         }

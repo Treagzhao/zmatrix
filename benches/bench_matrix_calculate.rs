@@ -29,6 +29,9 @@ fn bench_matrix_add_100x100(c: &mut Criterion) {
     });
 }
 
+// 1000x1000 占用约 8 MB 栈空间，默认不注册到 criterion_group（见文件末尾）。
+// 需要时手动加回 criterion_group 再运行。
+#[allow(dead_code)]
 fn bench_matrix_add_1000x1000(c: &mut Criterion) {
     let mut group = c.benchmark_group("Matrix add");
     let a = Matrix::<1000, 1000, f64>::random();
@@ -71,6 +74,9 @@ fn bench_matrix_sub_100x100(c: &mut Criterion) {
     });
 }
 
+// 1000x1000 占用约 8 MB 栈空间，默认不注册到 criterion_group（见文件末尾）。
+// 需要时手动加回 criterion_group 再运行。
+#[allow(dead_code)]
 fn bench_matrix_sub_1000x1000(c: &mut Criterion) {
     let mut group = c.benchmark_group("Matrix subtract");
     let a = Matrix::<1000, 1000, f64>::random();
@@ -113,6 +119,9 @@ fn bench_matrix_mul_100x100(c: &mut Criterion) {
     });
 }
 
+// 1000x1000 占用约 8 MB 栈空间，默认不注册到 criterion_group（见文件末尾）。
+// 需要时手动加回 criterion_group 再运行。
+#[allow(dead_code)]
 fn bench_matrix_mul_1000x1000(c: &mut Criterion) {
     let mut group = c.benchmark_group("Matrix multiply");
     let a = Matrix::<1000, 1000, f64>::random();
@@ -155,6 +164,9 @@ fn bench_matrix_product_100x100(c: &mut Criterion) {
     });
 }
 
+// 1000x1000 占用约 8 MB 栈空间，默认不注册到 criterion_group（见文件末尾）。
+// 需要时手动加回 criterion_group 再运行。
+#[allow(dead_code)]
 fn bench_matrix_product_1000x1000(c: &mut Criterion) {
     let mut group = c.benchmark_group("Matrix product");
     let a = Matrix::<1000, 1000, f64>::random();

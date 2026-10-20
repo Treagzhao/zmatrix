@@ -2,7 +2,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::ops::{Add, Sub, Mul, Div, Neg};
 use lazy_static::lazy_static;
-use crate::physics::basic::{MagneticInduction, MagneticInductionType, PhysicalQuantity, AngularVelocity, MagneticAngularVelocity};
+use crate::physics::basic::{MagneticInduction, MagneticInductionType, PhysicalQuantity, AngularVelocity, MagneticAngularVelocity, Coef};
 lazy_static! {
     static ref TESLA_CONVERT:HashMap<MagneticInductionType,f64> = [
         (MagneticInductionType::Tesla, 1.0),
@@ -220,6 +220,10 @@ impl<'a> Add<MagneticInduction> for &'a MagneticInduction {
     fn add(self, rhs: MagneticInduction) -> Self::Output { MagneticInduction::from_tesla(self.as_tesla() + rhs.as_tesla()) }
 }
 
+// MagneticInduction + 裸 f64：按**当前存储单位**直接相加，不做单位换算 —— 有意设计。
+// 裸 f64 不带单位，库无从判断它代表哪种单位；擅自换算等于替调用方做假设。
+// 需要单位安全时改用两个物理量运算，如 `x + MagneticInduction::from_tesla(1.0)`。
+// 详见 `physics::basic` 模块文档「物理量与裸 f64 的运算」。
 impl Add<f64> for MagneticInduction {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -268,6 +272,18 @@ impl Mul<f64> for MagneticInduction {
     type Output = Self;
     fn mul(self, rhs: f64) -> Self::Output {
         let v = self.as_tesla() * rhs;
+        Self::from_tesla(v)
+    }
+}
+
+// 磁感应强度 × 无量纲系数 = 磁感应强度
+//
+// 注：`Coef × MagneticInduction`（反向）在 coef.rs 中通过委托实现，
+// 两条方向的单位语义一致（一律以特斯拉返回）。
+impl Mul<Coef> for MagneticInduction {
+    type Output = Self;
+    fn mul(self, rhs: Coef) -> Self::Output {
+        let v = self.as_tesla() * rhs.get_value();
         Self::from_tesla(v)
     }
 }
@@ -372,13 +388,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_convert_gauss_value_panic() {
-        let result = convert_gauss_value(1.0, MagneticInductionType::Tesla, MagneticInductionType::KiloGauss).unwrap();
+        let _result = convert_gauss_value(1.0, MagneticInductionType::Tesla, MagneticInductionType::KiloGauss).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_convert_gauss_value_panic2() {
-        let result = convert_gauss_value(1.0, MagneticInductionType::KiloGauss, MagneticInductionType::Tesla).unwrap();
+        let _result = convert_gauss_value(1.0, MagneticInductionType::KiloGauss, MagneticInductionType::Tesla).unwrap();
     }
 
     #[test]
@@ -400,13 +416,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_convert_tesla_value_panic() {
-        let result = convert_tesla_value(1.0, MagneticInductionType::Tesla, MagneticInductionType::KiloGauss).unwrap();
+        let _result = convert_tesla_value(1.0, MagneticInductionType::Tesla, MagneticInductionType::KiloGauss).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_convert_tesla_value_panic2() {
-        let result = convert_tesla_value(1.0, MagneticInductionType::KiloGauss, MagneticInductionType::Tesla).unwrap();
+        let _result = convert_tesla_value(1.0, MagneticInductionType::KiloGauss, MagneticInductionType::Tesla).unwrap();
     }
 
     #[test]
@@ -464,7 +480,7 @@ mod tests {
     fn test_as_any(){
         let magnetic_induction = MagneticInduction::from_tesla(1.0);
         let any = magnetic_induction.as_any();
-        let a = any.downcast_ref::<MagneticInduction>().unwrap();
+        let _a = any.downcast_ref::<MagneticInduction>().unwrap();
     }
 
     #[test]

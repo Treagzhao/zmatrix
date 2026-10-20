@@ -1,7 +1,6 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Sub, Neg};
 use crate::physics::basic::{Coef, MagneticAngularVelocity, MagneticAngularVelocityType, PhysicalQuantity};
-use approx::assert_relative_eq;
 
 impl Default for MagneticAngularVelocity {
     fn default() -> Self {
@@ -202,6 +201,10 @@ impl<'a> Add<MagneticAngularVelocity> for &'a MagneticAngularVelocity {
     fn add(self, rhs: MagneticAngularVelocity) -> Self::Output { MagneticAngularVelocity::from_tesla_rad_per_second(self.as_tesla_rad_per_second() + rhs.as_tesla_rad_per_second()) }
 }
 
+// MagneticAngularVelocity + 裸 f64：按**当前存储单位**直接相加，不做单位换算 —— 有意设计。
+// 裸 f64 不带单位，库无从判断它代表哪种单位；擅自换算等于替调用方做假设。
+// 需要单位安全时改用两个物理量运算，如 `x + MagneticAngularVelocity::from_tesla_rad_per_second(1.0)`。
+// 详见 `physics::basic` 模块文档「物理量与裸 f64 的运算」。
 impl Add<f64> for MagneticAngularVelocity {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {

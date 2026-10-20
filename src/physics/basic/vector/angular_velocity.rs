@@ -1,7 +1,6 @@
 use std::ops::Mul;
 use std::time::Duration;
-use crate::physics::basic::{Angular, AngularVelocity, AngularVelocityType, Coef, Vector3,
-    time_delta_from_secs_f64, time_delta_to_secs_f64};
+use crate::physics::basic::{Angular, AngularVelocity, AngularVelocityType, Coef, Vector3};
 use crate::utils::float;
 
 impl Vector3<AngularVelocity> {
@@ -133,6 +132,7 @@ impl Mul<chrono::TimeDelta> for Vector3<AngularVelocity> {
 mod test {
     use approx::assert_relative_eq;
     use super::*;
+    use crate::physics::basic::time_delta_from_secs_f64;
     #[test]
     fn test_limit_float() {
         let v = Vector3::new(

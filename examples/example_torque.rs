@@ -1,4 +1,4 @@
-use zmatrix::physics::basic::{Torque, Distance, Energy, PhysicalQuantity};
+use zmatrix::physics::basic::{Torque, Distance, PhysicalQuantity};
 
 fn main() {
     println!("=== 力矩物理量示例 ===\n");

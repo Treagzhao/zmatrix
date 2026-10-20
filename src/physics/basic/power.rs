@@ -1,9 +1,7 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{Coef, Power, PowerType, PhysicalQuantity, Energy, Velocity, Force,
-    ElectricCurrent, ElectricPotential,
-    time_delta_from_secs_f64, time_delta_to_secs_f64};
-use approx::assert_relative_eq;
+    ElectricCurrent, ElectricPotential, time_delta_to_secs_f64};
 
 impl Default for Power {
     fn default() -> Self {
@@ -432,6 +430,8 @@ impl<'a> Mul<ElectricPotential> for &'a ElectricCurrent {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::physics::basic::time_delta_from_secs_f64;
+    use approx::assert_relative_eq;
     use crate::physics::basic::{Energy, Force, Velocity};
     use std::time::Duration;
 
@@ -953,7 +953,7 @@ mod tests {
         assert_relative_eq!(result.as_watt(), -3.0);
         
         // 测试零值（应该 panic）
-        let p_zero = Power::from_watt(0.0);
+        let _p_zero = Power::from_watt(0.0);
         // 注意：这里不测试除以零的情况，因为会导致 panic
     }
 
@@ -972,7 +972,7 @@ mod tests {
             (Power::from_horse_power(10.0 / 745.7), "HorsePower"),
         ];
         
-        for (power, unit_name) in units {
+        for (power, _unit_name) in units {
             // Power * f64
             let result1 = power * 2.0;
             assert_relative_eq!(result1.as_watt(), 20.0, epsilon = 1e-10);

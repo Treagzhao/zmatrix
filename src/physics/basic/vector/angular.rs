@@ -120,7 +120,7 @@ impl Vector3<Angular> {
     }
 
     pub fn mod_to_round(&self) -> Vector3<Angular> {
-        let mut result: Vector3<Angular> = Vector3::new(
+        let result: Vector3<Angular> = Vector3::new(
             self.x.mod_to_round(),
             self.y.mod_to_round(),
             self.z.mod_to_round(),
@@ -129,7 +129,7 @@ impl Vector3<Angular> {
     }
 
     pub fn mod_to_round_half(&self) -> Vector3<Angular> {
-        let mut result: Vector3<Angular> = Vector3::new(
+        let result: Vector3<Angular> = Vector3::new(
             self.x.mod_to_round_half(),
             self.y.mod_to_round_half(),
             self.z.mod_to_round_half(),
@@ -1122,7 +1122,7 @@ mod tests {
         let mr = angles.to_cos_matrix(seq, RotationHand::Right).unwrap();
         // Left 被动应满足：R_right = (Ai_left · Aj_left · Ak_left)^T
         // 因此需要手工按 Ai·Aj·Ak 顺序构造 Left，再取转置比较
-        let (ti, tj, tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
+        let (_ti, _tj, _tk) = (1u8, 2u8, 3u8); // 这里与上面 seq 一致为 Y(2) Z(3) X(1)? 修正如下:
         let ti = 2u8;
         let tj = 3u8;
         let tk = 1u8; // YZX

@@ -163,6 +163,8 @@ impl Div<Coef> for f64 {
     }
 }
 
+// Coef 是无量纲量，加裸 f64 不存在单位歧义，直接作用于数值。
+// 详见 `physics::basic` 模块文档「物理量与裸 f64 的运算」。
 impl Add<f64> for Coef {
     type Output = Coef;
     fn add(self, rhs: f64) -> Self::Output {
@@ -255,6 +257,59 @@ impl PartialOrd<f64> for Coef {
         self.v.partial_cmp(other)
     }
 }
+
+// ── Coef × 物理量（反向乘法）────────────────────────────────────────────────
+//
+// 契约：`Coef` 与任何一种物理量的乘法必须**双向对称**。
+// 各物理量文件中定义了 `impl Mul<Coef> for X`（X × Coef），
+// 这里补齐 `impl Mul<X> for Coef`（Coef × X），后者统一委托给前者，
+// 因此两条方向的单位换算语义完全一致 —— 结果一律以该物理量的**基准单位**返回
+// （例如 `Coef::new(2.0) * Distance::from_km(1.0)` 得到 2000 m，单位信息不再保留为 km）。
+//
+// ⚠️ 新增物理量时，若它在自己的文件中实现了 `Mul<Coef>`，必须同时在下方清单里登记，
+// 否则 `Coef * X` 会编译失败，破坏对称性。
+macro_rules! impl_coef_mul_quantity {
+    ($($type:ty),* $(,)?) => {
+        $(
+            impl Mul<$type> for Coef {
+                type Output = $type;
+
+                #[inline]
+                fn mul(self, rhs: $type) -> Self::Output {
+                    // 委托给各物理量的 X × Coef 实现，保证单位语义一致
+                    rhs * self
+                }
+            }
+        )*
+    };
+}
+
+impl_coef_mul_quantity!(
+    Distance,
+    Velocity,
+    Acceleration,
+    Angular,
+    AngularVelocity,
+    AngularAcceleration,
+    Area,
+    Volume,
+    Mass,
+    Momentum,
+    AngularMomentum,
+    Force,
+    Torque,
+    Energy,
+    Power,
+    MagneticInduction,
+    MagneticMoment,
+    MagneticAngularVelocity,
+    ElectricCurrent,
+    ElectricPotential,
+    ElectricResistance,
+    ElectricCharge,
+    ElectricCapacitance,
+    ElectricConductance,
+);
 
 
 
@@ -398,7 +453,7 @@ mod tests {
     fn test_as_any() {
         let coef = Coef::new(1.0);
         let result = coef.as_any();
-        let c = result.downcast_ref::<Coef>().unwrap();
+        let _c = result.downcast_ref::<Coef>().unwrap();
     }
 
     #[test]
@@ -678,5 +733,80 @@ mod tests {
         assert_relative_eq!(q2.get_value(), 4.0);
         let q3 = &a / Coef::new(0.5);
         assert_relative_eq!(q3.get_value(), 4.0);
+    }
+
+    // ── Coef × 物理量 的对称性 ──────────────────────────────────────────────
+    //
+    // 回归：曾经只实现了 `X × Coef`，`Coef × X` 全部缺失，
+    // 导致 `Coef::new(2.0) * Distance::from_m(3.0)` 编译失败。
+    // 下面逐个类型验证两条方向都存在且数值一致。
+    macro_rules! assert_symmetry {
+        ($($type:ty => $make:expr, $read:expr, $tol:expr;)*) => {
+            $(
+                {
+                    let q: $type = $make;
+                    let c = Coef::new(2.0);
+
+                    // 正向：物理量 × Coef
+                    let forward: $type = q * c;
+                    // 反向：Coef × 物理量
+                    let reverse: $type = c * q;
+
+                    assert_relative_eq!($read(forward), $read(reverse), epsilon = $tol);
+                    // 与期望值的对照（2 倍）
+                    assert_relative_eq!($read(forward), 2.0 * $read(q), epsilon = $tol);
+                }
+            )*
+        };
+    }
+
+    #[test]
+    fn test_coef_mul_quantity_symmetry() {
+        assert_symmetry! {
+            Distance                => Distance::from_m(3.0),                    |x: Distance| x.as_m(), 1e-12;
+            Velocity                => Velocity::from_m_per_sec(3.0),            |x: Velocity| x.as_m_per_sec(), 1e-12;
+            Acceleration            => Acceleration::from_m_per_s2(3.0),         |x: Acceleration| x.as_m_per_s2(), 1e-12;
+            Angular                 => Angular::from_rad(3.0),                   |x: Angular| x.as_rad(), 1e-12;
+            AngularVelocity         => AngularVelocity::from_rad_per_second(3.0),|x: AngularVelocity| x.as_rad_per_second(), 1e-12;
+            AngularAcceleration     => AngularAcceleration::from_rad_per_second2(3.0), |x: AngularAcceleration| x.as_rad_per_second2(), 1e-12;
+            Area                    => Area::from_m2(3.0),                       |x: Area| x.as_m2(), 1e-12;
+            Volume                  => Volume::from_m3(3.0),                     |x: Volume| x.as_m3(), 1e-12;
+            Mass                    => Mass::from_kg(3.0),                       |x: Mass| x.as_kg(), 1e-12;
+            Momentum                => Momentum::from_kg_m_s(3.0),               |x: Momentum| x.as_kg_m_s(), 1e-12;
+            AngularMomentum         => AngularMomentum::from_nms(3.0),           |x: AngularMomentum| x.as_nms(), 1e-12;
+            Force                   => Force::from_newton(3.0),                  |x: Force| x.as_newton(), 1e-12;
+            Torque                  => Torque::from_nm(3.0),                     |x: Torque| x.as_nm(), 1e-12;
+            Energy                  => Energy::from_joule(3.0),                  |x: Energy| x.as_joule(), 1e-12;
+            Power                   => Power::from_watt(3.0),                    |x: Power| x.as_watt(), 1e-12;
+            MagneticInduction       => MagneticInduction::from_tesla(3.0),       |x: MagneticInduction| x.as_tesla(), 1e-12;
+            MagneticMoment          => MagneticMoment::from_am2(3.0),           |x: MagneticMoment| x.as_am2(), 1e-12;
+            MagneticAngularVelocity => MagneticAngularVelocity::from_tesla_rad_per_second(3.0), |x: MagneticAngularVelocity| x.as_tesla_rad_per_second(), 1e-12;
+            ElectricCurrent         => ElectricCurrent::from_a(3.0),             |x: ElectricCurrent| x.as_a(), 1e-12;
+            ElectricPotential       => ElectricPotential::from_v(3.0),           |x: ElectricPotential| x.as_v(), 1e-12;
+            ElectricResistance      => ElectricResistance::from_ohm(3.0),        |x: ElectricResistance| x.as_ohm(), 1e-12;
+            ElectricCharge          => ElectricCharge::from_coulomb(3.0),        |x: ElectricCharge| x.as_coulomb(), 1e-12;
+            ElectricCapacitance     => ElectricCapacitance::from_farad(3.0),     |x: ElectricCapacitance| x.as_farad(), 1e-12;
+            ElectricConductance     => ElectricConductance::from_siemens(3.0),   |x: ElectricConductance| x.as_siemens(), 1e-12;
+        }
+    }
+
+    // 反向乘法的单位语义：与正向一致，一律以基准单位返回。
+    // from_km(1.0) 与 from_m(1000.0) 是两个不同存储单位的等值量，
+    // 乘同一个 Coef 后必须得到相同结果 —— 这条曾因换算缺失而被破坏。
+    #[test]
+    fn test_coef_mul_quantity_unit_independent() {
+        let c = Coef::new(2.0);
+
+        let from_m = Distance::from_m(1000.0);
+        let from_km = Distance::from_km(1.0);
+        assert_relative_eq!(from_m.as_m(), from_km.as_m(), epsilon = 1e-12);
+
+        // 正向
+        assert_relative_eq!((from_m * c).as_m(), 2000.0, epsilon = 1e-12);
+        assert_relative_eq!((from_km * c).as_m(), 2000.0, epsilon = 1e-12);
+
+        // 反向（本次新增的路径）
+        assert_relative_eq!((c * from_m).as_m(), 2000.0, epsilon = 1e-12);
+        assert_relative_eq!((c * from_km).as_m(), 2000.0, epsilon = 1e-12);
     }
 }

@@ -15,7 +15,6 @@ mod velocity;
 
 use super::*;
 use crate::dense::Matrix;
-use crate::utils::float;
 use std::ops::{Add, Mul, Neg, Sub};
 
 // 定义空的 marker trait，用于标记非 Coef 类型
@@ -749,7 +748,7 @@ mod tests {
     #[test]
     fn test_normalization_vector_f3() {
         let expected = [0.101015, 0.404061, 0.909137];
-        let mut input = [1f32, 4f32, 9f32];
+        let mut _input = [1f32, 4f32, 9f32];
         let vec = Vector3::new(
             Distance::from_m(1.0),
             Distance::from_m(4.0),
@@ -1073,6 +1072,7 @@ mod tests {
         assert_eq!(vec3, vec3);
     }
 
+    #[test]
     fn test_norm_square_basic() {
         // 测试基本功能：计算向量的模平方
         let vec = Vector3::new(

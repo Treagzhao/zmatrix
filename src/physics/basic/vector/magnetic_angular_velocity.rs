@@ -1,4 +1,3 @@
-use super::*;
 use crate::physics::basic::{
     AngularMomentum, Coef, MagneticAngularVelocity, MagneticAngularVelocityType, MagneticInduction,
     MagneticMoment, Vector3,
@@ -241,6 +240,7 @@ impl Vector3<MagneticAngularVelocity> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::*;
     use approx::assert_relative_eq;
 
     #[test]

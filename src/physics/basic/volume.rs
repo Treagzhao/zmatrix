@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use crate::physics::basic::{Area, Coef, Distance, DistanceType, PhysicalQuantity, Volume, VolumeType};
+use crate::physics::basic::{Area, Coef, Distance, PhysicalQuantity, Volume, VolumeType};
 
 impl Default for Volume {
     fn default() -> Self {
@@ -81,6 +81,10 @@ impl<'a> Add<Volume> for &'a Volume {
     fn add(self, rhs: Volume) -> Self::Output { Volume::from_m3(self.as_m3() + rhs.as_m3()) }
 }
 
+// Volume + 裸 f64：按**当前存储单位**直接相加，不做单位换算 —— 有意设计。
+// 裸 f64 不带单位，库无从判断它代表哪种单位；擅自换算等于替调用方做假设。
+// 需要单位安全时改用两个物理量运算，如 `x + Volume::from_m3(1.0)`。
+// 详见 `physics::basic` 模块文档「物理量与裸 f64 的运算」。
 impl Add<f64> for Volume {
     type Output = Self;
     fn add(self, rhs: f64) -> Self::Output {
@@ -254,7 +258,7 @@ mod tests {
         assert!(v.is_zero());
 
         let b: Box<dyn PhysicalQuantity> = Box::new(Volume::from_m3(10.0));
-        let v = b.as_any().downcast_ref::<Volume>().unwrap();
+        let _v = b.as_any().downcast_ref::<Volume>().unwrap();
 
         let mut v = Volume::from_km3(1.0);
         assert_eq!(v.default_unit_value(), 1e9);

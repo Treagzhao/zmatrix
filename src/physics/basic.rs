@@ -58,6 +58,7 @@ mod electric_potential;
 mod electric_resistance;
 mod energy;
 mod force;
+pub mod inertia;
 mod magnetic_angular_velocity;
 mod magnetic_induction;
 mod magnetic_moment;
@@ -266,6 +267,44 @@ pub enum MassType {
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct Mass {
     default_type: MassType,
+    pub v: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Copy)]
+pub enum InertiaType {
+    /// 千克·平方米（SI 基本单位）
+    KgM2,
+    /// 千克·平方毫米（工程图纸与 CAD 常用，也是 aods 的 J_kgmm2 单位）
+    KgMm2,
+}
+
+/// 转动惯量（标量）
+///
+/// 描述刚体绕**某一指定轴**的转动惯性，量纲 kg·m²。
+/// 这是标量形态：飞轮转子惯量、单轴转动惯量都属于它。
+///
+/// 完整描述刚体在任意轴向上的转动惯性需要 3×3 的转动惯量张量
+/// （见 [`InertiaTensor`](crate::spatial_geometry::inertia_tensor::InertiaTensor)），
+/// 标量是该张量沿某条主轴的投影。区分两者很重要：只有标量值时，
+/// 姿态动力学只能按"惯量各向同性"处理。
+///
+/// 与 [`AngularMomentum`] / [`AngularVelocity`] 的关系：
+/// `L = J·ω`，故 `AngularMomentum / AngularVelocity = Inertia`。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Inertia;
+///
+/// let j = Inertia::from_kg_m2(0.5);
+/// println!("转动惯量: {} kg·m²", j.as_kg_m2());
+///
+/// // 工程图纸给的 kg·mm² 需除以 10^6
+/// let j2 = Inertia::from_kg_mm2(500_000.0);
+/// assert_eq!(j2.as_kg_m2(), 0.5);
+/// ```
+#[derive(Clone, Debug, PartialEq, Copy)]
+pub struct Inertia {
+    default_type: InertiaType,
     pub v: f64,
 }
 

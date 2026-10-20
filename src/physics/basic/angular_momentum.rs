@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use crate::physics::basic::{ AngularMomentum, AngularMomentumType, Coef, PhysicalQuantity, Torque, AngularVelocity};
+use crate::physics::basic::{ AngularMomentum, AngularMomentumType, Coef, Inertia, PhysicalQuantity, Torque, AngularVelocity};
 
 impl Default for AngularMomentum {
     fn default() -> Self {
@@ -292,27 +292,36 @@ impl<'a> Mul<AngularVelocity> for &'a AngularMomentum {
     fn mul(self, rhs: AngularVelocity) -> Self::Output { Torque::from_nm(self.as_nms() * rhs.as_rad_per_second()) }
 }
 
-// 角动量 ÷ 角速度 = 转动惯量（系数）
+// 角动量 ÷ 角速度 = 转动惯量：L / ω = J
+//
+// 早期版本返回 Coef（无量纲系数），量纲上是权宜：kg·m²/s ÷ rad/s 得到的是
+// kg·m²，即转动惯量，不能退化成纯数。现在 Inertia 存在，直接给出正确类型，
+// 使 `L / ω` 与 `M / ω̇` 两条路径都能落到同一个量纲上。
 impl Div<AngularVelocity> for AngularMomentum {
-    type Output = Coef;
+    type Output = Inertia;
     fn div(self, rhs: AngularVelocity) -> Self::Output {
-        let moment_of_inertia_value = self.as_nms() / rhs.as_rad_per_second();
-        Coef::new(moment_of_inertia_value)
+        Inertia::from_kg_m2(self.as_nms() / rhs.as_rad_per_second())
     }
 }
 
-// 引用版本：AngularMomentum / AngularVelocity -> Coef
+// 引用版本：AngularMomentum / AngularVelocity -> Inertia
 impl<'a, 'b> Div<&'b AngularVelocity> for &'a AngularMomentum {
-    type Output = Coef;
-    fn div(self, rhs: &'b AngularVelocity) -> Self::Output { Coef::new(self.as_nms() / rhs.as_rad_per_second()) }
+    type Output = Inertia;
+    fn div(self, rhs: &'b AngularVelocity) -> Self::Output {
+        Inertia::from_kg_m2(self.as_nms() / rhs.as_rad_per_second())
+    }
 }
 impl<'a> Div<&'a AngularVelocity> for AngularMomentum {
-    type Output = Coef;
-    fn div(self, rhs: &'a AngularVelocity) -> Self::Output { Coef::new(self.as_nms() / rhs.as_rad_per_second()) }
+    type Output = Inertia;
+    fn div(self, rhs: &'a AngularVelocity) -> Self::Output {
+        Inertia::from_kg_m2(self.as_nms() / rhs.as_rad_per_second())
+    }
 }
 impl<'a> Div<AngularVelocity> for &'a AngularMomentum {
-    type Output = Coef;
-    fn div(self, rhs: AngularVelocity) -> Self::Output { Coef::new(self.as_nms() / rhs.as_rad_per_second()) }
+    type Output = Inertia;
+    fn div(self, rhs: AngularVelocity) -> Self::Output {
+        Inertia::from_kg_m2(self.as_nms() / rhs.as_rad_per_second())
+    }
 }
 
 
@@ -579,17 +588,17 @@ mod tests {
 
     #[test]
     fn test_angular_momentum_div_angular_velocity() {
-        // 角动量 ÷ 角速度 = 转动惯量（系数）
+        // 角动量 ÷ 角速度 = 转动惯量（kg·m²）
         let l = AngularMomentum::from_kg_m2_per_second(20.0);
         let omega = AngularVelocity::from_rad_per_second(4.0);
         let moment_of_inertia = l / omega;
-        assert_relative_eq!(moment_of_inertia.get_value(), 5.0);
+        assert_relative_eq!(moment_of_inertia.as_kg_m2(), 5.0);
 
         // 测试不同单位
         let l = AngularMomentum::from_kg_km2_per_second(1.0);
         let omega = AngularVelocity::from_deg_per_second(360.0);
         let moment_of_inertia = l / omega;
-        assert_relative_eq!(moment_of_inertia.get_value(), 1e6 / (2.0 * std::f64::consts::PI));
+        assert_relative_eq!(moment_of_inertia.as_kg_m2(), 1e6 / (2.0 * std::f64::consts::PI));
     }
 
     #[test]
@@ -605,8 +614,8 @@ mod tests {
         let t = &l1 * &AngularVelocity::from_rad_per_second(2.0);
         assert_relative_eq!(t.as_nm(), 4.0);
 
-        let coef = &l1 / &AngularVelocity::from_rad_per_second(2.0);
-        assert_relative_eq!(coef.get_value(), 1.0);
+        let inertia = &l1 / &AngularVelocity::from_rad_per_second(2.0);
+        assert_relative_eq!(inertia.as_kg_m2(), 1.0);
 
         // 混合引用：加/减
         let s2 = l1 + &l2;
@@ -625,10 +634,10 @@ mod tests {
         let t3 = &l1 * AngularVelocity::from_rad_per_second(2.0);
         assert_relative_eq!(t3.as_nm(), 4.0);
 
-        // 混合引用：/ AngularVelocity -> Coef
+        // 混合引用：/ AngularVelocity -> Inertia
         let c2 = l1 / &AngularVelocity::from_rad_per_second(2.0);
-        assert_relative_eq!(c2.get_value(), 1.0);
+        assert_relative_eq!(c2.as_kg_m2(), 1.0);
         let c3 = &l1 / AngularVelocity::from_rad_per_second(2.0);
-        assert_relative_eq!(c3.get_value(), 1.0);
+        assert_relative_eq!(c3.as_kg_m2(), 1.0);
     }
 }

@@ -31,14 +31,14 @@ fn main() {
     println!("   角动量: {} kg·m²/s", angular_momentum3.as_kg_m2_per_second());
     println!("   验证: 20 ÷ 4 = 5 ✓\n");
 
-    // 示例4: 角动量 ÷ 角速度 = 转动惯量（系数）
-    println!("4. 角动量 ÷ 角速度 = 转动惯量（系数）");
+    // 示例4: 角动量 ÷ 角速度 = 转动惯量
+    println!("4. 角动量 ÷ 角速度 = 转动惯量");
     let angular_momentum4 = AngularMomentum::from_kg_m2_per_second(20.0); // 20 kg·m²/s
     let angular_velocity4 = AngularVelocity::from_rad_per_second(4.0);    // 4 rad/s
     let moment_of_inertia = angular_momentum4 / angular_velocity4;
     println!("   角动量: {} kg·m²/s", angular_momentum4.as_kg_m2_per_second());
     println!("   角速度: {} rad/s", angular_velocity4.as_rad_per_second());
-    println!("   转动惯量系数: {} kg·m²", moment_of_inertia.get_value());
+    println!("   转动惯量: {} kg·m²", moment_of_inertia.as_kg_m2());
     println!("   验证: 20 ÷ 4 = 5 ✓\n");
 
     // 示例5: 不同单位的测试

@@ -1,35 +1,63 @@
+pub mod element;
 pub mod error;
 mod initial;
 pub mod operation;
 mod shape;
 mod util;
 
+pub use element::NumericElement;
+
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::{Add, Mul, Not, Sub};
-use std::sync::{mpsc, Arc};
-use std::thread;
-#[derive(Clone,Copy)]
+use std::ops::{Add, Mul};
+
+/// 编译期定尺寸的稠密矩阵。
+///
+/// 元素类型 `T` 由 [`NumericElement`] 限定为基础数字量（整数/浮点），
+/// 物理量不能作为矩阵元素 —— 原因见 [`element`] 模块文档。
+///
+/// # 尺寸必须是正数
+///
+/// `ROWS == 0` 或 `COLS == 0` 的矩阵在构造时即编译失败：
+///
+/// ```compile_fail
+/// use zmatrix::dense::Matrix;
+///
+/// // 0 行的矩阵没有意义，编译期即被拒绝
+/// let m = Matrix::<0, 3, f64>::new([[]; 0]);
+/// ```
+///
+/// ```compile_fail
+/// use zmatrix::dense::Matrix;
+///
+/// let m = Matrix::<3, 0, f64>::new([[], [], []]);
+/// ```
+///
+/// 这是计算库的取舍而非数学立场：`2×0` 这样的空矩阵在代数上良定义，
+/// 但在实际计算中没有用途，而允许它存在会让 `det`、`product`、`sum`
+/// 等操作各自承担退化尺寸的分支与隐患。
+#[derive(Clone, Copy)]
 pub struct Matrix<const ROWS: usize, const COLS: usize, T>
 where
-    T: Copy + Send + Sync + Copy,
+    T: NumericElement,
 {
     data: [[T;COLS];ROWS],
-    digits: u8,
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Copy + Send + Sync + Display,
+    T: NumericElement + Display,
 {
     pub fn new(data:[[T;COLS];ROWS]) -> Self {
-        let mut digits: u8 = 0;
-        Matrix { data, digits }
+        // ROWS / COLS 在编译期已知，此断言在 monomorphization 阶段求值：
+        // 零尺寸矩阵通不过编译，运行时零开销。
+        const { assert!(ROWS > 0 && COLS > 0, "Matrix 的行数和列数都必须大于 0"); }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Display + Copy + Send + Sync,
+    T: NumericElement + Display,
 {
     fn display(&self) -> String {
         let mut digits: u8 = 0;
@@ -42,9 +70,7 @@ where
                 }
             }
         }
-        if ROWS == 0 || COLS == 0 {
-            return "┌┐\n└┘\n".to_string();
-        } else if ROWS == 1 {
+        if ROWS == 1 {
             let line = util::print_single_line(&self.data, digits);
             return line;
         }
@@ -71,7 +97,7 @@ where
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Copy + Send + Sync,
+    T: NumericElement,
 {
     pub fn get(&self, x: usize, y: usize) -> Option<T> {
         if x >= COLS || y >= ROWS {
@@ -105,7 +131,7 @@ where
 
 impl<const N: usize, T> Matrix<N, N, T>
 where
-    T: Copy + Display + Default + Add<Output = T> + Send + Sync + From<i8> + Mul<Output = T>,
+    T: NumericElement + Display + Default + Add<Output = T> + From<i8> + Mul<Output = T>,
 {
     pub fn det(&self) -> Result<T, error::OperationError> {
         let mut sum = T::default();
@@ -124,7 +150,7 @@ where
 
 impl<const ROWS: usize, const COLS: usize, T> Debug for Matrix<ROWS, COLS, T>
 where
-    T: Display + Copy + Send + Sync,
+    T: NumericElement + Display,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.display())
@@ -133,7 +159,7 @@ where
 
 impl<const ROWS: usize, const COLS: usize, T> Display for Matrix<ROWS, COLS, T>
 where
-    T: Copy + Display + Send + Sync,
+    T: NumericElement + Display,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.display())
@@ -152,10 +178,22 @@ mod test {
         assert_eq!(m.data, [[1, 2], [3, 4], [5, 6]]);
     }
 
+    // 零尺寸矩阵的拒绝由编译期常量断言保证，其回归测试写在
+    // `Matrix` 结构体的文档注释里（compile_fail doctest）：
+    // `Matrix::<0, 3, _>` 与 `Matrix::<3, 0, _>` 都无法通过编译。
+    //
+    // 这里只验证「最小合法尺寸」仍然可用，作为边界对照。
     #[test]
-    fn test_print_blank_matrix() {
-        let m = Matrix::<0, 0, i32>::new([]);
-        assert_eq!(format!("{}", m), "┌┐\n└┘\n");
+    fn smallest_valid_size() {
+        let one = Matrix::<1, 1, i32>::new([[7]]);
+        assert_eq!(one.size(), (1, 1));
+        assert_eq!(one.get(0, 0), Some(7));
+
+        let row = Matrix::<1, 5, i32>::new([[1, 2, 3, 4, 5]]);
+        assert_eq!(row.size(), (1, 5));
+
+        let col = Matrix::<5, 1, i32>::new([[1], [2], [3], [4], [5]]);
+        assert_eq!(col.size(), (5, 1));
     }
 
     #[test]

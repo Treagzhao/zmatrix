@@ -1,26 +1,22 @@
-use crate::dense::{error, Matrix};
-use array_init::array_init;
+use crate::dense::{Matrix, NumericElement};
 use rand::Rng;
 use std::fmt::Display;
 use std::ops::{Add, Mul, Sub};
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Copy
+    T: NumericElement
         + Add<Output = T>
         + Sub<Output = T>
         + Mul<Output = T>
         + Display
         + Default
-        + Send
-        + Sync
-        + TryInto<f64>
         + From<i8>,
-    f64: From<T>,
 {
     pub fn new_with_default(v: T) -> Self {
+        const { assert!(ROWS > 0 && COLS > 0, "Matrix 的行数和列数都必须大于 0"); }
         let data:[[T;COLS];ROWS] = [[v;COLS];ROWS];
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 
     // 生成全零矩阵
@@ -36,20 +32,22 @@ where
 
 impl<const N: usize, T> Matrix<N, N, T>
 where
-    T: Copy + From<i8> + Default + Send + Sync,
+    T: NumericElement + From<i8> + Default,
 {
     // 生成单位方阵
     pub fn unit() -> Self {
+        const { assert!(N > 0, "Matrix 的行数和列数都必须大于 0"); }
         let mut data = [[T::default(); N]; N];
         for i in 0..N {
             data[i][i] = T::from(1);
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize> Matrix<ROWS, COLS, f64> {
     pub fn random() -> Self {
+        const { assert!(ROWS > 0 && COLS > 0, "Matrix 的行数和列数都必须大于 0"); }
         let mut rng = rand::rng();
         let mut data = [[0.0; COLS]; ROWS];
         for row in 0..ROWS {
@@ -57,7 +55,7 @@ impl<const ROWS: usize, const COLS: usize> Matrix<ROWS, COLS, f64> {
                 data[row][col] = rng.random();
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 

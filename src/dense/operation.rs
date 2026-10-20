@@ -1,12 +1,6 @@
-use crate::dense::{error, util, Matrix};
-use approx::assert_relative_eq;
-use array_init::array_init;
-use rayon::iter::ParallelIterator;
-use rayon::prelude::*;
+use crate::dense::{error, Matrix, NumericElement};
 use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use std::sync::{mpsc, Arc};
-use std::thread;
 
 pub struct Scalar<T> {
     value: T,
@@ -20,7 +14,7 @@ impl<T> Scalar<T> {
 
 impl<const ROWS: usize, const COLS: usize, T> Add for Matrix<ROWS, COLS, T>
 where
-    T: Copy + Add<Output = T> + Display + Send + Sync + Default,
+    T: NumericElement + Add<Output = T> + Display + Default,
 {
     type Output = Matrix<ROWS, COLS, T>;
 
@@ -31,13 +25,13 @@ where
                 data[row][col] = self.data[row][col] + other.data[row][col];
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Sub for Matrix<ROWS, COLS, T>
 where
-    T: Copy + Sub<Output = T> + Display + Default + Send + Sync,
+    T: NumericElement + Sub<Output = T> + Display + Default,
 {
     type Output = Matrix<ROWS, COLS, T>;
     fn sub(self, other: Self) -> Self::Output {
@@ -47,13 +41,13 @@ where
                 data[row][col] = self.data[row][col] - other.data[row][col];
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Mul for Matrix<ROWS, COLS, T>
 where
-    T: Copy + Mul<Output = T> + Default + Display + Send + Sync,
+    T: NumericElement + Mul<Output = T> + Default + Display,
 {
     type Output = Matrix<ROWS, COLS, T>;
 
@@ -64,13 +58,13 @@ where
                 data[row][col] = self.data[row][col] * other.data[row][col];
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Neg for Matrix<ROWS, COLS, T>
 where
-    T: Copy + Neg<Output = T> + Send + Sync + Display + Default,
+    T: NumericElement + Neg<Output = T> + Display + Default,
 {
     type Output = Matrix<ROWS, COLS, T>;
 
@@ -81,13 +75,13 @@ where
                 data[row][col] = -self.data[row][col];
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Copy + Send + Sync + Into<f64> + Display,
+    T: NumericElement + Into<f64> + Display,
 {
     pub fn exp(&self) -> Matrix<ROWS, COLS, f64> {
         let mut data = [[0.0; COLS]; ROWS];
@@ -96,13 +90,13 @@ where
                 data[row][col] = self.data[row][col].into().exp();
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Add<T> for Matrix<ROWS, COLS, T>
 where
-    T: Copy + Add<Output = T> + Send + Sync + Display + Default,
+    T: NumericElement + Add<Output = T> + Display + Default,
 {
     type Output = Matrix<ROWS, COLS, T>;
 
@@ -113,13 +107,13 @@ where
                 data[row][col] = self.data[row][col] + rhs;
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Sub<T> for Matrix<ROWS, COLS, T>
 where
-    T: Copy + Sub<Output = T> + Send + Sync + Display + Default,
+    T: NumericElement + Sub<Output = T> + Display + Default,
 {
     type Output = Matrix<ROWS, COLS, T>;
     fn sub(self, rhs: T) -> Self::Output {
@@ -129,13 +123,13 @@ where
                 data[row][col] = self.data[row][col] - rhs;
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Mul<T> for Matrix<ROWS, COLS, T>
 where
-    T: Copy + Mul<Output = T> + Send + Sync + Display + Default,
+    T: NumericElement + Mul<Output = T> + Display + Default,
 {
     type Output = Matrix<ROWS, COLS, T>;
 
@@ -146,13 +140,13 @@ where
                 data[row][col] = self.data[row][col] * rhs;
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Div<T> for Matrix<ROWS, COLS, T>
 where
-    T: Copy + Div<Output = T> + Send + Sync + Display + Default,
+    T: NumericElement + Div<Output = T> + Display + Default,
 {
     type Output = Matrix<ROWS, COLS, T>;
     fn div(self, rhs: T) -> Self::Output {
@@ -162,12 +156,12 @@ where
                 data[row][col] = self.data[row][col] / rhs;
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 impl<const ROWS: usize, const COLS: usize, T> Sub<Matrix<ROWS, COLS, T>> for Scalar<T>
 where
-    T: Copy + Sub<Output = T> + Send + Sync + Display + Default,
+    T: NumericElement + Sub<Output = T> + Display + Default,
 {
     type Output = Matrix<ROWS, COLS, T>;
 
@@ -178,40 +172,46 @@ where
                 data[row][col] = self.value - rhs.data[row][col];
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Copy + Send + Sync,
+    T: NumericElement,
 {
-    pub fn product<const COLS2: usize, U, V>(
+    /// 矩阵乘积 `self(ROWS×COLS) × target(COLS×COLS2) = (ROWS×COLS2)`。
+    ///
+    /// 两矩阵元素类型相同：`T` 被 [`NumericElement`] 限定为基础数字量，
+    /// 物理量无法进入矩阵，因此也不存在"量纲自动推导"的跨类型乘积。
+    ///
+    /// 累加器以 `T::default()` 起始 —— 这是安全的，因为 `T` 只能是整数/浮点，
+    /// 其 `Default` 恒为加法零元。（物理量则不然，如 `Coef::default() == 1.0`，
+    /// 这正是把物理量挡在矩阵之外的原因之一。）
+    pub fn product<const COLS2: usize>(
         &self,
-        target: &Matrix<COLS, COLS2, U>,
-    ) -> Result<Matrix<ROWS, COLS2, V>, error::OperationError>
+        target: &Matrix<COLS, COLS2, T>,
+    ) -> Result<Matrix<ROWS, COLS2, T>, error::OperationError>
     where
-        T: Mul<U, Output = V>,
-        U: Copy + Send + Sync,
-        V: Add<Output = V> + Default + Copy + Send + Sync,
+        T: Mul<Output = T> + Add<Output = T> + Default,
     {
-        let mut data = [[V::default(); COLS2]; ROWS];
+        let mut data = [[T::default(); COLS2]; ROWS];
         for i in 0..ROWS {
             for j in 0..COLS2 {
-                let mut sum = V::default();
+                let mut sum = T::default();
                 for k in 0..COLS {
                     sum = sum + self.data[i][k] * target.data[k][j];
                 }
                 data[i][j] = sum;
             }
         }
-        Ok(Matrix { data, digits: 0 })
+        Ok(Matrix { data })
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Display + Send + Sync + Mul<Output = T> + Copy + Default,
+    T: NumericElement + Display + Mul<Output = T> + Default,
 {
     pub fn scale(&self, scalar: T) -> Matrix<ROWS, COLS, T> {
         let mut data = [[T::default(); COLS]; ROWS];
@@ -220,13 +220,13 @@ where
                 data[row][col] = self.data[row][col] * scalar;
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Div<Matrix<ROWS, COLS, T>> for Scalar<T>
 where
-    T: Display + Send + Sync + Div<Output = T> + Copy + Default,
+    T: NumericElement + Display + Div<Output = T> + Default,
 {
     type Output = Matrix<ROWS, COLS, T>;
 
@@ -237,13 +237,13 @@ where
                 data[row][col] = self.value / rhs.data[row][col];
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Copy + Send + Sync + Display + Into<f64>,
+    T: NumericElement + Display + Into<f64>,
 {
     pub fn ln(&self) -> Matrix<ROWS, COLS, f64> {
         let mut data = [[0.0; COLS]; ROWS];
@@ -252,7 +252,7 @@ where
                 data[row][col] = self.data[row][col].into().ln();
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 
     pub fn clamp(&self, min: T, max: T) -> Matrix<ROWS, COLS, f64> {
@@ -264,18 +264,16 @@ where
                 data[row][col] = self.data[row][col].into().clamp(min_f, max_f);
             }
         }
-        Matrix { data, digits: 0 }
+        Matrix { data }
     }
 }
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Copy + Send + Sync + Display + Add<Output = T> + Default,
+    T: NumericElement + Display + Add<Output = T> + Default,
 {
     pub fn sum(&self) -> T {
-        if ROWS == 0 || COLS == 0 {
-            return T::default();
-        }
+        // 尺寸必为正（构造期已断言），无需处理空矩阵
         let mut sum = T::default();
         for row in 0..ROWS {
             for col in 0..COLS {
@@ -288,13 +286,10 @@ where
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Copy + Send + Sync + Display + Div<Output = T> + Add<Output = T> + Default,
+    T: NumericElement + Display + Div<Output = T> + Add<Output = T> + Default,
     f64: From<T>,
 {
     pub fn mean(&self) -> f64 {
-        if ROWS == 0 || COLS == 0 {
-            return 0.0;
-        }
         let sum = self.sum();
         let s: f64 = sum.into();
         s / (ROWS * COLS) as f64
@@ -518,13 +513,7 @@ mod test {
 
     #[test]
     fn test_edge_cases() {
-        // Test empty matrix
-        let m = Matrix::<0, 0, i32>::new([]);
-        let result = m + 10;
-        let expected: [i32; 0] = [];
-        assert_eq!(result.data.len(), 0);
-
-        // Test single element matrix
+        // 零尺寸矩阵已在构造期被编译期断言拒绝，此处只测单元素矩阵
         let m = Matrix::<1, 1, i32>::new([[5]]);
         let result = m * 2;
         assert_eq!(result.data, [[10]]);
@@ -697,14 +686,6 @@ mod test {
     }
 
     #[test]
-    fn test_sum_empty_matrix() {
-        // Test with empty matrix (should panic)
-        let matrix = Matrix::<0, 0, i32>::new([[]; 0]);
-        let sum = matrix.sum();
-        assert_eq!(0, sum);
-    }
-
-    #[test]
     fn test_sum_single_element() {
         // Test with single element matrix
         let matrix = Matrix::<1, 1, i32>::new([[5]]);
@@ -873,7 +854,7 @@ mod test {
     fn test_clamp_with_reversed_bounds() {
         // Test with min > max (should clamp to max)
         let matrix = Matrix::<1, 2, f64>::new([[1.5, 2.5]]);
-        let result = matrix.clamp(3.0, 2.0);
+        let _result = matrix.clamp(3.0, 2.0);
     }
 
     #[test]
@@ -898,16 +879,6 @@ mod test {
         assert_eq!(result.size(), (1, 2));
         assert_relative_eq!(result.data[0][0], 1.0, epsilon = 1e-10);
         assert!(result.data[0][1].is_nan());
-    }
-
-    #[test]
-    fn test_clamp_empty_matrix() {
-        // Test with empty matrix
-        let matrix = Matrix::<0, 0, f64>::new([]);
-        let result = matrix.clamp(1.0, 2.0);
-        assert_eq!(result.height(), 0);
-        assert_eq!(result.width(), 0);
-        assert_eq!(result.data.len(), 0);
     }
 
     #[test]
@@ -947,14 +918,6 @@ mod test {
         let matrix = Matrix::<1, 3, f64>::new([[-1.0, 0.0, 1.0]]);
         let mean = matrix.mean();
         assert_relative_eq!(mean, 0.0, epsilon = 1e-10);
-    }
-
-    #[test]
-    fn test_mean_empty_matrix() {
-        // Test with empty matrix (should panic)
-        let matrix = Matrix::<0, 0, f64>::new([]);
-        let v = matrix.mean();
-        assert_eq!(0.0, v);
     }
 
     #[test]

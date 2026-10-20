@@ -1,27 +1,17 @@
 use crate::dense::error::OperationError;
-use crate::dense::Matrix;
-use rayon::iter::ParallelIterator;
-use rayon::prelude::{IntoParallelIterator, ParallelBridge};
+use crate::dense::{Matrix, NumericElement};
 use std::fmt::{Debug, Display};
 use std::ops::{Add, Mul, Sub};
-use std::sync::{Arc, Mutex, RwLock};
-use std::sync::atomic::{AtomicPtr, Ordering};
-use std::thread;
-use array_init::array_init;
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Copy
+    T: NumericElement
         + Add<Output = T>
         + Sub<Output = T>
         + Mul<Output = T>
         + Display
         + Default
-        + Send
-        + Sync
-        + TryInto<f64>
         + From<i8>,
-    f64: From<T>,
 {
     pub fn T(&self) -> Matrix<COLS, ROWS, T> {
         let mut data = [[T::default(); ROWS]; COLS];
@@ -81,7 +71,7 @@ where
 
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 where
-    T: Send + Copy + Sync + Display + std::iter::Sum + Default + Debug + Add<Output = T>,
+    T: NumericElement + Display + std::iter::Sum + Default + Debug + Add<Output = T>,
 {
     // 计算矩阵的行和，返回一个列向量
     pub fn sum_row(&self) -> Matrix<ROWS, 1, T> {
@@ -113,11 +103,6 @@ mod tests {
         assert_eq!(m1.size(), (3, 2));
         println!("{}", m1);
         assert_eq!(m1.data, [[1, 4], [2, 5], [3, 6]]);
-
-        let m = Matrix::<0, 0, i32>::new([[]; 0]);
-        let m1 = m.T();
-        assert_eq!(m1.size(), (0, 0));
-        println!("{}", m1);
 
         let m = Matrix::<1, 3, i32>::new([[1, 2, 3]]);
         let m1 = m.T();
@@ -182,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_sum_vertical_large_matrix() {
-        let data = (1..=100).collect::<Vec<_>>();
+        let _data = (1..=100).collect::<Vec<_>>();
         let m = Matrix::<10, 10, i32>::new([
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
@@ -230,14 +215,6 @@ mod tests {
         let result = m.sum_column();
         assert_eq!(result.size(), (1, 4));
         assert_eq!(result.data, [[1, 2, 3, 4]]);
-    }
-
-    #[test]
-    fn test_sum_column_empty_matrix() {
-        let m = Matrix::<0, 0, f64>::new([[]; 0]);
-        let result = m.sum_column();
-        assert_eq!(result.size(), (1, 0));
-        assert_eq!(result.data, [[] as [f64; 0]; 1]);
     }
 
     #[test]

@@ -1,4 +1,3 @@
-use zmatrix::dense;
 use zmatrix::dense::Matrix;
 
 fn main() {
@@ -58,7 +57,7 @@ fn show_transform() {
 
 fn show_set() {
     let mut m1 = Matrix::<2, 3, i32>::new([[1, 2, 3], [4, 5, 6]]);
-    m1.set(1, 1, 12);
+    let _ = m1.set(1, 1, 12);
     let v = m1.get(1, 1);
     if let Some(x) = v {
         println!("set value:{}", x);

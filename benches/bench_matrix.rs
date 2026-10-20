@@ -13,7 +13,7 @@ pub fn random_3x3_array() -> [[f64; 3]; 3] {
 
 fn bench_matrix_new(c: &mut criterion::Criterion) {
     let mut cases:Vec<[[f64;3];3]> = Vec::new();
-    for i in 0..5{
+    for _i in 0..5{
         cases.push(random_3x3_array());
     }
     let mut group = c.benchmark_group("Matrix::new");

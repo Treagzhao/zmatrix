@@ -20,7 +20,7 @@ pub fn random_3d_array() -> [f64; 3] {
 
 fn bench_cos_matrix_product_vector(c: &mut Criterion) {
     let mut cases: Vec<([[f64; 3]; 3], [f64; 3])> = Vec::new();
-    for i in 0..10 {
+    for _i in 0..10 {
         let matrix = random_3x3_array();
         let vector = random_3d_array();
         cases.push((matrix, vector));
@@ -51,7 +51,7 @@ fn bench_cos_matrix_from_matrix(c: &mut Criterion) {
 
 fn bench_cos_matrix_transfer(c: &mut Criterion) {
     let mut cases: Vec<([[f64; 3]; 3], [f64; 3])> = Vec::new();
-    for i in 0..10 {
+    for _i in 0..10 {
         let matrix = random_3x3_array();
         let vector = random_3d_array();
         cases.push((matrix, vector));
@@ -61,13 +61,13 @@ fn bench_cos_matrix_transfer(c: &mut Criterion) {
         group.bench_with_input(
             format!("bench_cos_matrix_transfer {}", i),
             &(CosMatrix::new(matrix), Vector3::<Coef>::from_array(vector)),
-            |b, (matrix, vector)| b.iter(|| matrix.transfer()),
+            |b, (matrix, _vector)| b.iter(|| matrix.transfer()),
         );
     }
 }
 
 pub fn random_f64_array_9() -> [f64; 9] {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut arr = [0.0; 9];
     for item in &mut arr {
         *item = rng.random();
@@ -95,7 +95,7 @@ fn bench_cos_matrix_product(c: &mut Criterion) {
 
 fn bench_cos_matrix_add(c: &mut Criterion) {
     let mut cases: Vec<([[f64; 3]; 3], [[f64; 3]; 3])> = Vec::new();
-    for i in 0..10 {
+    for _i in 0..10 {
         let matrix = random_3x3_array();
         let matrix2 = random_3x3_array();
         cases.push((matrix, matrix2));
@@ -114,7 +114,7 @@ fn bench_cos_matrix_add(c: &mut Criterion) {
 
 fn bench_cos_matrix_multi_f64(c: &mut Criterion) {
     let mut cases: Vec<[[f64; 3]; 3]> = Vec::new();
-    for i in 0..10 {
+    for _i in 0..10 {
         let matrix = random_3x3_array();
         cases.push(matrix);
     }

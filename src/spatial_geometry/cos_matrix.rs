@@ -1,9 +1,8 @@
-use super::*;
 use crate::dense::Matrix;
 use crate::physics::basic::vector::angular::{RotationSeq, TAG_X, TAG_Y, TAG_Z};
-use crate::physics::basic::{Angular, Coef, PhysicalQuantity, Vector3, VectorQuantity};
+use crate::physics::basic::{Angular, Coef, Vector3, VectorQuantity};
 use crate::spatial_geometry::quaternion::Quaternion;
-use crate::utils::float::{sgn, sgn2_64};
+use crate::utils::float::sgn;
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, Copy)]
@@ -482,12 +481,11 @@ impl CosMatrix {
         let y = Angular::atan2(data[2][0], data[2][2]);
         let z = Angular::atan2(data[0][1], data[1][1]);
         let tempf = data[2][1].abs();
-        let mut x: Angular = Angular::default();
-        if tempf > 1.0 {
-            x = Angular::asin(-data[2][1] / tempf);
+        let x: Angular = if tempf > 1.0 {
+            Angular::asin(-data[2][1] / tempf)
         } else {
-            x = Angular::asin(-data[2][1]);
-        }
+            Angular::asin(-data[2][1])
+        };
         Vector3::new(x, y, z)
     }
     // 欧拉角计算，xyz转序

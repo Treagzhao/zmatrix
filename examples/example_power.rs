@@ -1,5 +1,6 @@
 use zmatrix::physics::basic::{Power, Energy, Force, Velocity, PhysicalQuantity};
-use std::time::Duration;
+use zmatrix::physics::basic::time_delta_to_secs_f64;
+use chrono::TimeDelta;
 
 fn main() {
     println!("=== 功率物理量示例 ===\n");
@@ -46,11 +47,11 @@ fn main() {
     // 4. 功率与时间的乘积（得到能量）
     println!("\n4. 功率与时间的乘积（得到能量）:");
     let power = Power::from_watt(100.0); // 100 W
-    let time = Duration::from_secs(5); // 5 s
+    let time = TimeDelta::seconds(5); // 5 s
     let energy: Energy = power * time; // 500 J
 
     println!("   功率: {} W", power.as_watt());
-    println!("   时间: {} s", time.as_secs_f64());
+    println!("   时间: {} s", time_delta_to_secs_f64(&time));
     println!("   能量: {} J", energy.as_joule());
     println!("   验证: 100 W × 5 s = 500 J ✓");
 
@@ -107,7 +108,7 @@ fn main() {
     
     // 电灯泡功率
     let lightbulb = Power::from_watt(60.0); // 60 W灯泡
-    let usage_time = Duration::from_secs(3600); // 1小时
+    let usage_time = TimeDelta::seconds(3600); // 1小时
     let energy_consumed: Energy = lightbulb * usage_time; // 216 kJ
     println!("   60W灯泡使用1小时消耗: {} kJ", energy_consumed.as_kilo_joule());
 
@@ -124,10 +125,10 @@ fn main() {
     
     // 不同功率设备的使用
     let tv = Power::from_watt(100.0); // 100 W电视
-    let tv_time = Duration::from_secs(7200); // 2小时
+    let tv_time = TimeDelta::seconds(7200); // 2小时
     
     let computer = Power::from_watt(300.0); // 300 W电脑
-    let computer_time = Duration::from_secs(3600); // 1小时
+    let computer_time = TimeDelta::seconds(3600); // 1小时
     
     let total_energy: Energy = tv * tv_time + computer * computer_time;
     println!("   电视2小时 + 电脑1小时 = {} kWh", total_energy.as_kilo_joule() / 3600.0);

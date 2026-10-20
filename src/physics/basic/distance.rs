@@ -1,5 +1,4 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use std::time::Duration;
 use super::*;
 
 const LIGHT_YEAR_TO_METER: f64 = 9460730472580800.0;
@@ -48,15 +47,6 @@ impl Distance {
             DistanceType::KM => self.v / LIGHT_YEAR_TO_METER * 1000.0,
             DistanceType::LightYear => self.v,
         }
-    }
-}
-
-impl Div<Duration> for Distance {
-    type Output = Velocity;
-
-    fn div(self, rhs: Duration) -> Self::Output {
-        let v = self.as_m() / rhs.as_secs_f64();
-        Velocity::from_m_per_sec(v)
     }
 }
 
@@ -268,6 +258,7 @@ impl Div<Velocity> for Distance {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeDelta;
     use approx::assert_relative_eq;
     #[test]
     fn test_distance() {
@@ -299,12 +290,12 @@ mod tests {
     #[test]
     fn test_to_velocity() {
         let d1 = Distance::from_m(1000.0);
-        let duration = Duration::from_secs(5);
+        let duration = TimeDelta::seconds(5);
         let v = d1 / duration;
         assert_eq!(v.as_m_per_sec(), 200.0);
 
         let d1 = Distance::from_km(1200.0);
-        let duration = Duration::from_secs(60 * 60 * 24);
+        let duration = TimeDelta::seconds(60 * 60 * 24);
         let v = d1 / duration;
         assert_eq!(v.as_km_per_h(), 50.0);
     }

@@ -1,5 +1,4 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use std::time::Duration;
 use super::*;
 
 const VELOCITY_OF_LIGHT: f64 = 299_792.458;  // km/s
@@ -81,29 +80,12 @@ impl Neg for Velocity {
         Self::from_m_per_sec(-self.v)
     }
 }
-impl Mul<Duration> for Velocity {
-    type Output = Distance;
-
-    fn mul(self, duration: Duration) -> Self::Output {
-        let v = self.as_m_per_sec() * duration.as_secs_f64();
-        Distance::from_m(v)
-    }
-}
-
 impl Mul<chrono::TimeDelta> for Velocity {
     type Output = Distance;
 
     fn mul(self, duration: chrono::TimeDelta) -> Self::Output {
         let v = self.as_m_per_sec() * time_delta_to_secs_f64(&duration);
         Distance::from_m(v)
-    }
-}
-
-impl Div<Duration> for Velocity {
-    type Output = Acceleration;
-    fn div(self, duration: Duration) -> Self::Output {
-        let v = self.as_m_per_sec() / duration.as_secs_f64();
-        Acceleration::from_m_per_s2(v)
     }
 }
 
@@ -322,20 +304,7 @@ impl<'a> Div<Acceleration> for &'a Velocity {
     fn div(self, rhs: Acceleration) -> Self::Output { time_delta_from_secs_f64(self.as_m_per_sec() / rhs.as_m_per_s2()) }
 }
 
-// 引用版本：Velocity * Duration -> Distance
-impl<'a> Mul<std::time::Duration> for &'a Velocity {
-    type Output = Distance;
-    fn mul(self, duration: std::time::Duration) -> Self::Output { Distance::from_m(self.as_m_per_sec() * duration.as_secs_f64()) }
-}
-impl<'a> Mul<&'a std::time::Duration> for Velocity {
-    type Output = Distance;
-    fn mul(self, duration: &'a std::time::Duration) -> Self::Output { Distance::from_m(self.as_m_per_sec() * duration.as_secs_f64()) }
-}
-impl<'a, 'b> Mul<&'b std::time::Duration> for &'a Velocity {
-    type Output = Distance;
-    fn mul(self, duration: &'b std::time::Duration) -> Self::Output { Distance::from_m(self.as_m_per_sec() * duration.as_secs_f64()) }
-}
-
+// 引用版本：Velocity * TimeDelta -> Distance
 // 引用版本：Velocity * TimeDelta -> Distance
 impl<'a> Mul<chrono::TimeDelta> for &'a Velocity {
     type Output = Distance;
@@ -352,6 +321,7 @@ impl<'a, 'b> Mul<&'b chrono::TimeDelta> for &'a Velocity {
 
 #[cfg(test)]
 mod tests {
+    use chrono::TimeDelta;
     use approx::assert_relative_eq;
     use super::*;
     #[test]
@@ -403,25 +373,25 @@ mod tests {
     #[test]
     fn test_mul() {
         let v = Velocity::from_m_per_sec(3.0);
-        let duration = Duration::from_secs_f64(15.0);
+        let duration = time_delta_from_secs_f64(15.0);
         let d = v * duration;
         assert_eq!(d.as_m(), 45.0);
         assert_eq!(d.as_km(), 0.045);
 
         let v = Velocity::from_m_per_sec(3.0);
-        let duration = Duration::from_millis(500);
+        let duration = TimeDelta::milliseconds(500);
         let d = v * duration;
         assert_eq!(d.as_m(), 1.5);
         assert_eq!(d.as_km(), 0.0015);
 
         let v = Velocity::from_km_per_h(36.0);
-        let duration = Duration::from_millis(500);
+        let duration = TimeDelta::milliseconds(500);
         let d = v * duration;
         assert_eq!(d.as_m(), 5.0);
         assert_eq!(d.as_km(), 0.005);
 
         let v = Velocity::from_km_per_h(36.0);
-        let duration = Duration::from_secs_f64(500.0);
+        let duration = time_delta_from_secs_f64(500.0);
         let d = v * duration;
         assert_eq!(d.as_m(), 5000.0);
         assert_eq!(d.as_km(), 5.0);
@@ -448,7 +418,7 @@ mod tests {
     #[test]
     fn test_div() {
         let v = Velocity::from_m_per_sec(1.0);
-        let duration = Duration::from_secs_f64(15.0);
+        let duration = time_delta_from_secs_f64(15.0);
         let d = v / duration;
         assert_eq!(d.as_m_per_s2(), 0.06666666666666667);
     }
@@ -657,7 +627,7 @@ mod tests {
         let t = &v1 / &Acceleration::from_m_per_s2(2.0);
         assert_relative_eq!(time_delta_to_secs_f64(&t), 1.0);
 
-        let dist = &v1 * &std::time::Duration::from_secs(2);
+        let dist = &v1 * &TimeDelta::seconds(2);
         assert_relative_eq!(dist.as_m(), 4.0);
 
         // 混合引用：Velocity * Mass
@@ -700,11 +670,11 @@ mod tests {
         let t3 = &v1f / Acceleration::from_m_per_s2(2.0);
         assert_relative_eq!(time_delta_to_secs_f64(&t3), 1.0);
 
-        // 混合引用：* Duration
-        let d4 = v1 * &std::time::Duration::from_secs(2);
+        // 混合引用：* TimeDelta
+        let d4 = v1 * &TimeDelta::seconds(2);
         assert_relative_eq!(d4.as_m(), 4.0);
         let v1g = Velocity::from_m_per_sec(2.0);
-        let d5 = &v1g * std::time::Duration::from_secs(2);
+        let d5 = &v1g * TimeDelta::seconds(2);
         assert_relative_eq!(d5.as_m(), 4.0);
 
         // TimeDelta 引用版本：Velocity * TimeDelta

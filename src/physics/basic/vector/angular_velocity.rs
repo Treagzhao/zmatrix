@@ -1,5 +1,4 @@
 use std::ops::Mul;
-use std::time::Duration;
 use crate::physics::basic::{Angular, AngularVelocity, AngularVelocityType, Coef, Vector3};
 use crate::utils::float;
 
@@ -106,17 +105,6 @@ impl Vector3<AngularVelocity> {
     }
 }
 
-impl Mul<Duration> for Vector3<AngularVelocity> {
-    type Output = Vector3<Angular>;
-
-    fn mul(self, rhs: Duration) -> Self::Output {
-        let x= self.x * rhs;
-        let y= self.y * rhs;
-        let z = self.z * rhs;
-        Vector3::new(x, y, z)
-    }
-}
-
 impl Mul<chrono::TimeDelta> for Vector3<AngularVelocity> {
     type Output = Vector3<Angular>;
 
@@ -130,6 +118,7 @@ impl Mul<chrono::TimeDelta> for Vector3<AngularVelocity> {
 
 #[cfg(test)]
 mod test {
+    use chrono::TimeDelta;
     use approx::assert_relative_eq;
     use super::*;
     use crate::physics::basic::time_delta_from_secs_f64;
@@ -198,7 +187,7 @@ mod test {
     #[test]
     fn test_convert(){
         let v:Vector3<AngularVelocity> = Vector3::new(AngularVelocity::from_rad_per_second(1.0),AngularVelocity::from_rad_per_second(2.0),AngularVelocity::from_rad_per_second(3.0));
-        let duration = Duration::from_secs(2);
+        let duration = TimeDelta::seconds(2);
         let v2 = v * duration;
         assert_relative_eq!(v2.x.as_rad(),2.0);
         assert_relative_eq!(v2.y.as_rad(),4.0);

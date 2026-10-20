@@ -1,5 +1,4 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use std::time::Duration;
 use super::*;
 const G: f64 = 9.80665;
 impl Acceleration {
@@ -55,15 +54,6 @@ impl Default for Acceleration {
     }
 }
 
-impl Mul<Duration> for Acceleration {
-    type Output = Velocity;
-    fn mul(self, rhs: Duration) -> Self::Output {
-        let a = self.as_m_per_s2();
-        let v = a * rhs.as_secs_f64();
-        Velocity::from_m_per_sec(v)
-    }
-}
-
 impl Mul<chrono::TimeDelta> for Acceleration {
     type Output = Velocity;
     fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
@@ -72,20 +62,7 @@ impl Mul<chrono::TimeDelta> for Acceleration {
     }
 }
 
-// 引用版本：Acceleration * Duration -> Velocity
-impl<'a> Mul<Duration> for &'a Acceleration {
-    type Output = Velocity;
-    fn mul(self, rhs: Duration) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_s2() * rhs.as_secs_f64()) }
-}
-impl<'a> Mul<&'a Duration> for Acceleration {
-    type Output = Velocity;
-    fn mul(self, rhs: &'a Duration) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_s2() * rhs.as_secs_f64()) }
-}
-impl<'a, 'b> Mul<&'b Duration> for &'a Acceleration {
-    type Output = Velocity;
-    fn mul(self, rhs: &'b Duration) -> Self::Output { Velocity::from_m_per_sec(self.as_m_per_s2() * rhs.as_secs_f64()) }
-}
-
+// 引用版本：Acceleration * TimeDelta -> Velocity
 // 引用版本：Acceleration * TimeDelta -> Velocity
 impl<'a> Mul<chrono::TimeDelta> for &'a Acceleration {
     type Output = Velocity;
@@ -250,6 +227,7 @@ impl Neg for Acceleration {
 
 #[cfg(test)]
 mod tests {
+    use chrono::TimeDelta;
     use approx::assert_relative_eq;
     use super::*;
     #[test]
@@ -300,7 +278,7 @@ mod tests {
     #[test]
     fn test_acceleration_to_velocity() {
         let a = Acceleration::from_m_per_s2(1000.0);
-        let d = Duration::from_secs(1);
+        let d = TimeDelta::seconds(1);
         let v = a * d;
         assert_eq!(v.as_m_per_sec(), 1000.0);
     }
@@ -462,7 +440,7 @@ mod tests {
         let d = &a1 - &a2;
         assert_relative_eq!(d.as_m_per_s2(), 1.0);
 
-        let v = &a1 * &std::time::Duration::from_secs(2);
+        let v = &a1 * &TimeDelta::seconds(2);
         assert_relative_eq!(v.as_m_per_sec(), 4.0);
 
         // 混合引用：加/减
@@ -476,8 +454,8 @@ mod tests {
         let d3 = &a1 - a2b;
         assert_relative_eq!(d3.as_m_per_s2(), 1.0);
 
-        // 混合引用：* Duration
-        let dur = std::time::Duration::from_secs(2);
+        // 混合引用：* TimeDelta
+        let dur = TimeDelta::seconds(2);
         let v2 = a1 * &dur;
         assert_relative_eq!(v2.as_m_per_sec(), 4.0);
         let v3 = &a1 * dur;

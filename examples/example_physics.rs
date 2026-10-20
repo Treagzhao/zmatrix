@@ -1,4 +1,4 @@
-use std::time::Duration;
+use chrono::TimeDelta;
 use zmatrix::physics::basic::*;
 
 fn main(){
@@ -18,13 +18,13 @@ fn main(){
 
 fn calculate() {
     let distance = Distance::from_m(1000.0);
-    let time = Duration::from_secs(10);
+    let time = TimeDelta::seconds(10);
     let velocity: Velocity = distance / time;
     let acc: Acceleration = velocity / time;
     println!("速度: {} m/s, 加速度: {} m/s²", velocity.as_m_per_sec(), acc.as_m_per_s2());
 
     let ang: Angular = Angular::from_deg(180.0);
-    let time = Duration::from_secs(10);
+    let time = TimeDelta::seconds(10);
     let omg: AngularVelocity = ang / time;
     let angular_accel: AngularAcceleration = omg / time;
     println!(

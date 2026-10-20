@@ -334,14 +334,6 @@ impl<'a> Div<Velocity> for &'a Power {
 }
 
 // 功率与时间的乘积（得到能量）
-impl Mul<std::time::Duration> for Power {
-    type Output = Energy; // 能量，单位：焦耳
-    fn mul(self, rhs: std::time::Duration) -> Self::Output {
-        let energy_value = self.as_watt() * rhs.as_secs_f64();
-        Energy::from_joule(energy_value)
-    }
-}
-
 impl Mul<chrono::TimeDelta> for Power {
     type Output = Energy; // 能量，单位：焦耳
     fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
@@ -351,14 +343,6 @@ impl Mul<chrono::TimeDelta> for Power {
 }
 
 // 时间与功率的乘积（得到能量，满足交换律）
-impl Mul<Power> for std::time::Duration {
-    type Output = Energy; // 能量，单位：焦耳
-    fn mul(self, rhs: Power) -> Self::Output {
-        let energy_value = self.as_secs_f64() * rhs.as_watt();
-        Energy::from_joule(energy_value)
-    }
-}
-
 impl Mul<Power> for chrono::TimeDelta {
     type Output = Energy; // 能量，单位：焦耳
     fn mul(self, rhs: Power) -> Self::Output {
@@ -430,10 +414,10 @@ impl<'a> Mul<ElectricPotential> for &'a ElectricCurrent {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeDelta;
     use crate::physics::basic::time_delta_from_secs_f64;
     use approx::assert_relative_eq;
     use crate::physics::basic::{Energy, Force, Velocity};
-    use std::time::Duration;
 
     #[test]
     fn test_power() {
@@ -503,7 +487,7 @@ mod tests {
     #[test]
     fn test_power_mul_duration() {
         let power = Power::from_watt(100.0); // 100 W
-        let time = Duration::from_secs(5); // 5 s
+        let time = TimeDelta::seconds(5); // 5 s
         let energy: Energy = power * time; // 500 J
         
         assert_relative_eq!(energy.as_joule(), 500.0);
@@ -528,7 +512,7 @@ mod tests {
 
     #[test]
     fn test_duration_mul_power() {
-        let time = Duration::from_secs(5); // 5 s
+        let time = TimeDelta::seconds(5); // 5 s
         let power = Power::from_watt(100.0); // 100 W
         let energy: Energy = time * power; // 500 J
         
@@ -1022,7 +1006,7 @@ mod tests {
         assert_relative_eq!(result_power2.as_watt(), 100.0);
         
         // 功率 × 时间 = 能量
-        let time = Duration::from_secs(2);
+        let time = TimeDelta::seconds(2);
         let energy = power * time;
         assert_relative_eq!(energy.as_joule(), 200.0);
         

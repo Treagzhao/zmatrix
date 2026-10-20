@@ -1,5 +1,18 @@
-use crate::physics::basic::{Acceleration, AccelerationType, Coef, Vector3};
+use std::ops::Mul;
+use crate::physics::basic::{Acceleration, AccelerationType, Coef, Vector3, Velocity};
 use crate::utils::float;
+
+// 加速度乘以时间（得到速度），逐分量委托给标量实现
+impl Mul<chrono::TimeDelta> for Vector3<Acceleration> {
+    type Output = Vector3<Velocity>;
+
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let x = self.x * rhs;
+        let y = self.y * rhs;
+        let z = self.z * rhs;
+        Vector3::<Velocity>::new(x, y, z)
+    }
+}
 
 impl Vector3<Acceleration> {
     pub fn limit_float(&self, threshold: f64, acceleration_type: AccelerationType) -> Self {
@@ -81,6 +94,29 @@ impl Vector3<Acceleration> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // 加速度 * 时间 = 速度，验证逐分量语义与零时间
+    #[test]
+    fn test_mul_timedelta() {
+        let a = Vector3::new(
+            Acceleration::from_m_per_s2(2.0),
+            Acceleration::from_m_per_s2(3.0),
+            Acceleration::from_m_per_s2(-1.0),
+        );
+        let v = a * chrono::TimeDelta::seconds(2);
+        assert_relative_eq!(v.x.as_m_per_sec(), 4.0);
+        assert_relative_eq!(v.y.as_m_per_sec(), 6.0);
+        assert_relative_eq!(v.z.as_m_per_sec(), -2.0);
+
+        // 负时间
+        let v_neg = a * chrono::TimeDelta::seconds(-1);
+        assert_relative_eq!(v_neg.x.as_m_per_sec(), -2.0);
+
+        // 零时间：速度增量为零
+        let v_zero = a * chrono::TimeDelta::zero();
+        assert_relative_eq!(v_zero.x.as_m_per_sec(), 0.0);
+        assert_relative_eq!(v_zero.z.as_m_per_sec(), 0.0);
+    }
     use approx::assert_relative_eq;
 
     #[test]

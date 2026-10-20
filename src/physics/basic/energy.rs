@@ -350,14 +350,6 @@ impl Neg for Energy {
 }
 
 // 能量 ÷ 时间 = 功率
-impl Div<std::time::Duration> for Energy {
-    type Output = crate::physics::basic::Power;
-    fn div(self, rhs: std::time::Duration) -> Self::Output {
-        let power_value = self.as_joule() / rhs.as_secs_f64();
-        crate::physics::basic::Power::from_watt(power_value)
-    }
-}
-
 impl Div<chrono::TimeDelta> for Energy {
     type Output = crate::physics::basic::Power;
     fn div(self, rhs: chrono::TimeDelta) -> Self::Output {
@@ -366,20 +358,7 @@ impl Div<chrono::TimeDelta> for Energy {
     }
 }
 
-// 引用版本：Energy / Duration -> Power
-impl<'a> Div<std::time::Duration> for &'a Energy {
-    type Output = crate::physics::basic::Power;
-    fn div(self, rhs: std::time::Duration) -> Self::Output { crate::physics::basic::Power::from_watt(self.as_joule() / rhs.as_secs_f64()) }
-}
-impl<'a> Div<&'a std::time::Duration> for Energy {
-    type Output = crate::physics::basic::Power;
-    fn div(self, rhs: &'a std::time::Duration) -> Self::Output { crate::physics::basic::Power::from_watt(self.as_joule() / rhs.as_secs_f64()) }
-}
-impl<'a, 'b> Div<&'b std::time::Duration> for &'a Energy {
-    type Output = crate::physics::basic::Power;
-    fn div(self, rhs: &'b std::time::Duration) -> Self::Output { crate::physics::basic::Power::from_watt(self.as_joule() / rhs.as_secs_f64()) }
-}
-
+// 引用版本：Energy / TimeDelta -> Power
 // 引用版本：Energy / TimeDelta -> Power
 impl<'a> Div<chrono::TimeDelta> for &'a Energy {
     type Output = crate::physics::basic::Power;
@@ -462,6 +441,7 @@ impl<'a> Mul<ElectricCharge> for &'a ElectricPotential {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeDelta;
     use crate::physics::basic::time_delta_from_secs_f64;
     use approx::assert_relative_eq;
 
@@ -758,9 +738,9 @@ mod tests {
     fn test_energy_physical_operations() {
         // 测试 Energy 与物理量的运算
 
-        // Energy ÷ Duration = Power
+        // Energy ÷ TimeDelta = Power
         let energy = Energy::from_joule(100.0);
-        let time = std::time::Duration::from_secs(5);
+        let time = TimeDelta::seconds(5);
         let power = energy / time;
         assert_relative_eq!(power.as_watt(), 20.0);
 
@@ -772,7 +752,7 @@ mod tests {
 
         // 测试不同单位的 Energy 进行物理运算
         let energy_mill = Energy::from_mill_joule(100000.0); // 100 J
-        let time = std::time::Duration::from_secs(5);
+        let time = TimeDelta::seconds(5);
         let power = energy_mill / time;
         assert_relative_eq!(power.as_watt(), 20.0);
 
@@ -782,7 +762,7 @@ mod tests {
         assert_relative_eq!(force.as_newton(), 20.0);
 
         let energy_ev = Energy::from_electron_volt(100.0 / 1.602176634e-19); // 100 J
-        let time = std::time::Duration::from_secs(5);
+        let time = TimeDelta::seconds(5);
         let power = energy_ev / time;
         assert_relative_eq!(power.as_watt(), 20.0);
     }
@@ -1031,7 +1011,7 @@ mod tests {
     #[test]
     fn test_energy_div_duration() {
         let energy = Energy::from_joule(100.0); // 100 J
-        let time = std::time::Duration::from_secs(5); // 5 s
+        let time = TimeDelta::seconds(5); // 5 s
         let power: crate::physics::basic::Power = energy / time; // 20 W
 
         assert_relative_eq!(power.as_watt(), 20.0);
@@ -1069,7 +1049,7 @@ mod tests {
         let d = &e1 - &e2;
         assert_relative_eq!(d.as_joule(), 5.0);
 
-        let p = &e1 / &std::time::Duration::from_secs(2);
+        let p = &e1 / &TimeDelta::seconds(2);
         assert_relative_eq!(p.as_watt(), 5.0);
 
         let f = &e1 / &Distance::from_m(2.0);
@@ -1086,8 +1066,8 @@ mod tests {
         let d3 = &e1 - e2b;
         assert_relative_eq!(d3.as_joule(), 5.0);
 
-        // 混合引用：/ Duration
-        let dur = std::time::Duration::from_secs(2);
+        // 混合引用：/ TimeDelta
+        let dur = TimeDelta::seconds(2);
         let p2 = e1 / &dur;
         assert_relative_eq!(p2.as_watt(), 5.0);
         let p3 = &e1 / dur;

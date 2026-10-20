@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use crate::physics::basic::{Coef, Force, ForceType, PhysicalQuantity, Distance, Energy, Mass, Acceleration};
+use crate::physics::basic::{Coef, Force, ForceType, PhysicalQuantity, Distance, Energy, Mass, Acceleration, Momentum};
+use crate::physics::basic::time_delta_to_secs_f64;
 
 impl Default for Force {
     fn default() -> Self {
@@ -329,9 +330,68 @@ impl Mul<Mass> for Acceleration {
     }
 }
 
+// 力与时间的乘积（得到动量）：N·s = kg·m/s
+impl Mul<chrono::TimeDelta> for Force {
+    type Output = Momentum;
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let v = self.as_newton() * time_delta_to_secs_f64(&rhs);
+        Momentum::from_kg_m_s(v)
+    }
+}
+
+// 引用版本：Force * TimeDelta -> Momentum
+impl<'a> Mul<chrono::TimeDelta> for &'a Force {
+    type Output = Momentum;
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        Momentum::from_kg_m_s(self.as_newton() * time_delta_to_secs_f64(&rhs))
+    }
+}
+impl<'a> Mul<&'a chrono::TimeDelta> for Force {
+    type Output = Momentum;
+    fn mul(self, rhs: &'a chrono::TimeDelta) -> Self::Output {
+        Momentum::from_kg_m_s(self.as_newton() * time_delta_to_secs_f64(rhs))
+    }
+}
+impl<'a, 'b> Mul<&'b chrono::TimeDelta> for &'a Force {
+    type Output = Momentum;
+    fn mul(self, rhs: &'b chrono::TimeDelta) -> Self::Output {
+        Momentum::from_kg_m_s(self.as_newton() * time_delta_to_secs_f64(rhs))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // 力 * 时间 = 动量（冲量定理）：F·Δt = Δp
+    #[test]
+    fn test_mul_timedelta() {
+        let f = Force::from_newton(3.0);
+        let p = f * chrono::TimeDelta::seconds(2);
+        assert_relative_eq!(p.as_kg_m_s(), 6.0);
+
+        // 负时间：冲量与力反向
+        let p_neg = f * chrono::TimeDelta::seconds(-2);
+        assert_relative_eq!(p_neg.as_kg_m_s(), -6.0);
+
+        // 零时间：无冲量
+        let p_zero = f * chrono::TimeDelta::zero();
+        assert_relative_eq!(p_zero.as_kg_m_s(), 0.0);
+
+        // 单位无关性：1 kN 作用 1 ms 与 1000 N 作用 1 ms 等价
+        let a = Force::from_kilo_newton(1.0) * chrono::TimeDelta::milliseconds(1);
+        let b = Force::from_newton(1000.0) * chrono::TimeDelta::milliseconds(1);
+        assert_relative_eq!(a.as_kg_m_s(), b.as_kg_m_s());
+
+        // 引用变体
+        let p_ref = &f * chrono::TimeDelta::seconds(2);
+        assert_relative_eq!(p_ref.as_kg_m_s(), 6.0);
+        let td = chrono::TimeDelta::seconds(2);
+        let p_ref2 = f * &td;
+        assert_relative_eq!(p_ref2.as_kg_m_s(), 6.0);
+        let p_ref3 = &f * &td;
+        assert_relative_eq!(p_ref3.as_kg_m_s(), 6.0);
+    }
     use approx::assert_relative_eq;
     use crate::physics::basic::{Distance, Energy, Mass, Acceleration};
 

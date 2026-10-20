@@ -1,5 +1,4 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use std::time::Duration;
 use approx::{AbsDiffEq, RelativeEq};
 use super::*;
 impl Coef {
@@ -106,15 +105,6 @@ impl Sub<Coef> for f64 {
     type Output = Coef;
     fn sub(self, rhs: Coef) -> Self::Output {
         Coef { v: self - rhs.v }
-    }
-}
-
-impl Mul<Duration> for Coef {
-    type Output = Coef;
-
-    fn mul(self, rhs: Duration) -> Self::Output {
-        let v = self.get_value() * rhs.as_secs_f64();
-        Coef { v }
     }
 }
 
@@ -317,6 +307,7 @@ impl_coef_mul_quantity!(
 
 #[cfg(test)]
 mod tests {
+    use chrono::TimeDelta;
     use approx::assert_relative_eq;
     use super::*;
     #[test]
@@ -406,7 +397,7 @@ mod tests {
         assert_eq!(result.get_value(), 6.0);
 
         let coef = Coef::new(2.0);
-        let result = coef * Duration::from_secs(10);
+        let result = coef * TimeDelta::seconds(10);
         assert_eq!(result.get_value(), 20.0);
 
         let coef = Coef::new(2.0);

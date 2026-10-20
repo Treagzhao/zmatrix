@@ -2,7 +2,6 @@ use crate::physics::basic::{
     AngularMomentum, Coef, Distance, DistanceType, Momentum, Vector3, Velocity,
 };
 use std::ops::{Div, Mul};
-use std::time::Duration;
 use crate::utils::float;
 
 impl Mul<Vector3<Momentum>> for Vector3<Distance> {
@@ -12,17 +11,6 @@ impl Mul<Vector3<Momentum>> for Vector3<Distance> {
         let y = self.z * rhs.x - self.x * rhs.z;
         let z = self.x * rhs.y - self.y * rhs.x;
         Vector3::new(x, y, z)
-    }
-}
-
-impl Div<Duration> for Vector3<Distance> {
-    type Output = Vector3<Velocity>;
-
-    fn div(self, rhs: Duration) -> Self::Output {
-        let x = self.x / rhs;
-        let y = self.y / rhs;
-        let z = self.z / rhs;
-        Vector3::<Velocity>::new(x, y, z)
     }
 }
 
@@ -121,6 +109,7 @@ impl Vector3<Distance> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeDelta;
     use crate::physics::basic::time_delta_from_secs_f64;
     use approx::assert_relative_eq;
 
@@ -172,7 +161,7 @@ mod tests {
             Distance::from_m(20.0),
             Distance::from_m(30.0),
         );
-        let v = a / Duration::from_secs(10);
+        let v = a / TimeDelta::seconds(10);
         assert_relative_eq!(v.x.as_m_per_sec(), 1.0);
         assert_relative_eq!(v.y.as_m_per_sec(), 2.0);
         assert_relative_eq!(v.z.as_m_per_sec(), 3.0);

@@ -1,6 +1,5 @@
 use std::f64::consts::PI;
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use std::time::Duration;
 
 use crate::physics::basic::{AngularVelocity, MagneticInduction, MagneticAngularVelocity};
 use super::*;
@@ -90,14 +89,6 @@ impl PhysicalQuantity for AngularVelocity {
     }
 }
 
-impl Mul<Duration> for AngularVelocity {
-    type Output = Angular;
-    fn mul(self, rhs: Duration) -> Self::Output {
-        let v = self.as_rad_per_second() * rhs.as_secs_f64();
-        Angular::from_rad(v)
-    }
-}
-
 impl Mul<chrono::TimeDelta> for AngularVelocity {
     type Output = Angular;
     fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
@@ -106,15 +97,6 @@ impl Mul<chrono::TimeDelta> for AngularVelocity {
     }
 }
 
-
-impl Div<Duration> for AngularVelocity {
-    type Output = AngularAcceleration;
-
-    fn div(self, rhs: Duration) -> Self::Output {
-        let v = self.as_rad_per_second() / rhs.as_secs_f64();
-        AngularAcceleration::from_rad_per_second2(v)
-    }
-}
 
 impl Div<chrono::TimeDelta> for AngularVelocity {
     type Output = AngularAcceleration;
@@ -399,13 +381,13 @@ mod tests {
     #[test]
     fn test_angular_velocity_change() {
         let omg1 = AngularVelocity::from_rad_per_second(10.0);
-        let duration = Duration::from_secs_f64(2.0);
+        let duration = time_delta_from_secs_f64(2.0);
         let theta1 = omg1 * duration;
         assert_eq!(theta1.default_type, AngularType::Rad);
         assert_eq!(theta1.as_rad(), 20.0);
 
         let omg1 = AngularVelocity::from_rad_per_second(10.0);
-        let duration = Duration::from_secs_f64(2.0);
+        let duration = time_delta_from_secs_f64(2.0);
         let alpha = omg1 / duration;
         assert_eq!(alpha.default_type, AngularAccelerationType::RadperSecond2);
         assert_relative_eq!(alpha.as_rad_per_second2(),5.0);
@@ -822,7 +804,7 @@ mod tests {
         let c3 = &w1 / w1;
         assert_relative_eq!(c3.get_value(), 1.0);
 
-        // 混合引用：/ AngularAcceleration -> Duration
+        // 混合引用：/ AngularAcceleration -> TimeDelta
         let ta = w1 / &AngularAcceleration::from_rad_per_second2(std::f64::consts::PI);
         assert_relative_eq!(time_delta_to_secs_f64(&ta), 1.0);
         let tb = &w1 / AngularAcceleration::from_rad_per_second2(std::f64::consts::PI);

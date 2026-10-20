@@ -1,7 +1,20 @@
+use std::ops::Mul;
 use crate::physics::basic::{
-    Force, ForceType, Vector3, Coef,
+    Force, ForceType, Vector3, Coef, Momentum,
 };
 use crate::utils::float;
+
+// 力乘以时间（得到动量），逐分量委托给标量实现
+impl Mul<chrono::TimeDelta> for Vector3<Force> {
+    type Output = Vector3<Momentum>;
+
+    fn mul(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let x = self.x * rhs;
+        let y = self.y * rhs;
+        let z = self.z * rhs;
+        Vector3::<Momentum>::new(x, y, z)
+    }
+}
 
 impl Vector3<Force> {
     pub fn limit_float(&self, threshold: f64, force_type: ForceType) -> Self {
@@ -176,6 +189,28 @@ impl Vector3<Force> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // 力 * 时间 = 动量（冲量定理），验证逐分量语义与负时间
+    #[test]
+    fn test_mul_timedelta() {
+        let f = Vector3::new(
+            Force::from_newton(1.0),
+            Force::from_newton(2.0),
+            Force::from_newton(-3.0),
+        );
+        let p = f * chrono::TimeDelta::seconds(2);
+        assert_relative_eq!(p.x.as_kg_m_s(), 2.0);
+        assert_relative_eq!(p.y.as_kg_m_s(), 4.0);
+        assert_relative_eq!(p.z.as_kg_m_s(), -6.0);
+
+        // 负时间
+        let p_neg = f * chrono::TimeDelta::seconds(-1);
+        assert_relative_eq!(p_neg.x.as_kg_m_s(), -1.0);
+
+        // 零时间
+        let p_zero = f * chrono::TimeDelta::zero();
+        assert_relative_eq!(p_zero.x.as_kg_m_s(), 0.0);
+    }
     use approx::assert_relative_eq;
 
     #[test]

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use chrono::TimeDelta;
 use zmatrix::physics::basic::{Distance, Mass, Vector3};
 
 fn main() {
@@ -8,7 +8,7 @@ fn main() {
         Distance::from_m(20.0),
         Distance::from_m(30.0),
     );
-    let v = a / Duration::from_secs(10);
+    let v = a / TimeDelta::seconds(10);
     println!("{:?}", a);
 
     //速度向量乘以质量，变成动量向量

@@ -1,5 +1,5 @@
 use zmatrix::physics::basic::*;
-use std::time::Duration;
+use chrono::TimeDelta;
 
 fn main() {
     println!("=== 新增物理量运算关系示例 ===\n");
@@ -7,7 +7,7 @@ fn main() {
     // 1. 能量 ÷ 时间 = 功率
     println!("1. 能量 ÷ 时间 = 功率");
     let energy = Energy::from_joule(1000.0); // 1000 J
-    let time = Duration::from_secs(10); // 10 s
+    let time = TimeDelta::seconds(10); // 10 s
     let power: Power = energy / time; // 100 W
     println!("   1000 J ÷ 10 s = {} W", power.as_watt());
     println!("   验证: {} W × 10 s = {} J\n", power.as_watt(), (power * time).as_joule());

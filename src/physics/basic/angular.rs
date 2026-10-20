@@ -1,7 +1,6 @@
 use super::*;
 use std::f64::consts::{PI, TAU};
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use std::time::Duration;
 
 impl Angular {
     pub fn from_rad(rad: f64) -> Self {
@@ -165,14 +164,6 @@ impl Sub<f64> for Angular {
     }
 }
 
-impl Div<Duration> for Angular {
-    type Output = AngularVelocity;
-    fn div(self, rhs: Duration) -> Self::Output {
-        let v = self.as_rad() / rhs.as_secs_f64();
-        AngularVelocity::from_rad_per_second(v)
-    }
-}
-
 impl Div<chrono::TimeDelta> for Angular {
     type Output = AngularVelocity;
     fn div(self, rhs: chrono::TimeDelta) -> Self::Output {
@@ -181,26 +172,7 @@ impl Div<chrono::TimeDelta> for Angular {
     }
 }
 
-// 引用版本：Angular / Duration -> AngularVelocity
-impl<'a> Div<Duration> for &'a Angular {
-    type Output = AngularVelocity;
-    fn div(self, rhs: Duration) -> Self::Output {
-        AngularVelocity::from_rad_per_second(self.as_rad() / rhs.as_secs_f64())
-    }
-}
-impl<'a> Div<&'a Duration> for Angular {
-    type Output = AngularVelocity;
-    fn div(self, rhs: &'a Duration) -> Self::Output {
-        AngularVelocity::from_rad_per_second(self.as_rad() / rhs.as_secs_f64())
-    }
-}
-impl<'a, 'b> Div<&'b Duration> for &'a Angular {
-    type Output = AngularVelocity;
-    fn div(self, rhs: &'b Duration) -> Self::Output {
-        AngularVelocity::from_rad_per_second(self.as_rad() / rhs.as_secs_f64())
-    }
-}
-
+// 引用版本：Angular / TimeDelta -> AngularVelocity
 // 引用版本：Angular / TimeDelta -> AngularVelocity
 impl<'a> Div<chrono::TimeDelta> for &'a Angular {
     type Output = AngularVelocity;
@@ -310,6 +282,7 @@ impl Neg for Angular {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeDelta;
     use approx::assert_relative_eq;
     #[test]
     fn test_angular() {
@@ -444,7 +417,7 @@ mod tests {
     #[test]
     fn test_angular_to_angular_velocity() {
         let theta1 = Angular::from_rad(PI * 0.5);
-        let omg1 = theta1 / Duration::from_secs(2);
+        let omg1 = theta1 / TimeDelta::seconds(2);
         assert_eq!(omg1.default_type, AngularVelocityType::RadperSecond);
         assert_eq!(omg1.v, PI / 4.0);
     }
@@ -581,7 +554,7 @@ mod tests {
         let d = &a1 - &a2;
         assert_relative_eq!(d.as_deg(), 0.0, epsilon = 1e-10);
 
-        let omg = &a1 / &std::time::Duration::from_secs(2);
+        let omg = &a1 / &TimeDelta::seconds(2);
         assert_relative_eq!(omg.as_rad_per_second(), (std::f64::consts::PI / 12.0));
 
         // 混合引用：加/减
@@ -595,8 +568,8 @@ mod tests {
         let d3 = &a1 - a2b;
         assert_relative_eq!(d3.as_deg(), 0.0, epsilon = 1e-10);
 
-        // 混合引用：/ Duration
-        let dur = std::time::Duration::from_secs(2);
+        // 混合引用：/ TimeDelta
+        let dur = TimeDelta::seconds(2);
         let w2 = a1 / &dur;
         assert_relative_eq!(w2.as_rad_per_second(), (std::f64::consts::PI / 12.0));
         let w3 = &a1 / dur;

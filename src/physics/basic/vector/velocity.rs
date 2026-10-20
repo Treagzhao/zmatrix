@@ -1,6 +1,18 @@
-use std::ops::Mul;
-use crate::physics::basic::{Coef, Mass, Momentum, Vector3, Velocity, VelocityType};
+use std::ops::{Div, Mul};
+use crate::physics::basic::{Acceleration, Coef, Mass, Momentum, Vector3, Velocity, VelocityType};
 use crate::utils::float;
+
+// 速度除以时间（得到加速度），逐分量委托给标量实现
+impl Div<chrono::TimeDelta> for Vector3<Velocity> {
+    type Output = Vector3<Acceleration>;
+
+    fn div(self, rhs: chrono::TimeDelta) -> Self::Output {
+        let x = self.x / rhs;
+        let y = self.y / rhs;
+        let z = self.z / rhs;
+        Vector3::<Acceleration>::new(x, y, z)
+    }
+}
 
 impl Mul<Mass> for Vector3<Velocity> {
     type Output = Vector3<Momentum>;
@@ -100,6 +112,29 @@ impl Vector3<Velocity> {
 mod tests {
     use approx::assert_relative_eq;
     use super::*;
+
+    // 速度 / 时间 = 加速度，验证逐分量语义与负时间
+    #[test]
+    fn test_div_timedelta() {
+        let v = Vector3::new(
+            Velocity::from_m_per_sec(10.0),
+            Velocity::from_m_per_sec(-4.0),
+            Velocity::from_m_per_sec(0.0),
+        );
+        let a = v / chrono::TimeDelta::seconds(2);
+        assert_relative_eq!(a.x.as_m_per_s2(), 5.0);
+        assert_relative_eq!(a.y.as_m_per_s2(), -2.0);
+        assert_relative_eq!(a.z.as_m_per_s2(), 0.0);
+
+        // 负时间：速度方向反转
+        let a_neg = v / chrono::TimeDelta::seconds(-2);
+        assert_relative_eq!(a_neg.x.as_m_per_s2(), -5.0);
+        assert_relative_eq!(a_neg.y.as_m_per_s2(), 2.0);
+
+        // 零时间：除零得到无穷，不 panic
+        let a_zero = v / chrono::TimeDelta::zero();
+        assert!(a_zero.x.as_m_per_s2().is_infinite());
+    }
 
     #[test]
     fn test_limit_float() {

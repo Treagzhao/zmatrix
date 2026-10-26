@@ -141,10 +141,26 @@ impl InertiaTensor {
         Some(self.data[row][col])
     }
 
-    /// 绕任意方向的等效转动惯量：`nᵀ J n`。
+    /// 绕任意方向的等效转动惯量：`nᵀ J n / nᵀ n`。
     ///
-    /// `n` 必须是**单位向量**（三个分量的平方和为 1），否则结果无物理意义。
-    /// 本方法不做归一化检查 —— 与库内其他"裸数不做单位假设"的约定一致。
+    /// 这是张量沿方向 `n` 所张直线的投影，也就是刚体绕该轴旋转时的转动惯量。
+    ///
+    /// # 内部归一化
+    ///
+    /// `n` **不需要**是单位向量 —— 方法内部除以 `nᵀn`，因此结果与 `n` 的模长无关。
+    /// 直接算 `nᵀJn`（不除）会让结果随 `|n|²` 缩放：
+    ///
+    /// ```text
+    /// n = (0,0,1)  → 3     正确
+    /// n = (0,0,2)  → 12    错，是 3 的 4 倍（|n|² = 4）
+    /// n = (0,0,10) → 300   错，是 3 的 100 倍
+    /// ```
+    ///
+    /// 这个错误不会报错、不会 panic，只会给出一个看起来正常的数，
+    /// 所以归一化放在方法内而不是交给调用方。
+    ///
+    /// 零向量没有对应方向，返回
+    /// [`OperationError`](crate::dense::error::OperationError)。
     ///
     /// # 为什么不能用对角元代替
     ///
@@ -162,21 +178,33 @@ impl InertiaTensor {
     /// );
     /// let s = std::f64::consts::FRAC_1_SQRT_2;
     /// let n = Vector3::new(Coef::new(s), Coef::new(s), Coef::new(0.0));
-    /// assert!((j.about_axis(n).as_kg_m2() - 1.0).abs() < 1e-9);
+    /// assert!((j.about_axis(n).unwrap().as_kg_m2() - 1.0).abs() < 1e-9);
+    ///
+    /// // 非单位向量给出相同结果
+    /// let n2 = Vector3::new(Coef::new(1.0), Coef::new(1.0), Coef::new(0.0));
+    /// assert!((j.about_axis(n2).unwrap().as_kg_m2() - 1.0).abs() < 1e-9);
     /// ```
-    pub fn about_axis(&self, n: Vector3<crate::physics::basic::Coef>) -> Inertia {
-        let a = [
-            n.x.get_value(),
-            n.y.get_value(),
-            n.z.get_value(),
-        ];
+    pub fn about_axis(
+        &self,
+        n: Vector3<crate::physics::basic::Coef>,
+    ) -> Result<Inertia, crate::dense::error::OperationError> {
+        let a = [n.x.get_value(), n.y.get_value(), n.z.get_value()];
+
+        let norm_sq = a[0] * a[0] + a[1] * a[1] + a[2] * a[2];
+        if norm_sq == 0.0 {
+            return Err(crate::dense::error::OperationError::new(
+                "about_axis: axis vector is zero, no direction to project onto",
+            ));
+        }
+
         let mut sum = 0.0;
         for i in 0..3 {
             for j in 0..3 {
                 sum += a[i] * self.data[i][j].as_kg_m2() * a[j];
             }
         }
-        Inertia::from_kg_m2(sum)
+        // 除以 nᵀn：使结果与 |n| 无关
+        Ok(Inertia::from_kg_m2(sum / norm_sq))
     }
 
     /// 迹的三分之一：各向同性等效转动惯量。
@@ -501,7 +529,7 @@ mod tests {
             crate::physics::basic::Coef::new(0.0),
             crate::physics::basic::Coef::new(0.0),
         );
-        assert_relative_eq!(j.about_axis(ex).as_kg_m2(), 2.0, epsilon = 1e-12);
+        assert_relative_eq!(j.about_axis(ex).unwrap().as_kg_m2(), 2.0, epsilon = 1e-12);
 
         // 沿 y、z 轴
         let ey = Vector3::new(
@@ -509,14 +537,14 @@ mod tests {
             crate::physics::basic::Coef::new(1.0),
             crate::physics::basic::Coef::new(0.0),
         );
-        assert_relative_eq!(j.about_axis(ey).as_kg_m2(), 3.0, epsilon = 1e-12);
+        assert_relative_eq!(j.about_axis(ey).unwrap().as_kg_m2(), 3.0, epsilon = 1e-12);
 
         let ez = Vector3::new(
             crate::physics::basic::Coef::new(0.0),
             crate::physics::basic::Coef::new(0.0),
             crate::physics::basic::Coef::new(1.0),
         );
-        assert_relative_eq!(j.about_axis(ez).as_kg_m2(), 4.0, epsilon = 1e-12);
+        assert_relative_eq!(j.about_axis(ez).unwrap().as_kg_m2(), 4.0, epsilon = 1e-12);
 
         // 45° 斜轴：数值必须落在对角元之间，且受惯性积影响
         let s = std::f64::consts::FRAC_1_SQRT_2;
@@ -526,7 +554,65 @@ mod tests {
             crate::physics::basic::Coef::new(0.0),
         );
         // = 0.5*(2 + 2*(-0.5) + 3) = 0.5*4 = 2.0
-        assert_relative_eq!(j.about_axis(n45).as_kg_m2(), 2.0, epsilon = 1e-12);
+        assert_relative_eq!(j.about_axis(n45).unwrap().as_kg_m2(), 2.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_about_axis_independent_of_magnitude() {
+        // 同一个方向，模长不同 → 结果必须相同（内部除以 nᵀn）
+        let j = unit_inertia_tensor();
+        let coef = crate::physics::basic::Coef::new;
+
+        for k in [1.0, 2.0, 10.0, 1e-3] {
+            let n = Vector3::new(coef(0.6 * k), coef(0.8 * k), coef(0.0));
+            let v = j.about_axis(n).unwrap().as_kg_m2();
+            // 方向 (0.6, 0.8, 0) 固定，结果应与 k 无关
+            let n_unit = Vector3::new(coef(0.6), coef(0.8), coef(0.0));
+            let v_unit = j.about_axis(n_unit).unwrap().as_kg_m2();
+            assert_relative_eq!(v, v_unit, epsilon = 1e-9);
+        }
+    }
+
+    #[test]
+    fn test_about_axis_zero_vector_errors() {
+        let j = unit_inertia_tensor();
+        let zero = Vector3::new(
+            crate::physics::basic::Coef::new(0.0),
+            crate::physics::basic::Coef::new(0.0),
+            crate::physics::basic::Coef::new(0.0),
+        );
+        let r = j.about_axis(zero);
+        assert!(r.is_err());
+        assert!(r.unwrap_err().message.contains("zero"));
+    }
+
+    #[test]
+    fn test_about_axis_differs_from_diagonal() {
+        // 张量 [[2,-1,0],[-1,2,0],[0,0,3]]
+        let j = InertiaTensor::new(
+            Inertia::from_kg_m2(2.0),
+            Inertia::from_kg_m2(2.0),
+            Inertia::from_kg_m2(3.0),
+            Inertia::from_kg_m2(-1.0),
+            Inertia::default(),
+            Inertia::default(),
+        );
+        let coef = crate::physics::basic::Coef::new;
+
+        // 绕 z 轴：读到 Izz = 3
+        let ez = Vector3::new(coef(0.0), coef(0.0), coef(1.0));
+        assert_relative_eq!(j.about_axis(ez).unwrap().as_kg_m2(), 3.0, epsilon = 1e-12);
+
+        // 绕 45° 斜轴：只有 1，惯性积把它从 2 拉到 1
+        let s = std::f64::consts::FRAC_1_SQRT_2;
+        let n45 = Vector3::new(coef(s), coef(s), coef(0.0));
+        assert_relative_eq!(j.about_axis(n45).unwrap().as_kg_m2(), 1.0, epsilon = 1e-12);
+
+        // 两者不同，证明不能用对角元代替任意轴
+        assert!(
+            (j.about_axis(ez).unwrap().as_kg_m2() - j.about_axis(n45).unwrap().as_kg_m2()).abs()
+                > 1.0
+        );
     }
 
     #[test]
@@ -552,7 +638,7 @@ mod tests {
             ),
         ];
         for n in axes {
-            assert_relative_eq!(j.about_axis(n).as_kg_m2(), 7.0, epsilon = 1e-9);
+            assert_relative_eq!(j.about_axis(n).unwrap().as_kg_m2(), 7.0, epsilon = 1e-9);
         }
     }
 

@@ -6,6 +6,7 @@ mod angular_velocity;
 mod coef;
 mod distance;
 mod force;
+mod heat_flux;
 mod magnetic_angular_velocity;
 mod magnetic_induction;
 mod magnetic_moment;
@@ -35,6 +36,7 @@ impl NonCoefficient for super::MagneticInduction {}
 impl NonCoefficient for super::MagneticMoment {}
 impl NonCoefficient for super::Momentum {}
 impl NonCoefficient for super::Torque {}
+impl NonCoefficient for super::HeatFlux {}
 
 // 将值限制在 [-1, 1] 区间内，供角度计算使用
 pub(crate) fn clamp_to_unit_interval(v: f64) -> f64 {

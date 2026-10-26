@@ -39,7 +39,7 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ Correct
 
 ## 1. Physical Quantity System
 
-26 physical quantities, each with multiple units. Operations between quantities are dimensionally checked at compile time.
+32 physical quantities, each with multiple units. Operations between quantities are dimensionally checked at compile time.
 
 ### Supported Quantities
 
@@ -70,6 +70,12 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ Correct
 | `ElectricCharge` | C, mC, μC, nC |
 | `ElectricCapacitance` | F, mF, μF, nF, pF |
 | `ElectricConductance` | S, mS, μS |
+| **`Temperature`** | K, °C, °F, °R |
+| **`TemperatureDifference`** | ΔK, Δ°C, Δ°F, Δ°R |
+| **`HeatFlux`** | W/m², kW/m², mW/cm² |
+| **`ThermalConductivity`** | W/(m·K), kW/(m·K), mW/(cm·K) |
+| **`HeatCapacity`** | J/K, kJ/K |
+| **`ThermalConductance`** | W/K, mW/K |
 | `Coef` | dimensionless |
 
 ### Time: `chrono::TimeDelta` only
@@ -298,13 +304,206 @@ assert_eq!(alpha.as_rad_per_second2() * 2.0, omega.as_rad_per_second());  // bot
 ```
 
 > **Scalar vs. tensor**: `Inertia` describes rotational inertia about **one specified axis**.
-> Describing a rigid body's inertia about any axis requires the 3×3 inertia tensor (with
-> products of inertia) — the gyroscopic term `ω × (Jω)` in attitude dynamics arises precisely
-> from the tensor's off-diagonal components. Tensor support is not implemented yet.
+> Full description of a rigid body about any axis needs the 3×3 tensor (with products of
+> inertia) — see the next chapter.
 
 ---
 
-## 5. Spatial Geometry
+## 5. Inertia Tensor and the `compound` Module
+
+`compound` holds **structures assembled from physical quantities**, as opposed to
+`physics::basic` (single quantities):
+
+| Module | Contents | Element type |
+|---|---|---|
+| `physics::basic` | single quantities (one value + unit) | — |
+| `spatial_geometry` | pure geometry, dimensionless | all `f64` |
+| **`compound`** | structures assembled from quantities | dimensioned |
+
+Dependencies are one-way: `compound → physics::basic`, `compound → spatial_geometry`.
+The reverse is not allowed.
+
+### `InertiaTensor`
+
+```rust
+use zmatrix::compound::inertia_tensor::InertiaTensor;
+
+// Six independent components. Symmetry is guaranteed by the interface —
+// an asymmetric tensor cannot be constructed.
+let j = InertiaTensor::new(
+    Inertia::from_kg_m2(120.0),   // Ixx
+    Inertia::from_kg_m2(130.0),   // Iyy
+    Inertia::from_kg_m2(45.0),    // Izz
+    Inertia::from_kg_m2(0.0),     // Ixy
+    Inertia::from_kg_m2(8.0),     // Ixz
+    Inertia::from_kg_m2(0.0),     // Iyz
+);
+
+// Principal axes / isotropic
+let j2 = InertiaTensor::from_diagonal([
+    Inertia::from_kg_m2(1.0),
+    Inertia::from_kg_m2(2.0),
+    Inertia::from_kg_m2(3.0),
+]);
+let j3 = InertiaTensor::from_isotropic(Inertia::from_kg_m2(2.0));
+
+// Angular momentum: J·ω = L. For an asymmetric tensor, L deviates from ω.
+let omega = Vector3::new(
+    AngularVelocity::from_rad_per_second(0.0),
+    AngularVelocity::from_rad_per_second(0.0),
+    AngularVelocity::from_rad_per_second(1.0),
+);
+let l: Vector3<AngularMomentum> = j * omega;
+
+// Torque: J·ω̇ = M
+let alpha = Vector3::new(
+    AngularAcceleration::from_rad_per_second2(1.0),
+    AngularAcceleration::from_rad_per_second2(0.0),
+    AngularAcceleration::from_rad_per_second2(0.0),
+);
+let m: Vector3<Torque> = j * alpha;
+
+// Inertia about an arbitrary axis: nᵀJn / nᵀn
+// (normalized internally, n need not be a unit vector)
+let dir = Vector3::new(Coef::new(1.0), Coef::new(1.0), Coef::new(0.0));
+let about: Inertia = j.about_axis(dir)?;
+
+// Isotropic equivalent: trace/3
+let iso = j.isotropic_equivalent();
+
+// Coordinate transform: R·J·Rᵀ
+let rotated = j.rotate(&CosMatrix::unit());
+```
+
+> **`about_axis` cannot be replaced by a diagonal element.** For
+> `[[2,-1,0],[-1,2,0],[0,0,3]]`, the z-axis value is 3 but the `(1,1,0)/√2` axis gives 1 —
+> products of inertia pull it down from 2. Normalization happens inside the method, so a
+> non-unit vector gives the same answer; a zero vector returns an error.
+
+### Gyroscopic torque
+
+The point of the tensor: `L` can deviate from `ω`, so `ω × L` is nonzero.
+
+```text
+ω = (0, 0, 1), L = (8, 0, 45)   because Ixz ≠ 0
+ω × L = (0, 8, 0)               nonzero — why attitude dynamics needs the tensor
+```
+
+---
+
+## 6. Temperature and Thermal Quantities
+
+### Temperature and temperature difference must be separate types
+
+Celsius and kelvin are related by an **affine** transform with an offset
+(`T_K = T_C + 273.15`), while differences scale linearly with no offset:
+
+```text
+20 °C  = 293.15 K          temperature has an offset
+Δ20 °C = 20 K              difference does not
+```
+
+Collapsing them into one type has two consequences:
+
+- `(t1 - t2).as_celsius()` returns nonsense like `-253.15`
+- `G * T` and `G * ΔT` both typecheck (`W/K × K = W`) but differ by tens of times, with
+  **dimensional analysis unable to tell them apart**
+
+So `Temperature` and `TemperatureDifference` are separate, and these operations are
+deliberately absent:
+
+| Operation | Allowed | Why |
+|---|---|---|
+| `T - T → ΔT` | ✅ | the only meaningful subtraction |
+| `T + ΔT → T` | ✅ | heating / cooling (commutative) |
+| `T / T → Coef` | ✅ | temperature ratio, e.g. Carnot efficiency |
+| `T + T` | ❌ | sum of two temperatures is not a temperature |
+| `T × T` | ❌ | output would be K², which has no use here |
+| `T × f64` | ❌ | misleading from Celsius: 20 °C doubled gives 313 °C |
+
+```rust
+let t1 = Temperature::from_celsius(30.0);
+let t2 = Temperature::from_celsius(20.0);
+let dt: TemperatureDifference = t1 - t2;    // 10 K
+let heated = t2 + dt;                       // 30 °C
+let ratio: Coef = t1 / t2;                  // based on kelvin, not 30/20
+```
+
+> Temperature is a scalar, so `Vector3<Temperature>` is unconstructable at compile time.
+
+### Heat flux and Fourier's law
+
+**Heat flux density** `HeatFlux` (W/m²) is thermal power per unit area. Distinct from two
+easily confused quantities:
+
+| Quantity | Unit | Meaning | Type |
+|---|---|---|---|
+| Heat Q | J | accumulated energy | `Energy` |
+| Thermal power Q̇ | W | energy per time | `Power` |
+| Heat flux q | W/m² | energy per time per area | `HeatFlux` |
+
+```rust
+let q = HeatFlux::from_w_per_m2(1361.0);        // solar constant
+let p: Power = q * Area::from_m2(2.0);          // 2722 W
+
+// Datasheets often use mW/cm²: 1 mW/cm² = 10 W/m² (not 1e-3)
+let q2 = HeatFlux::from_mw_per_cm2(1.0);
+assert_eq!(q2.as_w_per_m2(), 10.0);
+```
+
+**Thermal conductivity** `ThermalConductivity` (W/(m·K)) is a material property.
+Fourier's law:
+
+```rust
+let k = ThermalConductivity::from_w_per_m_k(237.0);   // aluminium
+let dt = TemperatureDifference::from_celsius(20.0);
+let thickness = Distance::from_m(0.01);
+
+let q: HeatFlux = k.heat_flux(dt, thickness);          // 474 kW/m²
+
+// Inverse — calibrate k from a measured heat flux
+let k2 = ThermalConductivity::from_flux(q, dt, thickness);
+```
+
+> Takes `TemperatureDifference`, not `Temperature`. Passing an absolute temperature is a
+> compile error — otherwise you get a heat flux measured from 0 K.
+
+### The two elements of a lumped-parameter thermal network
+
+$$C\frac{dT}{dt} = G\,\Delta T + \dot{Q}$$
+
+| Symbol | Type | Unit | Meaning |
+|---|---|---|---|
+| C | `HeatCapacity` | J/K | node storage |
+| G | `ThermalConductance` | W/K | coupling between nodes |
+| ΔT | `TemperatureDifference` | K | temperature difference |
+| Q̇ | `Power` | W | external source |
+
+```rust
+// Storage: Q = C·ΔT
+let c = HeatCapacity::from_j_per_k(9000.0);
+let q: Energy = c * TemperatureDifference::from_celsius(20.0);   // 180 kJ
+
+// Inverse: ΔT = Q/C
+let dt: TemperatureDifference = q / c;
+
+// Transmission: Q̇ = G·ΔT
+let g = ThermalConductance::from_w_per_k(12.0);
+let p: Power = g * TemperatureDifference::from_celsius(20.0);    // 240 W
+```
+
+> **Four similar names, two layers** (all distinct):
+>
+> | Layer | Storage | Transmission |
+> |---|---|---|
+> | Material property | specific heat capacity c, J/(kg·K) | thermal conductivity k, W/(m·K) |
+> | Whole object | **heat capacity C, J/K** | **thermal conductance G, W/K** |
+>
+> Relations: `C = c·m`, `G = k·A/L`.
+
+---
+
+## 7. Spatial Geometry
 
 Euler angles, direction cosine matrices (DCM), and quaternions with mutual conversions.
 
@@ -362,6 +561,79 @@ let sum = q1 + q2;
 let product = q1 * q2;
 let quotient = q1 / q2;
 ```
+
+---
+
+## Not yet implemented
+
+Ordered by current priority. **Deliberately out of scope** items are listed last so they do
+not get re-litigated.
+
+### Linear algebra gaps (blocking)
+
+`dense::Matrix` currently has only add/subtract, scalar multiply, transpose, and matrix
+product. Solving is missing entirely:
+
+| Missing | Blocks |
+|---|---|
+| `det()` | singularity checks, eigenvalues |
+| `inverse()` | explicit inversion |
+| `solve()` / LU | **steady-state thermal network `G·T = Q̇`**, any linear system |
+
+This is a prerequisite for steady-state thermal analysis and for inverting `InertiaTensor`
+(to solve `J·ω = L`). Note the dimensional problem: `J⁻¹` needs `(kg·m²)⁻¹` and `det` needs
+`(kg·m²)³`, neither of which exists as a quantity. So even with a solver, it can only be
+offered at the `f64` level, not as a dimensioned interface.
+
+### Thermal quantities
+
+| Missing | Unit | Notes |
+|---|---|---|
+| `SpecificHeatCapacity` | J/(kg·K) | material property, `C = c·m` |
+| `HeatTransferCoefficient` | W/(m²·K) | surface convection, `q = h·ΔT`. Rare in vacuum, low priority |
+| `ThermalResistance` | K/W | `R = 1/G`, clearer for series paths |
+| Radiation helpers | — | `σT⁴` has no place in the type system; functions only: `radiative_flux(ε, T)` |
+
+**Deliberately not planned**:
+
+- `Entropy` (J/K) — unused in satellite thermal work; wait for a concrete need
+- `ThermalDiffusivity` (m²/s) — derivable as `α = k/(ρc)`, redundant
+- `Heat`, `InternalEnergy` — duplicate `Energy`
+- `SpecificHeatRatio` γ — dimensionless quotient, `Coef` suffices; for solids `cp ≈ cv` and
+  `γ ≈ 1`, so it carries no information
+- `Emissivity` — use `Coef` for now; no value-range constraints exist anywhere in this crate
+
+### `compound` module
+
+| Missing | Notes |
+|---|---|
+| `InertiaTensor` parallel-axis theorem | `J' = J + m(d²I - ddᵀ)`, needs `Mass` + `Distance` |
+| `InertiaTensor` principal-axis diagonalization | Jacobi iteration to zero the products |
+| `InertiaTensor` inverse / determinant | blocked by the linear algebra gap above |
+| `ThermalNetwork` container | see below |
+
+**Planned `ThermalNetwork` scope** (deliberately narrow):
+
+```text
+add_node(capacity, temperature)     add a node
+add_link(i, j, conductance)         add a link
+set_source(i, power)                attach a heat source
+step(dt) -> Result<(), _>           advance one explicit step
+temperature(i) -> Option<Temperature>
+```
+
+**Explicit stepping only**: implicit stepping and steady-state solving both need a linear
+solver, blocked as above. `step()` will check the explicit stability criterion
+`Δt < 2·Cᵢ/ΣGᵢⱼ` and return an error — without that check, a diverging solution still
+produces plausible-looking curves early on, and by the time it blows up exponentially you
+are already reading wrong conclusions.
+
+### Other
+
+- `Matrix` `det` / `inverse` / `solve` (see above)
+- Quantity-to-quantity operators are still incomplete; additions land when a concrete case
+  needs them
+- The unit system covers a practical engineering subset, not the full SI prefix hierarchy
 
 ---
 

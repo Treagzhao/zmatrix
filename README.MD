@@ -37,7 +37,7 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 
 ## 一、物理量系统
 
-26 种物理量，每种支持多种单位，物理量之间的运算在编译期进行量纲检查。
+32 种物理量，每种支持多种单位，物理量之间的运算在编译期进行量纲检查。
 
 ### 支持的物理量
 
@@ -68,6 +68,12 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 | 电荷量 `ElectricCharge` | C, mC, μC, nC |
 | 电容 `ElectricCapacitance` | F, mF, μF, nF, pF |
 | 电导 `ElectricConductance` | S, mS, μS |
+| **温度 `Temperature`** | K, °C, °F, °R |
+| **温差 `TemperatureDifference`** | ΔK, Δ°C, Δ°F, Δ°R |
+| **热流密度 `HeatFlux`** | W/m², kW/m², mW/cm² |
+| **导热系数 `ThermalConductivity`** | W/(m·K), kW/(m·K), mW/(cm·K) |
+| **热容 `HeatCapacity`** | J/K, kJ/K |
+| **热导 `ThermalConductance`** | W/K, mW/K |
 | 系数 `Coef` | 无量纲 |
 
 ### 时间：统一使用 `chrono::TimeDelta`
@@ -292,12 +298,196 @@ assert_eq!(alpha.as_rad_per_second2() * 2.0, omega.as_rad_per_second());  // 两
 ```
 
 > **标量 vs 张量**：`Inertia` 描述绕**单一指定轴**的转动惯性。
-> 完整描述刚体在任意轴向上的惯性需要 3×3 转动惯量张量（含惯性积），
-> 姿态动力学中的陀螺力矩 `ω × (Jω)` 正是由张量非对角性产生的。张量支持尚未实现。
+> 完整描述刚体在任意轴向上的惯性需要 3×3 张量（含惯性积），见下一章。
 
 ---
 
-## 五、空间几何
+## 五、转动惯量张量与 `compound` 模块
+
+`compound` 放**由物理量组装而成的结构**，与 `physics::basic`（单一物理量）区分：
+
+| 模块 | 放什么 | 元素类型 |
+|---|---|---|
+| `physics::basic` | 单一物理量（一个值 + 单位） | — |
+| `spatial_geometry` | 纯几何、无量纲 | 全 `f64` |
+| **`compound`** | 由物理量组装的结构 | 带量纲 |
+
+依赖方向单向：`compound → physics::basic`、`compound → spatial_geometry`，反向不允许。
+
+### `InertiaTensor`
+
+```rust
+use zmatrix::compound::inertia_tensor::InertiaTensor;
+
+// 由 6 个独立分量构造（对称性由接口保证，无法构造出非对称张量）
+let j = InertiaTensor::new(
+    Inertia::from_kg_m2(120.0),   // Ixx
+    Inertia::from_kg_m2(130.0),   // Iyy
+    Inertia::from_kg_m2(45.0),    // Izz
+    Inertia::from_kg_m2(0.0),     // Ixy
+    Inertia::from_kg_m2(8.0),     // Ixz
+    Inertia::from_kg_m2(0.0),     // Iyz
+);
+
+// 主轴系 / 各向同性
+let j2 = InertiaTensor::from_diagonal([
+    Inertia::from_kg_m2(1.0),
+    Inertia::from_kg_m2(2.0),
+    Inertia::from_kg_m2(3.0),
+]);
+let j3 = InertiaTensor::from_isotropic(Inertia::from_kg_m2(2.0));
+
+// 角动量：J·ω = L。非对称张量下 L 会偏离 ω 的方向
+let omega = Vector3::new(
+    AngularVelocity::from_rad_per_second(0.0),
+    AngularVelocity::from_rad_per_second(0.0),
+    AngularVelocity::from_rad_per_second(1.0),
+);
+let l: Vector3<AngularMomentum> = j * omega;
+
+// 力矩：J·ω̇ = M
+let alpha = Vector3::new(
+    AngularAcceleration::from_rad_per_second2(1.0),
+    AngularAcceleration::from_rad_per_second2(0.0),
+    AngularAcceleration::from_rad_per_second2(0.0),
+);
+let m: Vector3<Torque> = j * alpha;
+
+// 绕任意轴的等效惯量：nᵀJn / nᵀn（内部归一化，n 无需是单位向量）
+let dir = Vector3::new(Coef::new(1.0), Coef::new(1.0), Coef::new(0.0));
+let about: Inertia = j.about_axis(dir)?;
+
+// 各向同性等效：迹/3
+let iso = j.isotropic_equivalent();
+
+// 坐标变换：R·J·Rᵀ
+let rotated = j.rotate(&CosMatrix::unit());
+```
+
+> **`about_axis` 不能用对角元代替。** 以 `[[2,-1,0],[-1,2,0],[0,0,3]]` 为例，
+> 绕 z 轴是 3，绕 `(1,1,0)/√2` 只有 1 —— 惯性积把结果从 2 拉到了 1。
+> 归一化在方法内部完成，传入非单位向量结果不变；零向量返回错误。
+
+### 陀螺力矩
+
+张量的意义在于：`L` 可以偏离 `ω`，于是 `ω × L` 不为零。
+
+```text
+ω = (0, 0, 1), L = (8, 0, 45)   因为 Ixz ≠ 0，L 出现 x 分量
+ω × L = (0, 8, 0)               非零，这就是姿态动力学必须用张量的原因
+```
+
+---
+
+## 六、温度与热学量
+
+### 温度与温差必须是两个类型
+
+摄氏与开尔文是**带偏移**的仿射换算（`T_K = T_C + 273.15`），而温差的换算是纯比例、无偏移：
+
+```
+20 °C  = 293.15 K          ← 温度有偏移
+Δ20 °C = 20 K              ← 温差没有
+```
+
+合并成一个类型会有两个后果：
+
+- `(t1 - t2).as_celsius()` 返回 `-253.15` 这类荒谬值
+- `G * T` 与 `G * ΔT` 量纲**都成立**（`W/K × K = W`），但数值差几十倍，**量纲检查无能为力**
+
+因此 `Temperature` 与 `TemperatureDifference` 独立成型，且刻意没有这些运算：
+
+| 运算 | 是否允许 | 理由 |
+|---|---|---|
+| `T - T → ΔT` | ✅ | 唯一有意义的温度减法 |
+| `T + ΔT → T` | ✅ | 加热 / 冷却（可交换） |
+| `T / T → Coef` | ✅ | 温度比，如 Carnot 效率 |
+| `T + T` | ❌ | 两个位置温度之和不是温度 |
+| `T × T` | ❌ | 输出应是 K²，无此量纲 |
+| `T × f64` | ❌ | 从摄氏构造时反直觉（20 °C 乘 2 得 313 °C） |
+
+```rust
+let t1 = Temperature::from_celsius(30.0);
+let t2 = Temperature::from_celsius(20.0);
+let dt: TemperatureDifference = t1 - t2;    // 10 K
+let heated = t2 + dt;                       // 30 °C
+let ratio: Coef = t1 / t2;                  // 基于开尔文，非 30/20
+```
+
+> 温度是标量，`Vector3<Temperature>` 在编译期即不可构造。
+
+### 热流密度与傅里叶定律
+
+**热流密度** `HeatFlux`（W/m²）是单位面积的热功率，注意与两个易混量区分：
+
+| 量 | 单位 | 含义 | 本库类型 |
+|---|---|---|---|
+| 热量 Q | J | 累计能量 | `Energy` |
+| 热功率 Q̇ | W | 单位时间的能量 | `Power` |
+| 热流密度 q | W/m² | 单位时间、单位面积 | `HeatFlux` |
+
+```rust
+let q = HeatFlux::from_w_per_m2(1361.0);        // 太阳常数
+let p: Power = q * Area::from_m2(2.0);          // 2722 W
+
+// 手册常给 mW/cm²：1 mW/cm² = 10 W/m²（不是 1e-3）
+let q2 = HeatFlux::from_mw_per_cm2(1.0);
+assert_eq!(q2.as_w_per_m2(), 10.0);
+```
+
+**导热系数** `ThermalConductivity`（W/(m·K)）是材料属性，傅里叶定律：
+
+```rust
+let k = ThermalConductivity::from_w_per_m_k(237.0);   // 铝
+let dt = TemperatureDifference::from_celsius(20.0);
+let thickness = Distance::from_m(0.01);
+
+let q: HeatFlux = k.heat_flux(dt, thickness);          // 474 kW/m²
+
+// 反推（从实测热流标定材料参数）
+let k2 = ThermalConductivity::from_flux(q, dt, thickness);
+```
+
+> 参数是 `TemperatureDifference` 而非 `Temperature`，传绝对温度会编译错误 —— 否则算出的是
+> 从 0 K 量起的巨大热流。
+
+### 集总参数热网络的两个元素
+
+$$C\frac{dT}{dt} = G\,\Delta T + \dot{Q}$$
+
+| 符号 | 类型 | 单位 | 含义 |
+|---|---|---|---|
+| C | `HeatCapacity` | J/K | 节点储热能力 |
+| G | `ThermalConductance` | W/K | 节点间耦合强度 |
+| ΔT | `TemperatureDifference` | K | 温差 |
+| Q̇ | `Power` | W | 外部热源 |
+
+```rust
+// 储热：Q = C·ΔT
+let c = HeatCapacity::from_j_per_k(9000.0);
+let q: Energy = c * TemperatureDifference::from_celsius(20.0);   // 180 kJ
+
+// 反解温升：ΔT = Q/C
+let dt: TemperatureDifference = q / c;
+
+// 传热：Q̇ = G·ΔT
+let g = ThermalConductance::from_w_per_k(12.0);
+let p: Power = g * TemperatureDifference::from_celsius(20.0);    // 240 W
+```
+
+> **四个近名量，两层含义**（中文只差一个字，务必区分）：
+>
+> | 层级 | 储热 | 传热 |
+> |---|---|---|
+> | 材料属性 | 比热容 c (J/(kg·K)) | 导热系数 k (W/(m·K)) |
+> | 整体属性 | **热容 C (J/K)** | **热导 G (W/K)** |
+>
+> 规律：带「比」或「系数」的是材料属性，不带的是整体属性。
+> 关系：`C = c·m`、`G = k·A/L`。
+
+---
+
+## 七、空间几何
 
 欧拉角、方向余弦矩阵（DCM）、四元数之间的相互转换。
 
@@ -362,6 +552,72 @@ let sum = q1 + q2;
 let product = q1 * q2;
 let quotient = q1 / q2;
 ```
+
+---
+
+## 尚未实现的账
+
+按当前优先级排列。**已明确不做**的也列在最后，免得反复讨论。
+
+### 线性代数缺口（阻塞项）
+
+`dense::Matrix` 目前**只有加减、数乘、转置、矩阵乘积**，缺少解方程能力：
+
+| 缺什么 | 阻塞了什么 |
+|---|---|
+| `det()` | 判奇异、特征值 |
+| `inverse()` | 显式求逆 |
+| `solve()` / LU 分解 | **稳态热网络求解 `G·T = Q̇`**、任何线性方程组 |
+
+这是**热网络稳态分析的前置条件**，也是 `InertiaTensor` 求逆（解 `J·ω = L`）的前置条件。
+量纲上 `J⁻¹` 需要 `(kg·m²)⁻¹`、`det` 需要 `(kg·m²)³`，这两个量纲都不存在，
+所以即便做了求解器，也只能在 `f64` 层面提供，不能做成带量纲的接口。
+
+### 热学量
+
+| 待做 | 单位 | 说明 |
+|---|---|---|
+| `SpecificHeatCapacity` 比热容 | J/(kg·K) | 材料属性，`C = c·m` |
+| `HeatTransferCoefficient` 传热系数 | W/(m²·K) | 表面对流，`q = h·ΔT`。真空环境很少用，优先级低 |
+| `ThermalResistance` 热阻 | K/W | `R = 1/G`，串联分析更直观 |
+| 辐射辅助函数 | — | `σT⁴` 在类型系统里没有落点，只能做成函数：`radiative_flux(ε, T)` |
+
+**已明确不做**：
+
+- `Entropy` 熵（J/K）—— 卫星热分析不用，等有明确需求
+- `ThermalDiffusivity` 热扩散率（m²/s）—— `α = k/(ρc)` 可推，重复
+- `Heat` 热量、`InternalEnergy` 内能 —— 与 `Energy` 重复
+- `SpecificHeatRatio` 比热容比 γ —— 无量纲商，`Coef` 够用；且固体 `cp≈cv`、`γ≈1` 无信息量
+- `Emissivity` 发射率 —— 先用 `Coef`，不引入值域约束（库里无先例）
+
+### `compound` 模块
+
+| 待做 | 说明 |
+|---|---|
+| `InertiaTensor` 平行轴定理 | `J' = J + m(d²I - ddᵀ)`，需 `Mass` + `Distance` |
+| `InertiaTensor` 主轴对角化 | Jacobi 迭代，把惯性积消为零 |
+| `InertiaTensor` 求逆 / 行列式 | 受上面线性代数缺口阻塞 |
+| `ThermalNetwork` 热网络容器 | 见下 |
+
+**`ThermalNetwork` 计划范围**（刻意收窄）：
+
+```text
+add_node(capacity, temperature)     加节点
+add_link(i, j, conductance)         加连接
+set_source(i, power)                加热源
+step(dt) -> Result<(), _>           显式推进一歩
+temperature(i) -> Option<Temperature>
+```
+
+**只做显式推进**：隐式推进与稳态求解都依赖线性方程组，被上面的缺口阻塞。
+`step()` 会检查显式稳定性判据 `Δt < 2·Cᵢ/ΣGᵢⱼ` 并返回错误 ——
+不检查的话发散初期的曲线仍然"看起来合理"，等指数爆炸时已经在看错误结论了。
+
+### 其他
+
+- `Matrix` 的 `det` / `inverse` / `solve`（见上）
+- 物理量之间的乘除法覆盖仍不完整，遇到具体场景再补
+- 单位系统仅覆盖工程常用子集，不是完整的 SI 词头体系
 
 ---
 

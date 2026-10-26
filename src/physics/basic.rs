@@ -58,6 +58,8 @@ mod electric_potential;
 mod electric_resistance;
 mod energy;
 mod force;
+pub mod heat_capacity;
+pub mod heat_flux;
 pub mod inertia;
 mod magnetic_angular_velocity;
 mod magnetic_induction;
@@ -65,6 +67,10 @@ mod magnetic_moment;
 pub mod mass;
 mod momentum;
 mod power;
+mod temperature;
+mod temperature_difference;
+pub mod thermal_conductance;
+mod thermal_conductivity;
 mod torque;
 pub mod vector;
 mod velocity;
@@ -740,6 +746,321 @@ pub struct ElectricConductance {
     pub v: f64,
 }
 
+/// 温度（绝对温度）
+///
+/// 内部统一以开尔文存储，不保留构造时使用的单位。这是与库内其他物理量的
+/// 一处**有意差异**：摄氏/华氏与开尔文之间是带偏移的仿射换算
+/// （`T_K = T_C + 273.15`），若沿用"原始单位下的值 + 单位标记"的范式，
+/// 每个 `as_*` 都要重复一遍偏移逻辑，极易漏。统一存 K 后，偏移只在构造
+/// 和取值两处出现，内部运算不需要 `match`。
+///
+/// # 允许的运算
+///
+/// | 运算 | 结果 | 含义 |
+/// |---|---|---|
+/// | `T - T` | `TemperatureDifference` | 求温差，唯一有意义的减法 |
+/// | `T + ΔT` | `Temperature` | 加热 |
+/// | `T - ΔT` | `Temperature` | 冷却 |
+/// | `T / T` | `Coef` | 温度比，如 Carnot 效率 `1 - Tc/Th` |
+///
+/// # 刻意不实现的运算
+///
+/// - `T + T`：两个位置温度之和不是温度，物理上无意义。
+/// - `T * f64`：从摄氏构造时会产生严重违背直觉的结果 ——
+///   `20°C` 内部是 `293.15 K`，乘 2 得 `586.3 K` 即 `313.15°C`，
+///   而不是直觉上的 `40°C`。真需要时请显式写
+///   `Temperature::from_kelvin(t.as_kelvin() * 2.0)`。
+/// - `T * T`：输出应是 K²，库中没有也不应有这个量纲。
+///
+/// # 注意
+///
+/// 温度是标量量，**刻意不实现 [`VectorQuantity`]**，因此 `Vector3<Temperature>`
+/// 在编译期即不可构造。空间温度梯度 ∇T 虽然是向量，但单位是 K/m，
+/// 其元素类型不是温度本身。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Temperature;
+///
+/// let t = Temperature::from_celsius(20.0);
+/// assert!((t.as_kelvin() - 293.15).abs() < 1e-9);
+/// assert!((t.as_celsius() - 20.0).abs() < 1e-9);
+///
+/// // 与华氏互转
+/// let f = Temperature::from_fahrenheit(212.0);
+/// assert!((f.as_celsius() - 100.0).abs() < 1e-9);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub struct Temperature {
+    /// 绝对温度，单位 K。私有字段：外部只能通过 `from_*` / `as_*` 访问，
+    /// 保证偏移换算不会绕过。
+    kelvin: f64,
+}
+
+/// 温度差（相对温度）
+///
+/// 与 [`Temperature`] 的唯一区别是**零点**：温度有偏移，温差没有。
+///
+/// - `Δ°C` 与 `ΔK` 数值**完全相同**（换算系数 1、偏移 0）
+/// - `Δ°F` 与 `ΔK` 相差 `9/5`
+///
+/// # 为什么必须是独立类型
+///
+/// 若只保留一个温度类型，`G * T`（热导 × 温度）与 `G * ΔT`（热导 × 温差）
+/// 在量纲上**都成立**（`W/K × K = W`），但数值可相差几十倍：
+///
+/// ```
+/// # use zmatrix::physics::basic::{Temperature, TemperatureDifference};
+/// let t1 = Temperature::from_celsius(30.0);   // 303.15 K
+/// let t2 = Temperature::from_celsius(20.0);   // 293.15 K
+///
+/// // 正确：温差 10 K
+/// let dt: TemperatureDifference = t1 - t2;
+/// assert!((dt.as_kelvin() - 10.0).abs() < 1e-9);
+///
+/// // 若误把绝对温度当温差用，数值会是 303.15 而非 10，差 30 倍。
+/// // 量纲检查对此无能为力 —— 只有类型系统能挡。
+/// ```
+///
+/// 同样**刻意不实现 [`VectorQuantity`]**：梯度 ∇T 的单位是 K/m，不是 K。
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub struct TemperatureDifference {
+    /// 温度差，单位 K。私有字段，理由同上。
+    kelvin: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum HeatFluxType {
+    /// 瓦特每平方米（SI 导出单位）
+    WattPerSquareMeter,
+    /// 千瓦每平方米
+    KiloWattPerSquareMeter,
+    /// 毫瓦每平方厘米。文献与涂层数据手册常用；
+    /// `1 mW/cm² = 10 W/m²`（注意不是 1e-3 的关系，分母是 cm² 不是 m²）
+    MilliWattPerSquareCentiMeter,
+}
+
+/// 热流密度
+///
+/// **单位面积上的热功率**，量纲 W/m²。中文也叫「热通量」，但严格说 *flux*
+/// 指通过某个面的总流量（W），*flux density* 才是每平方米的值（W/m²）；
+/// 工程上 `heat flux` 几乎一律指后者，本类型采用这一约定。
+///
+/// # 与热量、热功率的区别
+///
+/// | 量 | 单位 | 含义 | 本库类型 |
+/// |---|---|---|---|
+/// | 热量 Q | J | 累计能量 | [`Energy`] |
+/// | 热功率 Q̇ | W | 单位时间的能量 | [`Power`] |
+/// | 热流密度 q | W/m² | 单位时间、单位面积 | `HeatFlux` |
+///
+/// 密度与总量无关：两块各 1 m² 的板共承受 2000 W 热功率，但每块的
+/// 热流密度仍是 1000 W/m²。热控设计关心后者 —— 它与材料耐受温度和
+/// 涂层退化直接挂钩，与板子多大无关。
+///
+/// # 典型量级
+///
+/// - 太阳常数：1361 W/m²
+/// - 地球红外辐照：约 230 W/m²
+/// - 地球反照：0–400 W/m²，随轨道位置变化
+/// - 多层隔热材料漏热：几 W/m²
+///
+/// # 为什么它是热学量里唯一的向量量
+///
+/// 热流有方向。太阳照到倾斜面上，实际吸收量为 `q · n̂`（点乘），
+/// 与入射角余弦成正比。因此 `Vector3<HeatFlux>` 有意义，而
+/// [`Temperature`] 与 [`TemperatureDifference`] 都不实现
+/// [`VectorQuantity`] —— 温度是标量场，梯度 ∇T 虽是向量但单位是 K/m。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Area, HeatFlux, Power};
+///
+/// // 太阳常数
+/// let q = HeatFlux::from_w_per_m2(1361.0);
+/// assert_eq!(q.as_w_per_m2(), 1361.0);
+///
+/// // 换算：涂层手册常给 mW/cm²
+/// let q2 = HeatFlux::from_mw_per_cm2(1.0);
+/// assert_eq!(q2.as_w_per_m2(), 10.0);
+///
+/// // 热流密度 × 面积 = 热功率
+/// let area = Area::from_m2(2.0);
+/// let power: Power = q * area;
+/// assert_eq!(power.as_watt(), 2722.0);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HeatFlux {
+    default_type: HeatFluxType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ThermalConductivityType {
+    /// 瓦特每米开尔文（SI 导出单位）
+    WattPerMeterKelvin,
+    /// 千瓦每米开尔文
+    KiloWattPerMeterKelvin,
+    /// 毫瓦每厘米开尔文。隔热材料数据手册常用：
+    /// 气凝胶、隔热毡的 k 常在 0.02–0.04 W/(m·K)，用 W/(m·K) 写全是零。
+    /// `1 mW/(cm·K) = 0.1 W/(m·K)`
+    MilliWattPerCentiMeterKelvin,
+}
+
+/// 导热系数（也称热导率）
+///
+/// **材料本身的属性**：单位长度、单位温差下通过的热流密度，量纲 W/(m·K)。
+/// 傅里叶定律的一维形式：`q = k · ΔT / L`。
+///
+/// # 与两个近名量的区分（中文术语极易混淆）
+///
+/// | 英文 | 中文 | 单位 | 层级 |
+/// |---|---|---|---|
+/// | `ThermalConductivity` | **导热系数**（热导率） | W/(m·K) | 材料属性 |
+/// | `HeatTransferCoefficient` | 传热系数（表面传热系数） | W/(m²·K) | 表面对流 |
+/// | `ThermalConductance` | 热导 | W/K | 构件级 |
+///
+/// - 与「传热系数」只差一个字，但单位多一个 m²：前者是材料内部导热的本领，
+///   后者是表面对流换热的强弱，两者不可互换。
+/// - 与「热导」也不同：热导是构件级的整体值，
+///   等于 `导热系数 × 面积 ÷ 长度`。
+///
+/// # 与比热容的区别
+///
+/// 导热系数管「热传得多快」，比热容（`SpecificHeatCapacity`，尚未实现）管
+/// 「热存得住多少」。两者量纲完全不同、可自由组合：隔热毡的 k 比铝小 6000 倍，
+/// c 反而更大 —— 阻断传导的同时靠自身热容缓冲温度波动。
+///
+/// # 典型量级
+///
+/// | 材料 | k (W/(m·K)) |
+/// |---|---|
+/// | 铝 | 237 |
+/// | 钛 | 22 |
+/// | 隔热毡 | 0.04 |
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Distance, HeatFlux, TemperatureDifference, ThermalConductivity};
+///
+/// // 10 mm 厚的铝板，两面温差 20 K
+/// let k = ThermalConductivity::from_w_per_m_k(237.0);
+/// let thickness = Distance::from_m(0.01);
+/// let dt = TemperatureDifference::from_celsius(20.0);
+///
+/// // 傅里叶定律：q = k·ΔT/L
+/// let q = k.heat_flux(dt, thickness);
+/// assert!((q.as_w_per_m2() - 474_000.0).abs() < 1e-6);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ThermalConductivity {
+    default_type: ThermalConductivityType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum HeatCapacityType {
+    /// 焦耳每开尔文（SI 导出单位）
+    JoulePerKelvin,
+    /// 千焦每开尔文
+    KiloJoulePerKelvin,
+}
+
+/// 热容
+///
+/// **整个物体**温度升高 1 K 所需的热量，量纲 J/K。
+/// 显热公式：`Q = C · ΔT`。
+///
+/// # 与比热容的区别（中文只差一个「比」字）
+///
+/// | 英文 | 中文 | 单位 | 层级 |
+/// |---|---|---|---|
+/// | `HeatCapacity` | **热容** | J/K | 整个物体 |
+/// | `SpecificHeatCapacity` | 比热容 | J/(kg·K) | 材料属性 |
+///
+/// 关系：`C = c · m`。热容是「这个物体存多少热」，比热容是「这种材料每千克存多少热」。
+/// 比热容尚未实现。
+///
+/// # 与热导的区别
+///
+/// 热容管**储热**（`C · dT/dt`），热导 [`ThermalConductance`] 管**传热**（`G · ΔT`）。
+/// 两者在热网络方程里分别占据左右两侧，量纲不同：
+///
+/// ```text
+/// C · dT/dt = G · ΔT + Q̇
+/// J/K · K/s   W/K · K     W        ← 三项都是 W
+/// ```
+///
+/// # 为什么要用热容而不是比热容
+///
+/// 集总参数热网络里，每个节点是一个等温体，需要的是「这个节点整体存多少热」，
+/// 而不是材料的单位质量属性。TD/SINDA 输出的 `CAPACITANCE` 就是本类型。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{HeatCapacity, TemperatureDifference, Energy};
+///
+/// // 10 kg 铝件，比热容 900 J/(kg·K)
+/// let c = HeatCapacity::from_j_per_k(9000.0);
+///
+/// // 升温 20 K 需要多少热量
+/// let q: Energy = c * TemperatureDifference::from_celsius(20.0);
+/// assert_eq!(q.as_joule(), 180_000.0);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HeatCapacity {
+    default_type: HeatCapacityType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ThermalConductanceType {
+    /// 瓦特每开尔文（SI 导出单位）
+    WattPerKelvin,
+    /// 毫瓦每开尔文
+    MilliWattPerKelvin,
+}
+
+/// 热导
+///
+/// **整条连接**两端温差 1 K 时通过的热功率，量纲 W/K。
+/// 热网络公式：`Q̇ = G · ΔT`。
+///
+/// # 与导热系数的区别（名字相近，层级不同）
+///
+/// | 英文 | 中文 | 单位 | 层级 |
+/// |---|---|---|---|
+/// | `ThermalConductance` | **热导** | W/K | 整条构件 |
+/// | `ThermalConductivity` | 导热系数 | W/(m·K) | 材料属性 |
+///
+/// 关系：`G = k · A / L`。热导已经包含了面积和长度，是「这根构件能过多少热」；
+/// 导热系数只是材料本身的属性。
+///
+/// # 热导 vs 热阻
+///
+/// `R = 1/G`，量纲 K/W。热阻尚未实现，但热网络里两种写法等价：
+/// 串联用热阻相加更直观，并联用热导相加更直观。
+///
+/// # 与热容的区别
+///
+/// 热导管**传热**（`G · ΔT`），热容 [`HeatCapacity`] 管**储热**（`C · dT/dt`）。
+/// 前者决定节点之间耦合多强，后者决定节点温度变化多慢。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Power, TemperatureDifference, ThermalConductance};
+///
+/// // 一条 12 W/K 的导热路径，两端温差 20 K
+/// let g = ThermalConductance::from_w_per_k(12.0);
+/// let q: Power = g * TemperatureDifference::from_celsius(20.0);
+/// assert_eq!(q.as_watt(), 240.0);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ThermalConductance {
+    default_type: ThermalConductanceType,
+    pub v: f64,
+}
+
 
 impl Default for Distance {
     fn default() -> Self {
@@ -1139,3 +1460,4 @@ impl VectorQuantity for MagneticMoment {}
 impl VectorQuantity for Torque {}
 impl VectorQuantity for Force {}
 impl VectorQuantity for MagneticAngularVelocity {}
+impl VectorQuantity for HeatFlux {}

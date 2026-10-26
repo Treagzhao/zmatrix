@@ -68,6 +68,7 @@ mod momentum;
 mod power;
 mod temperature;
 mod temperature_difference;
+mod thermal_conductivity;
 mod torque;
 pub mod vector;
 mod velocity;
@@ -889,6 +890,69 @@ pub enum HeatFluxType {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct HeatFlux {
     default_type: HeatFluxType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ThermalConductivityType {
+    /// 瓦特每米开尔文（SI 导出单位）
+    WattPerMeterKelvin,
+    /// 千瓦每米开尔文
+    KiloWattPerMeterKelvin,
+    /// 毫瓦每厘米开尔文。隔热材料数据手册常用：
+    /// 气凝胶、隔热毡的 k 常在 0.02–0.04 W/(m·K)，用 W/(m·K) 写全是零。
+    /// `1 mW/(cm·K) = 0.1 W/(m·K)`
+    MilliWattPerCentiMeterKelvin,
+}
+
+/// 导热系数（也称热导率）
+///
+/// **材料本身的属性**：单位长度、单位温差下通过的热流密度，量纲 W/(m·K)。
+/// 傅里叶定律的一维形式：`q = k · ΔT / L`。
+///
+/// # 与两个近名量的区分（中文术语极易混淆）
+///
+/// | 英文 | 中文 | 单位 | 层级 |
+/// |---|---|---|---|
+/// | `ThermalConductivity` | **导热系数**（热导率） | W/(m·K) | 材料属性 |
+/// | `HeatTransferCoefficient` | 传热系数（表面传热系数） | W/(m²·K) | 表面对流 |
+/// | `ThermalConductance` | 热导 | W/K | 构件级 |
+///
+/// - 与「传热系数」只差一个字，但单位多一个 m²：前者是材料内部导热的本领，
+///   后者是表面对流换热的强弱，两者不可互换。
+/// - 与「热导」也不同：热导是构件级的整体值，
+///   等于 `导热系数 × 面积 ÷ 长度`。
+///
+/// # 与比热容的区别
+///
+/// 导热系数管「热传得多快」，比热容（`SpecificHeatCapacity`，尚未实现）管
+/// 「热存得住多少」。两者量纲完全不同、可自由组合：隔热毡的 k 比铝小 6000 倍，
+/// c 反而更大 —— 阻断传导的同时靠自身热容缓冲温度波动。
+///
+/// # 典型量级
+///
+/// | 材料 | k (W/(m·K)) |
+/// |---|---|
+/// | 铝 | 237 |
+/// | 钛 | 22 |
+/// | 隔热毡 | 0.04 |
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Distance, HeatFlux, TemperatureDifference, ThermalConductivity};
+///
+/// // 10 mm 厚的铝板，两面温差 20 K
+/// let k = ThermalConductivity::from_w_per_m_k(237.0);
+/// let thickness = Distance::from_m(0.01);
+/// let dt = TemperatureDifference::from_celsius(20.0);
+///
+/// // 傅里叶定律：q = k·ΔT/L
+/// let q = k.heat_flux(dt, thickness);
+/// assert!((q.as_w_per_m2() - 474_000.0).abs() < 1e-6);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ThermalConductivity {
+    default_type: ThermalConductivityType,
     pub v: f64,
 }
 

@@ -1,4 +1,3 @@
-use std::ops::Mul;
 use crate::physics::basic::{Coef, HeatFlux, HeatFluxType, Vector3};
 use crate::utils::float;
 impl Vector3<HeatFlux> {

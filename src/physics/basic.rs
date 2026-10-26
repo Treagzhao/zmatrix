@@ -58,6 +58,7 @@ mod electric_potential;
 mod electric_resistance;
 mod energy;
 mod force;
+pub mod heat_capacity;
 pub mod heat_flux;
 pub mod inertia;
 mod magnetic_angular_velocity;
@@ -68,6 +69,7 @@ mod momentum;
 mod power;
 mod temperature;
 mod temperature_difference;
+pub mod thermal_conductance;
 mod thermal_conductivity;
 mod torque;
 pub mod vector;
@@ -953,6 +955,109 @@ pub enum ThermalConductivityType {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ThermalConductivity {
     default_type: ThermalConductivityType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum HeatCapacityType {
+    /// 焦耳每开尔文（SI 导出单位）
+    JoulePerKelvin,
+    /// 千焦每开尔文
+    KiloJoulePerKelvin,
+}
+
+/// 热容
+///
+/// **整个物体**温度升高 1 K 所需的热量，量纲 J/K。
+/// 显热公式：`Q = C · ΔT`。
+///
+/// # 与比热容的区别（中文只差一个「比」字）
+///
+/// | 英文 | 中文 | 单位 | 层级 |
+/// |---|---|---|---|
+/// | `HeatCapacity` | **热容** | J/K | 整个物体 |
+/// | `SpecificHeatCapacity` | 比热容 | J/(kg·K) | 材料属性 |
+///
+/// 关系：`C = c · m`。热容是「这个物体存多少热」，比热容是「这种材料每千克存多少热」。
+/// 比热容尚未实现。
+///
+/// # 与热导的区别
+///
+/// 热容管**储热**（`C · dT/dt`），热导 [`ThermalConductance`] 管**传热**（`G · ΔT`）。
+/// 两者在热网络方程里分别占据左右两侧，量纲不同：
+///
+/// ```text
+/// C · dT/dt = G · ΔT + Q̇
+/// J/K · K/s   W/K · K     W        ← 三项都是 W
+/// ```
+///
+/// # 为什么要用热容而不是比热容
+///
+/// 集总参数热网络里，每个节点是一个等温体，需要的是「这个节点整体存多少热」，
+/// 而不是材料的单位质量属性。TD/SINDA 输出的 `CAPACITANCE` 就是本类型。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{HeatCapacity, TemperatureDifference, Energy};
+///
+/// // 10 kg 铝件，比热容 900 J/(kg·K)
+/// let c = HeatCapacity::from_j_per_k(9000.0);
+///
+/// // 升温 20 K 需要多少热量
+/// let q: Energy = c * TemperatureDifference::from_celsius(20.0);
+/// assert_eq!(q.as_joule(), 180_000.0);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HeatCapacity {
+    default_type: HeatCapacityType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ThermalConductanceType {
+    /// 瓦特每开尔文（SI 导出单位）
+    WattPerKelvin,
+    /// 毫瓦每开尔文
+    MilliWattPerKelvin,
+}
+
+/// 热导
+///
+/// **整条连接**两端温差 1 K 时通过的热功率，量纲 W/K。
+/// 热网络公式：`Q̇ = G · ΔT`。
+///
+/// # 与导热系数的区别（名字相近，层级不同）
+///
+/// | 英文 | 中文 | 单位 | 层级 |
+/// |---|---|---|---|
+/// | `ThermalConductance` | **热导** | W/K | 整条构件 |
+/// | `ThermalConductivity` | 导热系数 | W/(m·K) | 材料属性 |
+///
+/// 关系：`G = k · A / L`。热导已经包含了面积和长度，是「这根构件能过多少热」；
+/// 导热系数只是材料本身的属性。
+///
+/// # 热导 vs 热阻
+///
+/// `R = 1/G`，量纲 K/W。热阻尚未实现，但热网络里两种写法等价：
+/// 串联用热阻相加更直观，并联用热导相加更直观。
+///
+/// # 与热容的区别
+///
+/// 热导管**传热**（`G · ΔT`），热容 [`HeatCapacity`] 管**储热**（`C · dT/dt`）。
+/// 前者决定节点之间耦合多强，后者决定节点温度变化多慢。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Power, TemperatureDifference, ThermalConductance};
+///
+/// // 一条 12 W/K 的导热路径，两端温差 20 K
+/// let g = ThermalConductance::from_w_per_k(12.0);
+/// let q: Power = g * TemperatureDifference::from_celsius(20.0);
+/// assert_eq!(q.as_watt(), 240.0);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ThermalConductance {
+    default_type: ThermalConductanceType,
     pub v: f64,
 }
 

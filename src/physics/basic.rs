@@ -65,6 +65,8 @@ mod magnetic_moment;
 pub mod mass;
 mod momentum;
 mod power;
+mod temperature;
+mod temperature_difference;
 mod torque;
 pub mod vector;
 mod velocity;
@@ -738,6 +740,89 @@ pub enum ElectricConductanceType {
 pub struct ElectricConductance {
     default_type: ElectricConductanceType,
     pub v: f64,
+}
+
+/// 温度（绝对温度）
+///
+/// 内部统一以开尔文存储，不保留构造时使用的单位。这是与库内其他物理量的
+/// 一处**有意差异**：摄氏/华氏与开尔文之间是带偏移的仿射换算
+/// （`T_K = T_C + 273.15`），若沿用"原始单位下的值 + 单位标记"的范式，
+/// 每个 `as_*` 都要重复一遍偏移逻辑，极易漏。统一存 K 后，偏移只在构造
+/// 和取值两处出现，内部运算不需要 `match`。
+///
+/// # 允许的运算
+///
+/// | 运算 | 结果 | 含义 |
+/// |---|---|---|
+/// | `T - T` | `TemperatureDifference` | 求温差，唯一有意义的减法 |
+/// | `T + ΔT` | `Temperature` | 加热 |
+/// | `T - ΔT` | `Temperature` | 冷却 |
+/// | `T / T` | `Coef` | 温度比，如 Carnot 效率 `1 - Tc/Th` |
+///
+/// # 刻意不实现的运算
+///
+/// - `T + T`：两个位置温度之和不是温度，物理上无意义。
+/// - `T * f64`：从摄氏构造时会产生严重违背直觉的结果 ——
+///   `20°C` 内部是 `293.15 K`，乘 2 得 `586.3 K` 即 `313.15°C`，
+///   而不是直觉上的 `40°C`。真需要时请显式写
+///   `Temperature::from_kelvin(t.as_kelvin() * 2.0)`。
+/// - `T * T`：输出应是 K²，库中没有也不应有这个量纲。
+///
+/// # 注意
+///
+/// 温度是标量量，**刻意不实现 [`VectorQuantity`]**，因此 `Vector3<Temperature>`
+/// 在编译期即不可构造。空间温度梯度 ∇T 虽然是向量，但单位是 K/m，
+/// 其元素类型不是温度本身。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::Temperature;
+///
+/// let t = Temperature::from_celsius(20.0);
+/// assert!((t.as_kelvin() - 293.15).abs() < 1e-9);
+/// assert!((t.as_celsius() - 20.0).abs() < 1e-9);
+///
+/// // 与华氏互转
+/// let f = Temperature::from_fahrenheit(212.0);
+/// assert!((f.as_celsius() - 100.0).abs() < 1e-9);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub struct Temperature {
+    /// 绝对温度，单位 K。私有字段：外部只能通过 `from_*` / `as_*` 访问，
+    /// 保证偏移换算不会绕过。
+    kelvin: f64,
+}
+
+/// 温度差（相对温度）
+///
+/// 与 [`Temperature`] 的唯一区别是**零点**：温度有偏移，温差没有。
+///
+/// - `Δ°C` 与 `ΔK` 数值**完全相同**（换算系数 1、偏移 0）
+/// - `Δ°F` 与 `ΔK` 相差 `9/5`
+///
+/// # 为什么必须是独立类型
+///
+/// 若只保留一个温度类型，`G * T`（热导 × 温度）与 `G * ΔT`（热导 × 温差）
+/// 在量纲上**都成立**（`W/K × K = W`），但数值可相差几十倍：
+///
+/// ```
+/// # use zmatrix::physics::basic::{Temperature, TemperatureDifference};
+/// let t1 = Temperature::from_celsius(30.0);   // 303.15 K
+/// let t2 = Temperature::from_celsius(20.0);   // 293.15 K
+///
+/// // 正确：温差 10 K
+/// let dt: TemperatureDifference = t1 - t2;
+/// assert!((dt.as_kelvin() - 10.0).abs() < 1e-9);
+///
+/// // 若误把绝对温度当温差用，数值会是 303.15 而非 10，差 30 倍。
+/// // 量纲检查对此无能为力 —— 只有类型系统能挡。
+/// ```
+///
+/// 同样**刻意不实现 [`VectorQuantity`]**：梯度 ∇T 的单位是 K/m，不是 K。
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub struct TemperatureDifference {
+    /// 温度差，单位 K。私有字段，理由同上。
+    kelvin: f64,
 }
 
 

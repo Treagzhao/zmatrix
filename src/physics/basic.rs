@@ -58,6 +58,7 @@ mod electric_potential;
 mod electric_resistance;
 mod energy;
 mod force;
+pub mod heat_flux;
 pub mod inertia;
 mod magnetic_angular_velocity;
 mod magnetic_induction;
@@ -825,6 +826,72 @@ pub struct TemperatureDifference {
     kelvin: f64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum HeatFluxType {
+    /// 瓦特每平方米（SI 导出单位）
+    WattPerSquareMeter,
+    /// 千瓦每平方米
+    KiloWattPerSquareMeter,
+    /// 毫瓦每平方厘米。文献与涂层数据手册常用；
+    /// `1 mW/cm² = 10 W/m²`（注意不是 1e-3 的关系，分母是 cm² 不是 m²）
+    MilliWattPerSquareCentiMeter,
+}
+
+/// 热流密度
+///
+/// **单位面积上的热功率**，量纲 W/m²。中文也叫「热通量」，但严格说 *flux*
+/// 指通过某个面的总流量（W），*flux density* 才是每平方米的值（W/m²）；
+/// 工程上 `heat flux` 几乎一律指后者，本类型采用这一约定。
+///
+/// # 与热量、热功率的区别
+///
+/// | 量 | 单位 | 含义 | 本库类型 |
+/// |---|---|---|---|
+/// | 热量 Q | J | 累计能量 | [`Energy`] |
+/// | 热功率 Q̇ | W | 单位时间的能量 | [`Power`] |
+/// | 热流密度 q | W/m² | 单位时间、单位面积 | `HeatFlux` |
+///
+/// 密度与总量无关：两块各 1 m² 的板共承受 2000 W 热功率，但每块的
+/// 热流密度仍是 1000 W/m²。热控设计关心后者 —— 它与材料耐受温度和
+/// 涂层退化直接挂钩，与板子多大无关。
+///
+/// # 典型量级
+///
+/// - 太阳常数：1361 W/m²
+/// - 地球红外辐照：约 230 W/m²
+/// - 地球反照：0–400 W/m²，随轨道位置变化
+/// - 多层隔热材料漏热：几 W/m²
+///
+/// # 为什么它是热学量里唯一的向量量
+///
+/// 热流有方向。太阳照到倾斜面上，实际吸收量为 `q · n̂`（点乘），
+/// 与入射角余弦成正比。因此 `Vector3<HeatFlux>` 有意义，而
+/// [`Temperature`] 与 [`TemperatureDifference`] 都不实现
+/// [`VectorQuantity`] —— 温度是标量场，梯度 ∇T 虽是向量但单位是 K/m。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Area, HeatFlux, Power};
+///
+/// // 太阳常数
+/// let q = HeatFlux::from_w_per_m2(1361.0);
+/// assert_eq!(q.as_w_per_m2(), 1361.0);
+///
+/// // 换算：涂层手册常给 mW/cm²
+/// let q2 = HeatFlux::from_mw_per_cm2(1.0);
+/// assert_eq!(q2.as_w_per_m2(), 10.0);
+///
+/// // 热流密度 × 面积 = 热功率
+/// let area = Area::from_m2(2.0);
+/// let power: Power = q * area;
+/// assert_eq!(power.as_watt(), 2722.0);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HeatFlux {
+    default_type: HeatFluxType,
+    pub v: f64,
+}
+
 
 impl Default for Distance {
     fn default() -> Self {
@@ -1224,3 +1291,4 @@ impl VectorQuantity for MagneticMoment {}
 impl VectorQuantity for Torque {}
 impl VectorQuantity for Force {}
 impl VectorQuantity for MagneticAngularVelocity {}
+impl VectorQuantity for HeatFlux {}

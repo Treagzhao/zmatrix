@@ -571,11 +571,11 @@ where
     ///
     /// # 为什么用专用 trait 而不是 `Mul`
     ///
-    /// 旧签名以 `T: Mul<B, Output = F>` 推导输出类型，而 `Mul` 早已被**标量积**
-    /// 占用：`MagneticMoment * MagneticInduction` 给出 `Energy`（点乘），
-    /// `Distance * Force` 给出 `Energy`（功）。Rust 不允许同一类型对上一类型
-    /// 有两个不同 `Output` 的 `Mul`，因此这些组合的叉乘**永久无法表达** ——
-    /// 而 `m × B` 恰恰是磁偶极子力矩的定义式。
+    /// 旧签名以 `T: Mul<B, Output = F>` 推导输出类型。而 `Mul` 对同一对类型只能
+    /// 有一个实现，同时承载不了"点乘给能量、叉乘给力矩"两种语义
+    /// （`m·B` 是势能，`m×B` 是力矩，两者都必须存在）。
+    /// 加之本库已把带负号的势能 `U = -m·B` 从 `Mul` 上撤下、改为命名函数，
+    /// `Mul` 更不适合继续充当叉乘的类型函数。
     ///
     /// 那个 `Mul` 约束在方法体里从未被调用，纯粹充当"类型级函数"，
     /// 用一个语义相悖的 trait 承担了不该承担的职责。[`CrossProduct`] 只描述
@@ -639,20 +639,22 @@ where
 /// | `T` | `B` | `Out` | 物理含义 |
 /// |---|---|---|---|
 /// | `Distance` | `Force` | `Torque` | 力矩 `τ = r × F` |
+/// | `AngularVelocity` | `AngularMomentum` | `Torque` | 陀螺力矩 `ω × L`（欧拉方程第二项） |
 /// | `MagneticMoment` | `MagneticInduction` | `Torque` | 磁力矩 `τ = m × B` |
 /// | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | 磁角速度 |
 /// | `Coef` | `Coef` | `Coef` | 方向向量叉乘 |
 ///
 /// # 为什么不用 `Mul`
 ///
-/// 标量积已经占用了 `Mul`，而同一个 `(T, B)` 组合往往同时需要点乘和叉乘：
+/// 同一对物理量往往同时需要点乘和叉乘，两者是不同的量：
 ///
 /// ```text
-/// MagneticMoment * MagneticInduction = Energy      点乘（势能尺度）
-/// MagneticMoment × MagneticInduction = Torque      叉乘（力矩）
+/// m · B = U  势能（带负号，用命名函数 potential_energy）
+/// m × B = τ  力矩（叉乘，本文 trait 负责）
 /// ```
 ///
-/// 一个类型不可能有两个不同 `Output` 的 `Mul` 实现，所以叉乘必须有独立入口。
+/// 而 `Mul` 对同一对类型只能有一个 `Output`，装不下两种语义。
+/// 叉乘必须有独立入口。
 pub trait CrossProduct<B> {
     /// 叉乘结果的物理量类型。
     type Out: VectorQuantity + Default;
@@ -674,8 +676,8 @@ impl CrossProduct<Force> for Distance {
 // 磁力矩：τ = m × B
 //
 // 量纲 A·m² × T = A·m² × N/(A·m) = N·m ✓。
-// 与标量点乘 `MagneticMoment * MagneticInduction = Energy` 共存不冲突，
-// 因为走的是两个不同的 trait。
+// 点乘（势能 U = -m·B）走命名函数 MagneticMoment::potential_energy，
+// 与这里不冲突。
 impl CrossProduct<MagneticInduction> for MagneticMoment {
     type Out = Torque;
 }
@@ -685,6 +687,15 @@ impl CrossProduct<MagneticInduction> for MagneticMoment {
 // 保留此实现以兼容既有调用点（`Vector3<MagneticInduction>` 上的叉乘）。
 impl CrossProduct<AngularVelocity> for MagneticInduction {
     type Out = MagneticAngularVelocity;
+}
+
+// 陀螺力矩：ω × L
+//
+// 量纲 (rad/s) × (kg·m²/s) = kg·m²/s² = N·m ✓（rad 无量纲）。
+// 这是欧拉方程的第二项：`M = J·ω̇ + ω × (Jω)`，即 `ω × L`。
+// 刚体绕非主轴旋转时该项非零，是姿态动力学不能用标量描述的根本原因。
+impl CrossProduct<AngularMomentum> for AngularVelocity {
+    type Out = Torque;
 }
 
 #[cfg(test)]
@@ -1015,6 +1026,98 @@ mod tests {
         assert_relative_eq!(self_cross.x.get_value(), 0.0, epsilon = 1e-12);
         assert_relative_eq!(self_cross.y.get_value(), 0.0, epsilon = 1e-12);
         assert_relative_eq!(self_cross.z.get_value(), 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_cross_gyroscopic_torque() {
+        // 陀螺力矩 ω × L，欧拉方程第二项
+        // ω = (0, 0, 2) rad/s，L = (3, 0, 5) N·m·s
+        // ω × L = (0×5 - 2×0, 2×3 - 0×5, 0×0 - 0×3) = (0, 6, 0)
+        let omega = Vector3::new(
+            AngularVelocity::from_rad_per_second(0.0),
+            AngularVelocity::from_rad_per_second(0.0),
+            AngularVelocity::from_rad_per_second(2.0),
+        );
+        let l = Vector3::new(
+            AngularMomentum::from_nms(3.0),
+            AngularMomentum::from_nms(0.0),
+            AngularMomentum::from_nms(5.0),
+        );
+
+        let gyro: Vector3<Torque> = omega.cross(&l);
+        assert_relative_eq!(gyro.x.as_nm(), 0.0, epsilon = 1e-12);
+        assert_relative_eq!(gyro.y.as_nm(), 6.0, epsilon = 1e-12);
+        assert_relative_eq!(gyro.z.as_nm(), 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_cross_gyroscopic_zero_when_aligned() {
+        // ω 与 L 同向时陀螺力矩为零 —— 这正是绕主轴旋转的判据，
+        // 也是各向同性刚体可以退化为标量模型的原因
+        let omega = Vector3::new(
+            AngularVelocity::from_rad_per_second(1.0),
+            AngularVelocity::from_rad_per_second(2.0),
+            AngularVelocity::from_rad_per_second(3.0),
+        );
+        let l = Vector3::new(
+            AngularMomentum::from_nms(2.0),
+            AngularMomentum::from_nms(4.0),
+            AngularMomentum::from_nms(6.0),
+        );
+        let gyro: Vector3<Torque> = omega.cross(&l);
+
+        let mag = (gyro.x.as_nm().powi(2)
+            + gyro.y.as_nm().powi(2)
+            + gyro.z.as_nm().powi(2))
+        .sqrt();
+        assert_relative_eq!(mag, 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_euler_equation_end_to_end() {
+        // 欧拉方程：M = J·ω̇ + ω × (Jω)
+        //
+        // 取非对称张量，验证第二项确实非零，且两项可以相加成总力矩。
+        use crate::compound::inertia_tensor::InertiaTensor;
+
+        let j = InertiaTensor::new(
+            Inertia::from_kg_m2(120.0),
+            Inertia::from_kg_m2(130.0),
+            Inertia::from_kg_m2(45.0),
+            Inertia::from_kg_m2(0.0),
+            Inertia::from_kg_m2(0.0),
+            Inertia::from_kg_m2(0.0),
+        );
+        let omega = Vector3::new(
+            AngularVelocity::from_rad_per_second(0.5),
+            AngularVelocity::from_rad_per_second(0.0),
+            AngularVelocity::from_rad_per_second(2.0),
+        );
+
+        // 第一项：J·ω̇（零角加速度时为零向量）
+        let alpha = Vector3::new(
+            AngularAcceleration::from_rad_per_second2(0.0),
+            AngularAcceleration::from_rad_per_second2(0.0),
+            AngularAcceleration::from_rad_per_second2(0.0),
+        );
+        let inertial: Vector3<Torque> = j * alpha;
+
+        // 第二项：ω × L，L = J·ω
+        let l = j * omega;
+        let gyro: Vector3<Torque> = omega.cross(&l);
+
+        // L = (120×0.5, 0, 45×2) = (60, 0, 90)
+        assert_relative_eq!(l.x.as_nms(), 60.0, epsilon = 1e-9);
+        assert_relative_eq!(l.z.as_nms(), 90.0, epsilon = 1e-9);
+
+        // ω × L = (0×90 - 2×0, 2×60 - 0.5×90, 0.5×0 - 0×60) = (0, 75, 0)
+        assert_relative_eq!(gyro.x.as_nm(), 0.0, epsilon = 1e-9);
+        assert_relative_eq!(gyro.y.as_nm(), 75.0, epsilon = 1e-9);
+        assert_relative_eq!(gyro.z.as_nm(), 0.0, epsilon = 1e-9);
+
+        // 总力矩 = 0 + 75 = 75 N·m 沿 y
+        let total = inertial + gyro;
+        assert_relative_eq!(total.y.as_nm(), 75.0, epsilon = 1e-9);
     }
 
     #[test]

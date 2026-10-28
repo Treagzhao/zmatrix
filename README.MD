@@ -229,6 +229,7 @@ let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 > | `T` | `B` | `Out` | 含义 |
 > |---|---|---|---|
 > | `Distance` | `Force` | `Torque` | 力矩 `τ = r × F` |
+> | `AngularVelocity` | `AngularMomentum` | `Torque` | 陀螺力矩 `ω × L`（欧拉方程第二项） |
 > | `MagneticMoment` | `MagneticInduction` | `Torque` | 磁力矩 `τ = m × B` |
 > | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | 磁角速度 |
 > | `Coef` | `Coef` | `Coef` | 方向向量叉乘 |
@@ -395,14 +396,73 @@ let rotated = j.rotate(&CosMatrix::unit());
 > 绕 z 轴是 3，绕 `(1,1,0)/√2` 只有 1 —— 惯性积把结果从 2 拉到了 1。
 > 归一化在方法内部完成，传入非单位向量结果不变；零向量返回错误。
 
-### 陀螺力矩
+### 陀螺力矩与欧拉方程
 
 张量的意义在于：`L` 可以偏离 `ω`，于是 `ω × L` 不为零。
 
-```text
-ω = (0, 0, 1), L = (8, 0, 45)   因为 Ixz ≠ 0，L 出现 x 分量
-ω × L = (0, 8, 0)               非零，这就是姿态动力学必须用张量的原因
+```rust
+let j = InertiaTensor::new(
+    Inertia::from_kg_m2(120.0), Inertia::from_kg_m2(130.0), Inertia::from_kg_m2(45.0),
+    Inertia::from_kg_m2(0.0), Inertia::from_kg_m2(0.0), Inertia::from_kg_m2(0.0),
+);
+
+let omega = Vector3::new(
+    AngularVelocity::from_rad_per_second(0.5),
+    AngularVelocity::from_rad_per_second(0.0),
+    AngularVelocity::from_rad_per_second(2.0),
+);
+
+// 欧拉方程：M = J·ω̇ + ω × (Jω)
+let l: Vector3<AngularMomentum> = j * omega;          // L = (60, 0, 90)
+let gyro: Vector3<Torque> = omega.cross(&l);          // ω × L = (0, 75, 0)
+
+let alpha = Vector3::new(
+    AngularAcceleration::from_rad_per_second2(0.0),
+    AngularAcceleration::from_rad_per_second2(0.1),
+    AngularAcceleration::from_rad_per_second2(0.0),
+);
+let inertial: Vector3<Torque> = j * alpha;            // J·ω̇ = (0, 13, 0)
+let total = inertial + gyro;                          // M = (0, 88, 0)
 ```
+
+**纯绕主轴旋转时 `ω × L` 为零** —— 这就是各向同性刚体可以用标量模型的原因。
+`Ixx ≠ Izz` 且两轴同时转动时该项必不为零，标量模型无法表达。
+
+### 磁偶极子：力矩与势能
+
+磁矩在外场中有两个量，**符号约定容易搞错**：
+
+| 量 | 公式 | 类型 | 获取方式 |
+|---|---|---|---|
+| 力矩 | `τ = m × B` | `Vector3<Torque>` | `cross` 或 `magnetic_torque` |
+| 势能 | `U = -m · B` | `Energy` | `potential_energy`（**带负号**） |
+
+```rust
+let m = Vector3::new(
+    MagneticMoment::from_am2(12.0),
+    MagneticMoment::from_am2(0.0),
+    MagneticMoment::from_am2(0.0),
+);
+let b = Vector3::new(
+    MagneticInduction::from_tesla(3e-5),
+    MagneticInduction::from_tesla(0.0),
+    MagneticInduction::from_tesla(0.0),
+);
+
+// 力矩：两种写法等价
+let tau: Vector3<Torque> = m.cross(&b);
+let tau2 = m.magnetic_torque(&b);
+
+// 势能：平行取向 -3.6e-4 J（最低），反平行 +3.6e-4 J（最高）
+let u = m.potential_energy(&b);
+```
+
+> **`m * B` 这个运算符不提供。** 点乘的物理意义是势能 `U = -m·B`，带负号；
+> 若做成 `Mul`，`m * b` 会给出 `+m·B`，与真实物理量反号 —— 而且不会报错。
+> 命名函数可以在名字和文档里把负号说清楚，运算符做不到。
+>
+> 关系：`U = -|m||B|cosθ`，`|τ| = |m||B|sinθ`。两者都是零或极值的取向，
+> 恰好对应稳定与不稳定平衡。
 
 ---
 

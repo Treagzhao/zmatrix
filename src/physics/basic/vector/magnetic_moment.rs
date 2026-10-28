@@ -57,13 +57,14 @@ impl Vector3<MagneticMoment> {
         self.cross(b)
     }
 
-    /// 磁矩与外场的点乘（能量尺度）：`m · B`。
+    /// 磁矩向量与外场向量的**势能**：`U = -m · B`。
     ///
-    /// **注意符号**：磁偶极子的**势能**是 `U = -m · B`，本方法返回的是
-    /// `+m · B`。若需要势能请取负号。
+    /// 注意是**负值**，与标量版本
+    /// [`MagneticMoment::potential_energy`](crate::physics::basic::MagneticMoment::potential_energy)
+    /// 一致。平行取向势能最低，反平行最高。
     ///
-    /// 与标量 `MagneticMoment * MagneticInduction` 的数值完全相同，
-    /// 提供此方法只是为了在向量层面有对称的入口。
+    /// 力矩 `τ = m × B` 见 [`magnetic_torque`](Self::magnetic_torque) 或
+    /// [`cross`](crate::physics::basic::Vector3::cross)。
     ///
     /// # 示例
     /// ```
@@ -74,18 +75,30 @@ impl Vector3<MagneticMoment> {
     ///     MagneticMoment::from_am2(0.0),
     ///     MagneticMoment::from_am2(0.0),
     /// );
+    /// // 平行：U = -6 J
     /// let b = Vector3::new(
     ///     MagneticInduction::from_tesla(3.0),
     ///     MagneticInduction::from_tesla(0.0),
     ///     MagneticInduction::from_tesla(0.0),
     /// );
-    /// assert!((m.magnetic_energy(&b).as_joule() - 6.0).abs() < 1e-12);
+    /// assert!((m.potential_energy(&b).as_joule() + 6.0).abs() < 1e-12);
+    ///
+    /// // 反平行：U = +6 J
+    /// let b2 = Vector3::new(
+    ///     MagneticInduction::from_tesla(-3.0),
+    ///     MagneticInduction::from_tesla(0.0),
+    ///     MagneticInduction::from_tesla(0.0),
+    /// );
+    /// assert!((m.potential_energy(&b2).as_joule() - 6.0).abs() < 1e-12);
     /// ```
-    pub fn magnetic_energy(&self, b: &Vector3<MagneticInduction>) -> crate::physics::basic::Energy {
+    pub fn potential_energy(
+        &self,
+        b: &Vector3<MagneticInduction>,
+    ) -> crate::physics::basic::Energy {
         crate::physics::basic::Energy::from_joule(
-            self.x.as_am2() * b.x.as_tesla()
+            -(self.x.as_am2() * b.x.as_tesla()
                 + self.y.as_am2() * b.y.as_tesla()
-                + self.z.as_am2() * b.z.as_tesla(),
+                + self.z.as_am2() * b.z.as_tesla()),
         )
     }
 
@@ -940,44 +953,44 @@ mod tests {
     }
 
     #[test]
-    fn test_magnetic_energy_dot() {
-        // 平行：m·B = 2 × 3 = 6 J
+    fn test_potential_energy_vector() {
         let m = m_along_x(2.0);
         let b = Vector3::new(
             MagneticInduction::from_tesla(3.0),
             MagneticInduction::from_tesla(0.0),
             MagneticInduction::from_tesla(0.0),
         );
-        assert_relative_eq!(m.magnetic_energy(&b).as_joule(), 6.0, epsilon = 1e-12);
 
-        // 垂直：m·B = 0
+        // 平行：U = -m·B = -6 J（势能最低点）
+        assert_relative_eq!(m.potential_energy(&b).as_joule(), -6.0, epsilon = 1e-12);
+
+        // 垂直：U = 0
         assert_relative_eq!(
-            m.magnetic_energy(&b_along_y(3.0)).as_joule(),
+            m.potential_energy(&b_along_y(3.0)).as_joule(),
             0.0,
             epsilon = 1e-12
         );
 
-        // 反平行：m·B = -6 J，此时势能 U = -m·B = +6 J（不稳定平衡）
+        // 反平行：U = +6 J（势能最高点，不稳定平衡）
         let b_anti = Vector3::new(
             MagneticInduction::from_tesla(-3.0),
             MagneticInduction::from_tesla(0.0),
             MagneticInduction::from_tesla(0.0),
         );
-        assert_relative_eq!(m.magnetic_energy(&b_anti).as_joule(), -6.0, epsilon = 1e-12);
+        assert_relative_eq!(m.potential_energy(&b_anti).as_joule(), 6.0, epsilon = 1e-12);
 
         // 与标量路径数值一致
-        let scalar = MagneticMoment::from_am2(2.0) * MagneticInduction::from_tesla(3.0);
+        let scalar = MagneticMoment::from_am2(2.0).potential_energy(MagneticInduction::from_tesla(3.0));
         assert_relative_eq!(
-            m.magnetic_energy(&b).as_joule(),
+            m.potential_energy(&b).as_joule(),
             scalar.as_joule(),
             epsilon = 1e-12
         );
     }
 
     #[test]
-    fn test_magnetic_energy_and_torque_relation() {
-        // 能量对标量转角求导 = 力矩的量级：
-        // U(θ) = -mB cosθ, |τ| = |-dU/dθ| = mB sinθ
+    fn test_potential_energy_and_torque_relation() {
+        // |τ| = -dU/dθ。U(θ) = -mB cosθ，故 |τ| = mB sinθ
         // 取 θ = 45°，mB = 2×4 = 8
         let s = std::f64::consts::FRAC_1_SQRT_2;
         let m = m_along_x(2.0);
@@ -986,9 +999,14 @@ mod tests {
             MagneticInduction::from_tesla(4.0 * s),
             MagneticInduction::from_tesla(0.0),
         );
-        let energy = m.magnetic_energy(&b).as_joule();     // 8 × 0.7071 = 5.6569
-        let torque = m.magnetic_torque(&b).z.as_nm();      // 8 × 0.7071 = 5.6569
-        assert_relative_eq!(energy, 8.0 * s, epsilon = 1e-12);
+        // U = -mB cos45 = -8 × 0.7071 = -5.6569
+        let u = m.potential_energy(&b).as_joule();
+        // |τ| = mB sin45 = 8 × 0.7071 = 5.6569
+        let torque = m.magnetic_torque(&b).z.as_nm();
+
+        assert_relative_eq!(u, -8.0 * s, epsilon = 1e-12);
         assert_relative_eq!(torque, 8.0 * s, epsilon = 1e-12);
+        // 关系：U = -|τ| 当 θ=45°（因 cos45 = sin45）
+        assert_relative_eq!(u, -torque, epsilon = 1e-12);
     }
 }

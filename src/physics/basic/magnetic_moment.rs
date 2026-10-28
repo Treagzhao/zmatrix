@@ -189,6 +189,40 @@ impl MagneticMoment {
             MagneticMomentType::NanoJPerTesla => self.v,
         }
     }
+
+    /// 磁偶极子在外场中的**势能**：`U = -m · B`。
+    ///
+    /// 注意是**负值**。这个负号不是笔误：磁矩倾向于与外场平行，平行时
+    /// 势能最低（`U = -|m||B|`），反平行时最高（`U = +|m||B|`）。
+    /// 若去掉负号，势能的最低点会跑到反平行取向，与物理事实相反。
+    ///
+    /// # 为什么不实现 `Mul`
+    ///
+    /// `m * b` 从字面看应该给出 `m · B` 的正值，但物理上真正有用的是
+    /// `U = -m · B`。用一个运算符承载带负号的量，符号错误不会报错、
+    /// 只会给出一个看似合理的数 —— 而命名函数可以在名字和文档里
+    /// 把负号说明白。
+    ///
+    /// 力矩 `τ = m × B` 请用 [`Vector3::cross`](crate::physics::basic::Vector3::cross)
+    /// 或 [`Vector3::magnetic_torque`](crate::physics::basic::Vector3::magnetic_torque)。
+    ///
+    /// # 示例
+    /// ```
+    /// use zmatrix::physics::basic::{MagneticInduction, MagneticMoment};
+    ///
+    /// let m = MagneticMoment::from_am2(2.0);
+    ///
+    /// // 平行：势能最低 -6 J
+    /// let u = m.potential_energy(MagneticInduction::from_tesla(3.0));
+    /// assert!((u.as_joule() + 6.0).abs() < 1e-12);
+    ///
+    /// // 反平行：势能最高 +6 J
+    /// let u = m.potential_energy(MagneticInduction::from_tesla(-3.0));
+    /// assert!((u.as_joule() - 6.0).abs() < 1e-12);
+    /// ```
+    pub fn potential_energy(&self, b: MagneticInduction) -> Energy {
+        Energy::from_joule(-self.as_j_per_tesla() * b.as_tesla())
+    }
 }
 
 impl Add for MagneticMoment {
@@ -319,28 +353,12 @@ impl Neg for MagneticMoment {
     }
 }
 
-// 磁矩与磁感应强度的乘积（得到能量）
-impl Mul<MagneticInduction> for MagneticMoment {
-    type Output = Energy; // 能量，单位：焦耳
-    fn mul(self, rhs: MagneticInduction) -> Self::Output {
-        let energy_value = self.as_j_per_tesla() * rhs.as_tesla();
-        Energy::from_joule(energy_value)
-    }
-}
-
-// 引用版本：MagneticMoment * MagneticInduction -> Energy
-impl<'a, 'b> Mul<&'b MagneticInduction> for &'a MagneticMoment {
-    type Output = Energy;
-    fn mul(self, rhs: &'b MagneticInduction) -> Self::Output { Energy::from_joule(self.as_j_per_tesla() * rhs.as_tesla()) }
-}
-impl<'a> Mul<&'a MagneticInduction> for MagneticMoment {
-    type Output = Energy;
-    fn mul(self, rhs: &'a MagneticInduction) -> Self::Output { Energy::from_joule(self.as_j_per_tesla() * rhs.as_tesla()) }
-}
-impl<'a> Mul<MagneticInduction> for &'a MagneticMoment {
-    type Output = Energy;
-    fn mul(self, rhs: MagneticInduction) -> Self::Output { Energy::from_joule(self.as_j_per_tesla() * rhs.as_tesla()) }
-}
+// 磁矩 × 磁感应强度：不提供 `Mul`，改用命名函数。
+//
+// 原因：点乘 `m · B` 的物理意义是**势能** `U = -m · B`，带负号。
+// 若实现成 `Mul`，`m * b` 返回值会与「乘积」的字面直觉一致（+m·B），
+// 与真实物理量反号 —— 这是一个不报错、只是符号错的陷阱。
+// 命名函数可以在名字和文档里把负号说清楚，运算符做不到。
 
 #[cfg(test)]
 mod tests {
@@ -504,16 +522,16 @@ mod tests {
     }
 
     #[test]
-    fn test_magnetic_moment_mul_magnetic_induction() {
+    fn test_magnetic_moment_potential_energy_units() {
         let mm = MagneticMoment::from_am2(1.0);
         let b = MagneticInduction::from_tesla(2.0);
-        let energy = mm * b;
-        assert_relative_eq!(energy.as_joule(), 2.0); // 1 A·m² × 2 T = 2 J
+        let u = mm.potential_energy(b);
+        assert_relative_eq!(u.as_joule(), -2.0); // -(1 A·m² × 2 T)
 
         let mm = MagneticMoment::from_j_per_tesla(1.0);
-        let b = MagneticInduction::from_gauss(10000.0);
-        let energy = mm * b;
-        assert_relative_eq!(energy.as_joule(), 1.0); // 1 J/T × 1 T = 1 J
+        let b = MagneticInduction::from_gauss(10000.0); // 1 T
+        let u = mm.potential_energy(b);
+        assert_relative_eq!(u.as_joule(), -1.0);
     }
 
     #[test]
@@ -691,18 +709,38 @@ mod tests {
     }
 
     #[test]
-    fn test_magnetic_moment_multiplication_with_magnetic_induction() {
-        // 测试磁矩与磁感应强度的乘法（得到能量）
+    fn test_potential_energy_of_dipole() {
+        // 平行取向：势能最低，U = -m·B = -6 J
         let mm = MagneticMoment::from_am2(2.0);
         let b = MagneticInduction::from_tesla(3.0);
-        let energy = mm * b;
-        assert_relative_eq!(energy.as_joule(), 6.0); // 2 A·m² × 3 T = 6 J
-        
-        // 测试不同单位
+        let u = mm.potential_energy(b);
+        assert_relative_eq!(u.as_joule(), -6.0); // -(2 A·m² × 3 T)
+
+        // 反平行取向：势能最高，U = +6 J
+        let u = mm.potential_energy(MagneticInduction::from_tesla(-3.0));
+        assert_relative_eq!(u.as_joule(), 6.0);
+
+        // 垂直取向：势能为 0
+        let u = mm.potential_energy(MagneticInduction::from_tesla(0.0));
+        assert_relative_eq!(u.as_joule(), 0.0);
+
+        // 不同单位：2 J/T × 3 T = -6 J
         let mm_j_per_t = MagneticMoment::from_j_per_tesla(2.0);
         let b_gauss = MagneticInduction::from_gauss(30000.0); // 3 T
-        let energy = mm_j_per_t * b_gauss;
-        assert_relative_eq!(energy.as_joule(), 6.0); // 2 J/T × 3 T = 6 J
+        let u = mm_j_per_t.potential_energy(b_gauss);
+        assert_relative_eq!(u.as_joule(), -6.0);
+    }
+
+    #[test]
+    fn test_potential_energy_minimum_is_aligned() {
+        // 物理事实：势能最低点必须是平行取向，不是反平行
+        let mm = MagneticMoment::from_am2(1.0);
+        let aligned = mm.potential_energy(MagneticInduction::from_tesla(1.0));
+        let anti = mm.potential_energy(MagneticInduction::from_tesla(-1.0));
+
+        assert!(aligned.as_joule() < anti.as_joule());
+        assert_relative_eq!(aligned.as_joule(), -1.0);
+        assert_relative_eq!(anti.as_joule(), 1.0);
     }
 
     #[test]
@@ -715,8 +753,8 @@ mod tests {
         let d = &mm1 - &mm2;
         assert_relative_eq!(d.as_am2(), 1.0);
 
-        let e = &mm1 * &MagneticInduction::from_tesla(3.0);
-        assert_relative_eq!(e.as_joule(), 6.0);
+        let e = mm1.potential_energy(MagneticInduction::from_tesla(3.0));
+        assert_relative_eq!(e.as_joule(), -6.0);
 
         // 混合引用：加/减
         let s2 = mm1 + &mm2;
@@ -734,13 +772,13 @@ mod tests {
         let d3 = &mm1d - mm2d;
         assert_relative_eq!(d3.as_am2(), 1.0);
 
-        // 混合引用：* MagneticInduction
+        // 势能（带负号），引用与值均可
         let mm1e = MagneticMoment::from_am2(2.0);
-        let e2 = mm1e * &MagneticInduction::from_tesla(3.0);
-        assert_relative_eq!(e2.as_joule(), 6.0);
+        let e2 = mm1e.potential_energy(MagneticInduction::from_tesla(3.0));
+        assert_relative_eq!(e2.as_joule(), -6.0);
         let mm1f = MagneticMoment::from_am2(2.0);
-        let e3 = &mm1f * MagneticInduction::from_tesla(3.0);
-        assert_relative_eq!(e3.as_joule(), 6.0);
+        let e3 = mm1f.potential_energy(MagneticInduction::from_tesla(3.0));
+        assert_relative_eq!(e3.as_joule(), -6.0);
     }
 
     #[test]

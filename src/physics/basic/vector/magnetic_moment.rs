@@ -9,15 +9,18 @@ impl Vector3<MagneticMoment> {
     /// 方向遵循右手定则：力矩倾向于把磁矩转向与外场平行。
     /// 量纲核对：`A·m² × T = A·m² × N/(A·m) = N·m` ✓
     ///
-    /// # 为什么是独立方法而不是 `cross`
+    /// # 与 `cross` 的关系
     ///
-    /// `Vector3::cross` 的输出类型由 `T: Mul<B, Output = F>` 决定，而本库中
-    /// 标量 `MagneticMoment * MagneticInduction` 已被**点乘**占用、输出
-    /// [`Energy`](crate::physics::basic::Energy)。Rust 不允许同一个 `Mul`
-    /// 有两个不同 `Output` 的实现，因此 `m.cross(&b)` 无法表达叉乘。
+    /// 等价的通用写法是 [`Vector3::cross`]：
     ///
-    /// 同一个问题也影响 `Vector3<Distance>.cross(&Vector3<Force>)` —— 那里
-    /// `Mul` 给出的是功（`Energy`），所以叉乘同样无法通过 `cross` 表达。
+    /// ```text
+    /// let tau: Vector3<Torque> = m.cross(&b);      // 通用入口
+    /// let tau = m.magnetic_torque(&b);             // 本方法
+    /// ```
+    ///
+    /// 两者数值完全相同。本方法的价值在于**名字即物理含义**，
+    /// 且不需要调用方写类型标注。选哪个看场景：
+    /// 一长串向量运算里用 `cross` 更连贯，单点计算用本方法更易读。
     ///
     /// # 为什么没有「反向叉乘」
     ///
@@ -27,7 +30,7 @@ impl Vector3<MagneticMoment> {
     ///
     /// # 示例
     /// ```
-    /// use zmatrix::physics::basic::{MagneticInduction, MagneticMoment, Vector3};
+    /// use zmatrix::physics::basic::{MagneticInduction, MagneticMoment, Torque, Vector3};
     ///
     /// // 磁矩沿 +x，外场沿 +y
     /// let m = Vector3::new(
@@ -44,18 +47,14 @@ impl Vector3<MagneticMoment> {
     /// // x × y = +z，大小 2 × 3 = 6 N·m
     /// let tau = m.magnetic_torque(&b);
     /// assert!((tau.z.as_nm() - 6.0).abs() < 1e-12);
-    /// assert!(tau.x.as_nm().abs() < 1e-12);
+    ///
+    /// // 与通用 cross 入口结果一致
+    /// let tau2: Vector3<Torque> = m.cross(&b);
+    /// assert!((tau.z.as_nm() - tau2.z.as_nm()).abs() < 1e-15);
     /// ```
     pub fn magnetic_torque(&self, b: &Vector3<MagneticInduction>) -> Vector3<Torque> {
-        let m = [self.x.as_am2(), self.y.as_am2(), self.z.as_am2()];
-        let f = [b.x.as_tesla(), b.y.as_tesla(), b.z.as_tesla()];
-
-        // 与 Vector3::cross 的展开顺序一致，保证两个入口的符号约定相同
-        Vector3::new(
-            Torque::from_nm(m[1] * f[2] - m[2] * f[1]),
-            Torque::from_nm(m[2] * f[0] - m[0] * f[2]),
-            Torque::from_nm(m[0] * f[1] - m[1] * f[0]),
-        )
+        // 委托给通用叉乘，避免两份展开公式各自漂移
+        self.cross(b)
     }
 
     /// 磁矩与外场的点乘（能量尺度）：`m · B`。

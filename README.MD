@@ -195,19 +195,46 @@ let v1 = Vector3::new(Distance::from_m(1.0), Distance::from_m(0.0), Distance::fr
 let v2 = Vector3::new(Distance::from_m(0.0), Distance::from_m(1.0), Distance::from_m(0.0));
 let dot: Distance = v1.dot(&v2);
 
-// 叉乘：接收引用，输出类型须实现 VectorQuantity
+// 叉乘：输出类型由 CrossProduct trait 决定
 let c1 = Vector3::new(Coef::new(1.0), Coef::new(0.0), Coef::new(0.0));
 let c2 = Vector3::new(Coef::new(0.0), Coef::new(1.0), Coef::new(0.0));
-let cross = c1.cross(&c2);
+let cross: Vector3<Coef> = c1.cross(&c2);   // (0, 0, 1)
+
+// 力矩：r × F
+let r = Vector3::new(Distance::from_m(1.0), Distance::from_m(0.0), Distance::from_m(0.0));
+let f = Vector3::new(Force::from_newton(0.0), Force::from_newton(2.0), Force::from_newton(0.0));
+let tau: Vector3<Torque> = r.cross(&f);      // 2 N·m 沿 +z
 
 // 反对称矩阵
 let skew = v1.skew_symmetric_matrix();    // 3×3
 let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 ```
 
-> **关于叉乘的类型约束**：`cross` 的输出类型是两元素类型相乘的结果，且该类型必须实现
-> `VectorQuantity`。`Distance × Distance = Area`，而 `Area` 不是向量量，因此
-> `Vector3<Distance>` **不能叉乘**；无量纲的 `Vector3<Coef>` 可以。
+> **叉乘的输出类型由 `CrossProduct` 决定，不再依赖 `Mul`。**
+>
+> 早期版本以 `T: Mul<B, Output = F>` 推导输出类型，导致最常用的 `m × B` 无法表达 ——
+> 因为 `MagneticMoment * MagneticInduction` 已被**点乘**占用（输出 `Energy`），
+> Rust 不允许同一 `Mul` 有两个 `Output`。`Distance × Force` 同理（`Mul` 给出功）。
+>
+> 现在改用专用 trait：
+>
+> ```text
+> pub trait CrossProduct<B> {
+>     type Out: VectorQuantity + Default;
+> }
+> ```
+>
+> 已实现的组合：
+>
+> | `T` | `B` | `Out` | 含义 |
+> |---|---|---|---|
+> | `Distance` | `Force` | `Torque` | 力矩 `τ = r × F` |
+> | `MagneticMoment` | `MagneticInduction` | `Torque` | 磁力矩 `τ = m × B` |
+> | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | 磁角速度 |
+> | `Coef` | `Coef` | `Coef` | 方向向量叉乘 |
+>
+> **没有定义的组合会在编译期报错**，而不是悄悄给出错误类型。反序（`F × r`、`B × m`）
+> 不提供 —— 那是同一个量的相反数，写 `-tau` 更清楚。
 
 ### 向量的时间算术
 

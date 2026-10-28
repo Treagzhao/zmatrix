@@ -197,21 +197,48 @@ let angular_momentum = displacement * momentum;
 let v1 = Vector3::new(Distance::from_m(1.0), Distance::from_m(0.0), Distance::from_m(0.0));
 let v2 = Vector3::new(Distance::from_m(0.0), Distance::from_m(1.0), Distance::from_m(0.0));
 let dot: Distance = v1.dot(&v2);
-
-// Cross product: takes a reference, output type must implement VectorQuantity
+// Cross product: the output type is decided by the CrossProduct trait
 let c1 = Vector3::new(Coef::new(1.0), Coef::new(0.0), Coef::new(0.0));
 let c2 = Vector3::new(Coef::new(0.0), Coef::new(1.0), Coef::new(0.0));
-let cross = c1.cross(&c2);
+let cross: Vector3<Coef> = c1.cross(&c2);   // (0, 0, 1)
+
+// Torque: r × F
+let r = Vector3::new(Distance::from_m(1.0), Distance::from_m(0.0), Distance::from_m(0.0));
+let f = Vector3::new(Force::from_newton(0.0), Force::from_newton(2.0), Force::from_newton(0.0));
+let tau: Vector3<Torque> = r.cross(&f);      // 2 N·m along +z
 
 // Skew-symmetric matrices
 let skew = v1.skew_symmetric_matrix();    // 3×3
 let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 ```
 
-> **On the cross-product type bound**: the output type of `cross` is the product of the two
-> element types, and that type must implement `VectorQuantity`. Since
-> `Distance × Distance = Area` and `Area` is not a vector quantity, `Vector3<Distance>` **cannot**
-> be cross-multiplied; dimensionless `Vector3<Coef>` can.
+> **The cross-product output type comes from `CrossProduct`, not `Mul`.**
+>
+> Earlier versions derived it from `T: Mul<B, Output = F>`, which made the most natural
+> operation unexpressible: `m × B`. Scalar `MagneticMoment * MagneticInduction` is already
+> taken by the **dot product** (yielding `Energy`), and Rust forbids two `Mul` impls with
+> different `Output`. `Distance × Force` fails the same way (`Mul` yields work).
+>
+> A dedicated trait replaces it:
+>
+> ```text
+> pub trait CrossProduct<B> {
+>     type Out: VectorQuantity + Default;
+> }
+> ```
+>
+> Implemented combinations:
+>
+> | `T` | `B` | `Out` | Meaning |
+> |---|---|---|---|
+> | `Distance` | `Force` | `Torque` | torque `τ = r × F` |
+> | `MagneticMoment` | `MagneticInduction` | `Torque` | magnetic torque `τ = m × B` |
+> | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | magnetic angular velocity |
+> | `Coef` | `Coef` | `Coef` | direction-vector cross product |
+>
+> **Undefined combinations fail to compile** rather than silently producing the wrong type.
+> Reversed orders (`F × r`, `B × m`) are not provided — they are the same quantity negated,
+> and writing `-tau` states the intent.
 
 ### Vector time arithmetic
 

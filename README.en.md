@@ -197,21 +197,49 @@ let angular_momentum = displacement * momentum;
 let v1 = Vector3::new(Distance::from_m(1.0), Distance::from_m(0.0), Distance::from_m(0.0));
 let v2 = Vector3::new(Distance::from_m(0.0), Distance::from_m(1.0), Distance::from_m(0.0));
 let dot: Distance = v1.dot(&v2);
-
-// Cross product: takes a reference, output type must implement VectorQuantity
+// Cross product: the output type is decided by the CrossProduct trait
 let c1 = Vector3::new(Coef::new(1.0), Coef::new(0.0), Coef::new(0.0));
 let c2 = Vector3::new(Coef::new(0.0), Coef::new(1.0), Coef::new(0.0));
-let cross = c1.cross(&c2);
+let cross: Vector3<Coef> = c1.cross(&c2);   // (0, 0, 1)
+
+// Torque: r × F
+let r = Vector3::new(Distance::from_m(1.0), Distance::from_m(0.0), Distance::from_m(0.0));
+let f = Vector3::new(Force::from_newton(0.0), Force::from_newton(2.0), Force::from_newton(0.0));
+let tau: Vector3<Torque> = r.cross(&f);      // 2 N·m along +z
 
 // Skew-symmetric matrices
 let skew = v1.skew_symmetric_matrix();    // 3×3
 let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 ```
 
-> **On the cross-product type bound**: the output type of `cross` is the product of the two
-> element types, and that type must implement `VectorQuantity`. Since
-> `Distance × Distance = Area` and `Area` is not a vector quantity, `Vector3<Distance>` **cannot**
-> be cross-multiplied; dimensionless `Vector3<Coef>` can.
+> **The cross-product output type comes from `CrossProduct`, not `Mul`.**
+>
+> Earlier versions derived it from `T: Mul<B, Output = F>`, which made the most natural
+> operation unexpressible: `m × B`. Scalar `MagneticMoment * MagneticInduction` is already
+> taken by the **dot product** (yielding `Energy`), and Rust forbids two `Mul` impls with
+> different `Output`. `Distance × Force` fails the same way (`Mul` yields work).
+>
+> A dedicated trait replaces it:
+>
+> ```text
+> pub trait CrossProduct<B> {
+>     type Out: VectorQuantity + Default;
+> }
+> ```
+>
+> Implemented combinations:
+>
+> | `T` | `B` | `Out` | Meaning |
+> |---|---|---|---|
+> | `Distance` | `Force` | `Torque` | torque `τ = r × F` |
+> | `AngularVelocity` | `AngularMomentum` | `Torque` | gyroscopic torque `ω × L` (Euler's second term) |
+> | `MagneticMoment` | `MagneticInduction` | `Torque` | magnetic torque `τ = m × B` |
+> | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | magnetic angular velocity |
+> | `Coef` | `Coef` | `Coef` | direction-vector cross product |
+>
+> **Undefined combinations fail to compile** rather than silently producing the wrong type.
+> Reversed orders (`F × r`, `B × m`) are not provided — they are the same quantity negated,
+> and writing `-tau` states the intent.
 
 ### Vector time arithmetic
 
@@ -380,14 +408,75 @@ let rotated = j.rotate(&CosMatrix::unit());
 > products of inertia pull it down from 2. Normalization happens inside the method, so a
 > non-unit vector gives the same answer; a zero vector returns an error.
 
-### Gyroscopic torque
+### Gyroscopic torque and Euler's equation
 
 The point of the tensor: `L` can deviate from `ω`, so `ω × L` is nonzero.
 
-```text
-ω = (0, 0, 1), L = (8, 0, 45)   because Ixz ≠ 0
-ω × L = (0, 8, 0)               nonzero — why attitude dynamics needs the tensor
+```rust
+let j = InertiaTensor::new(
+    Inertia::from_kg_m2(120.0), Inertia::from_kg_m2(130.0), Inertia::from_kg_m2(45.0),
+    Inertia::from_kg_m2(0.0), Inertia::from_kg_m2(0.0), Inertia::from_kg_m2(0.0),
+);
+
+let omega = Vector3::new(
+    AngularVelocity::from_rad_per_second(0.5),
+    AngularVelocity::from_rad_per_second(0.0),
+    AngularVelocity::from_rad_per_second(2.0),
+);
+
+// Euler: M = J·ω̇ + ω × (Jω)
+let l: Vector3<AngularMomentum> = j * omega;          // L = (60, 0, 90)
+let gyro: Vector3<Torque> = omega.cross(&l);          // ω × L = (0, 75, 0)
+
+let alpha = Vector3::new(
+    AngularAcceleration::from_rad_per_second2(0.0),
+    AngularAcceleration::from_rad_per_second2(0.1),
+    AngularAcceleration::from_rad_per_second2(0.0),
+);
+let inertial: Vector3<Torque> = j * alpha;            // J·ω̇ = (0, 13, 0)
+let total = inertial + gyro;                          // M = (0, 88, 0)
 ```
+
+**For rotation about a principal axis `ω × L` is zero** — which is why an
+isotropic body admits a scalar model. With `Ixx ≠ Izz` and both axes turning,
+the term is necessarily nonzero and no scalar model can express it.
+
+### Magnetic dipole: torque and potential energy
+
+Two quantities, and their **sign conventions are easy to get wrong**:
+
+| Quantity | Formula | Type | Access |
+|---|---|---|---|
+| torque | `τ = m × B` | `Vector3<Torque>` | `cross` or `magnetic_torque` |
+| potential energy | `U = -m · B` | `Energy` | `potential_energy` (**negative**) |
+
+```rust
+let m = Vector3::new(
+    MagneticMoment::from_am2(12.0),
+    MagneticMoment::from_am2(0.0),
+    MagneticMoment::from_am2(0.0),
+);
+let b = Vector3::new(
+    MagneticInduction::from_tesla(3e-5),
+    MagneticInduction::from_tesla(0.0),
+    MagneticInduction::from_tesla(0.0),
+);
+
+// Torque: both forms are equivalent
+let tau: Vector3<Torque> = m.cross(&b);
+let tau2 = m.magnetic_torque(&b);
+
+// Potential energy: aligned gives -3.6e-4 J (minimum), anti-aligned +3.6e-4 J (maximum)
+let u = m.potential_energy(&b);
+```
+
+> **The `m * B` operator is deliberately not provided.** The dot product's physical
+> meaning is potential energy `U = -m·B`, which carries a minus sign; as `Mul`, `m * b`
+> would yield `+m·B` — opposite to the real quantity, and silently so. A named function
+> can state the sign in its name and documentation; an operator cannot.
+>
+> Relations: `U = -|m||B|cosθ`, `|τ| = |m||B|sinθ`. The zero-torque orientations are
+> exactly the extrema of the potential, i.e. the stable and unstable equilibria.
 
 ---
 

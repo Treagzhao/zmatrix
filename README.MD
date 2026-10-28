@@ -195,19 +195,47 @@ let v1 = Vector3::new(Distance::from_m(1.0), Distance::from_m(0.0), Distance::fr
 let v2 = Vector3::new(Distance::from_m(0.0), Distance::from_m(1.0), Distance::from_m(0.0));
 let dot: Distance = v1.dot(&v2);
 
-// 叉乘：接收引用，输出类型须实现 VectorQuantity
+// 叉乘：输出类型由 CrossProduct trait 决定
 let c1 = Vector3::new(Coef::new(1.0), Coef::new(0.0), Coef::new(0.0));
 let c2 = Vector3::new(Coef::new(0.0), Coef::new(1.0), Coef::new(0.0));
-let cross = c1.cross(&c2);
+let cross: Vector3<Coef> = c1.cross(&c2);   // (0, 0, 1)
+
+// 力矩：r × F
+let r = Vector3::new(Distance::from_m(1.0), Distance::from_m(0.0), Distance::from_m(0.0));
+let f = Vector3::new(Force::from_newton(0.0), Force::from_newton(2.0), Force::from_newton(0.0));
+let tau: Vector3<Torque> = r.cross(&f);      // 2 N·m 沿 +z
 
 // 反对称矩阵
 let skew = v1.skew_symmetric_matrix();    // 3×3
 let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 ```
 
-> **关于叉乘的类型约束**：`cross` 的输出类型是两元素类型相乘的结果，且该类型必须实现
-> `VectorQuantity`。`Distance × Distance = Area`，而 `Area` 不是向量量，因此
-> `Vector3<Distance>` **不能叉乘**；无量纲的 `Vector3<Coef>` 可以。
+> **叉乘的输出类型由 `CrossProduct` 决定，不再依赖 `Mul`。**
+>
+> 早期版本以 `T: Mul<B, Output = F>` 推导输出类型，导致最常用的 `m × B` 无法表达 ——
+> 因为 `MagneticMoment * MagneticInduction` 已被**点乘**占用（输出 `Energy`），
+> Rust 不允许同一 `Mul` 有两个 `Output`。`Distance × Force` 同理（`Mul` 给出功）。
+>
+> 现在改用专用 trait：
+>
+> ```text
+> pub trait CrossProduct<B> {
+>     type Out: VectorQuantity + Default;
+> }
+> ```
+>
+> 已实现的组合：
+>
+> | `T` | `B` | `Out` | 含义 |
+> |---|---|---|---|
+> | `Distance` | `Force` | `Torque` | 力矩 `τ = r × F` |
+> | `AngularVelocity` | `AngularMomentum` | `Torque` | 陀螺力矩 `ω × L`（欧拉方程第二项） |
+> | `MagneticMoment` | `MagneticInduction` | `Torque` | 磁力矩 `τ = m × B` |
+> | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | 磁角速度 |
+> | `Coef` | `Coef` | `Coef` | 方向向量叉乘 |
+>
+> **没有定义的组合会在编译期报错**，而不是悄悄给出错误类型。反序（`F × r`、`B × m`）
+> 不提供 —— 那是同一个量的相反数，写 `-tau` 更清楚。
 
 ### 向量的时间算术
 
@@ -368,14 +396,73 @@ let rotated = j.rotate(&CosMatrix::unit());
 > 绕 z 轴是 3，绕 `(1,1,0)/√2` 只有 1 —— 惯性积把结果从 2 拉到了 1。
 > 归一化在方法内部完成，传入非单位向量结果不变；零向量返回错误。
 
-### 陀螺力矩
+### 陀螺力矩与欧拉方程
 
 张量的意义在于：`L` 可以偏离 `ω`，于是 `ω × L` 不为零。
 
-```text
-ω = (0, 0, 1), L = (8, 0, 45)   因为 Ixz ≠ 0，L 出现 x 分量
-ω × L = (0, 8, 0)               非零，这就是姿态动力学必须用张量的原因
+```rust
+let j = InertiaTensor::new(
+    Inertia::from_kg_m2(120.0), Inertia::from_kg_m2(130.0), Inertia::from_kg_m2(45.0),
+    Inertia::from_kg_m2(0.0), Inertia::from_kg_m2(0.0), Inertia::from_kg_m2(0.0),
+);
+
+let omega = Vector3::new(
+    AngularVelocity::from_rad_per_second(0.5),
+    AngularVelocity::from_rad_per_second(0.0),
+    AngularVelocity::from_rad_per_second(2.0),
+);
+
+// 欧拉方程：M = J·ω̇ + ω × (Jω)
+let l: Vector3<AngularMomentum> = j * omega;          // L = (60, 0, 90)
+let gyro: Vector3<Torque> = omega.cross(&l);          // ω × L = (0, 75, 0)
+
+let alpha = Vector3::new(
+    AngularAcceleration::from_rad_per_second2(0.0),
+    AngularAcceleration::from_rad_per_second2(0.1),
+    AngularAcceleration::from_rad_per_second2(0.0),
+);
+let inertial: Vector3<Torque> = j * alpha;            // J·ω̇ = (0, 13, 0)
+let total = inertial + gyro;                          // M = (0, 88, 0)
 ```
+
+**纯绕主轴旋转时 `ω × L` 为零** —— 这就是各向同性刚体可以用标量模型的原因。
+`Ixx ≠ Izz` 且两轴同时转动时该项必不为零，标量模型无法表达。
+
+### 磁偶极子：力矩与势能
+
+磁矩在外场中有两个量，**符号约定容易搞错**：
+
+| 量 | 公式 | 类型 | 获取方式 |
+|---|---|---|---|
+| 力矩 | `τ = m × B` | `Vector3<Torque>` | `cross` 或 `magnetic_torque` |
+| 势能 | `U = -m · B` | `Energy` | `potential_energy`（**带负号**） |
+
+```rust
+let m = Vector3::new(
+    MagneticMoment::from_am2(12.0),
+    MagneticMoment::from_am2(0.0),
+    MagneticMoment::from_am2(0.0),
+);
+let b = Vector3::new(
+    MagneticInduction::from_tesla(3e-5),
+    MagneticInduction::from_tesla(0.0),
+    MagneticInduction::from_tesla(0.0),
+);
+
+// 力矩：两种写法等价
+let tau: Vector3<Torque> = m.cross(&b);
+let tau2 = m.magnetic_torque(&b);
+
+// 势能：平行取向 -3.6e-4 J（最低），反平行 +3.6e-4 J（最高）
+let u = m.potential_energy(&b);
+```
+
+> **`m * B` 这个运算符不提供。** 点乘的物理意义是势能 `U = -m·B`，带负号；
+> 若做成 `Mul`，`m * b` 会给出 `+m·B`，与真实物理量反号 —— 而且不会报错。
+> 命名函数可以在名字和文档里把负号说清楚，运算符做不到。
+>
+> 关系：`U = -|m||B|cosθ`，`|τ| = |m||B|sinθ`。两者都是零或极值的取向，
+> 恰好对应稳定与不稳定平衡。
 
 ---
 

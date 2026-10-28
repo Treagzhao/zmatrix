@@ -47,13 +47,15 @@ fn main() {
     println!("   mm1 * 3 = {} A·m²", mm_scale.as_am2());
     println!("   mm_scale / 2 = {} A·m²", mm_div.as_am2());
 
-                    // 5. 磁矩与磁感应强度的乘积（得到能量）
-                println!("\n5. 磁矩与磁感应强度的乘积（得到能量）:");
+                    // 5. 磁矩在外场中的势能 U = -m·B
+                println!("\n5. 磁偶极子势能 U = -m·B（注意负号）:");
                 let b = MagneticInduction::from_tesla(2.0); // 2 T
-                let energy = mm1 * b; // 1 A·m² × 2 T = 2 J
+                let u = mm1.potential_energy(b); // -(1 A·m² × 2 T) = -2 J
                 println!("   磁矩: {} A·m²", mm1.as_am2());
                 println!("   磁感应强度: {} T", b.as_tesla());
-                println!("   能量: {} J", energy.as_joule());
+                println!("   势能: {} J（平行取向，最低点）", u.as_joule());
+                let u_anti = mm1.potential_energy(MagneticInduction::from_tesla(-2.0));
+                println!("   反平行时: {} J（最高点）", u_anti.as_joule());
 
                     // 6. 不同单位之间的运算
                 println!("\n6. 不同单位之间的运算:");

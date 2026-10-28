@@ -567,11 +567,43 @@ impl<T> Vector3<T>
 where
     T: VectorQuantity + Default + Copy,
 {
-    pub fn cross<B, F>(&self, rhs: &Vector3<B>) -> Vector3<F>
+    /// 叉乘，输出类型由 [`CrossProduct`] 决定。
+    ///
+    /// # 为什么用专用 trait 而不是 `Mul`
+    ///
+    /// 旧签名以 `T: Mul<B, Output = F>` 推导输出类型。而 `Mul` 对同一对类型只能
+    /// 有一个实现，同时承载不了"点乘给能量、叉乘给力矩"两种语义
+    /// （`m·B` 是势能，`m×B` 是力矩，两者都必须存在）。
+    /// 加之本库已把带负号的势能 `U = -m·B` 从 `Mul` 上撤下、改为命名函数，
+    /// `Mul` 更不适合继续充当叉乘的类型函数。
+    ///
+    /// 那个 `Mul` 约束在方法体里从未被调用，纯粹充当"类型级函数"，
+    /// 用一个语义相悖的 trait 承担了不该承担的职责。[`CrossProduct`] 只描述
+    /// 一件事：这两个量叉乘后应得到什么量。
+    ///
+    /// 示例
+    /// ```
+    /// use zmatrix::physics::basic::{MagneticInduction, MagneticMoment, Torque, Vector3};
+    ///
+    /// let m = Vector3::new(
+    ///     MagneticMoment::from_am2(2.0),
+    ///     MagneticMoment::from_am2(0.0),
+    ///     MagneticMoment::from_am2(0.0),
+    /// );
+    /// let b = Vector3::new(
+    ///     MagneticInduction::from_tesla(0.0),
+    ///     MagneticInduction::from_tesla(3.0),
+    ///     MagneticInduction::from_tesla(0.0),
+    /// );
+    ///
+    /// // m × B = τ，大小 2 × 3 = 6 N·m，方向 +z
+    /// let tau: Vector3<Torque> = m.cross(&b);
+    /// assert!((tau.z.as_nm() - 6.0).abs() < 1e-12);
+    /// ```
+    pub fn cross<B>(&self, rhs: &Vector3<B>) -> Vector3<T::Out>
     where
-        T: Mul<B, Output = F> + Sub<T, Output = T>,
+        T: CrossProduct<B>,
         B: VectorQuantity + Default + Copy,
-        F: VectorQuantity + Default + Copy + Sub<F, Output = F>,
     {
         let x = self.y.default_unit_value() * rhs.z.default_unit_value()
             - self.z.default_unit_value() * rhs.y.default_unit_value();
@@ -579,25 +611,91 @@ where
             - self.x.default_unit_value() * rhs.z.default_unit_value();
         let z = self.x.default_unit_value() * rhs.y.default_unit_value()
             - self.y.default_unit_value() * rhs.x.default_unit_value();
-        let mut f_x = F::default();
-        let mut f_y = F::default();
-        let mut f_z = F::default();
+        let mut f_x = T::Out::default();
+        let mut f_y = T::Out::default();
+        let mut f_z = T::Out::default();
         f_x.set_value(x);
         f_y.set_value(y);
         f_z.set_value(z);
         Vector3::new(f_x, f_y, f_z)
     }
 
-    pub fn cross_unit<B, F>(&self, rhs: &Vector3<B>) -> Vector3<F>
+    /// 叉乘后归一化，返回单位方向向量。
+    ///
+    /// 常用于求两向量所张平面的法向。
+    pub fn cross_unit<B>(&self, rhs: &Vector3<B>) -> Vector3<T::Out>
     where
-        T: Mul<B, Output = F> + Sub<T, Output = T>,
+        T: CrossProduct<B>,
         B: VectorQuantity + Default + Copy,
-        F: VectorQuantity + Default + Copy + Sub<F, Output = F>,
     {
-        let result = self.cross(rhs);
-        println!("{:?}", result.to_array());
-        result.normalize()
+        self.cross(rhs).normalize()
     }
+}
+
+/// 叉乘的输出类型映射：`T × B → Out`。
+///
+/// 每个实现对应一条量纲相乘规则，例如：
+///
+/// | `T` | `B` | `Out` | 物理含义 |
+/// |---|---|---|---|
+/// | `Distance` | `Force` | `Torque` | 力矩 `τ = r × F` |
+/// | `AngularVelocity` | `AngularMomentum` | `Torque` | 陀螺力矩 `ω × L`（欧拉方程第二项） |
+/// | `MagneticMoment` | `MagneticInduction` | `Torque` | 磁力矩 `τ = m × B` |
+/// | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | 磁角速度 |
+/// | `Coef` | `Coef` | `Coef` | 方向向量叉乘 |
+///
+/// # 为什么不用 `Mul`
+///
+/// 同一对物理量往往同时需要点乘和叉乘，两者是不同的量：
+///
+/// ```text
+/// m · B = U  势能（带负号，用命名函数 potential_energy）
+/// m × B = τ  力矩（叉乘，本文 trait 负责）
+/// ```
+///
+/// 而 `Mul` 对同一对类型只能有一个 `Output`，装不下两种语义。
+/// 叉乘必须有独立入口。
+pub trait CrossProduct<B> {
+    /// 叉乘结果的物理量类型。
+    type Out: VectorQuantity + Default;
+}
+
+// 方向向量叉乘：无量纲 × 无量纲 = 无量纲
+impl CrossProduct<Coef> for Coef {
+    type Out = Coef;
+}
+
+// 力矩：τ = r × F
+//
+// 量纲 m × N = N·m ✓。
+// 不提供 `Force × Distance`：那是 `-(r × F)`，同一个物理量的相反数。
+impl CrossProduct<Force> for Distance {
+    type Out = Torque;
+}
+
+// 磁力矩：τ = m × B
+//
+// 量纲 A·m² × T = A·m² × N/(A·m) = N·m ✓。
+// 点乘（势能 U = -m·B）走命名函数 MagneticMoment::potential_energy，
+// 与这里不冲突。
+impl CrossProduct<MagneticInduction> for MagneticMoment {
+    type Out = Torque;
+}
+
+// 磁角速度：B × ω 给出的量与 `MagneticInduction * AngularVelocity` 一致
+//
+// 保留此实现以兼容既有调用点（`Vector3<MagneticInduction>` 上的叉乘）。
+impl CrossProduct<AngularVelocity> for MagneticInduction {
+    type Out = MagneticAngularVelocity;
+}
+
+// 陀螺力矩：ω × L
+//
+// 量纲 (rad/s) × (kg·m²/s) = kg·m²/s² = N·m ✓（rad 无量纲）。
+// 这是欧拉方程的第二项：`M = J·ω̇ + ω × (Jω)`，即 `ω × L`。
+// 刚体绕非主轴旋转时该项非零，是姿态动力学不能用标量描述的根本原因。
+impl CrossProduct<AngularMomentum> for AngularVelocity {
+    type Out = Torque;
 }
 
 #[cfg(test)]
@@ -853,6 +951,202 @@ mod tests {
         assert_relative_eq!(result.x.get_value(), expected[0], epsilon = 0.00001);
         assert_relative_eq!(result.y.get_value(), expected[1], epsilon = 0.00001);
         assert_relative_eq!(result.z.get_value(), expected[2], epsilon = 0.00001);
+    }
+
+    #[test]
+    fn test_cross_distance_force_gives_torque() {
+        // r = 1 m 沿 +x，F = 2 N 沿 +y → τ = r × F = +2 N·m 沿 +z
+        let r = Vector3::new(
+            Distance::from_m(1.0),
+            Distance::from_m(0.0),
+            Distance::from_m(0.0),
+        );
+        let f = Vector3::new(
+            Force::from_newton(0.0),
+            Force::from_newton(2.0),
+            Force::from_newton(0.0),
+        );
+
+        let tau: Vector3<Torque> = r.cross(&f);
+        assert_relative_eq!(tau.x.as_nm(), 0.0, epsilon = 1e-12);
+        assert_relative_eq!(tau.y.as_nm(), 0.0, epsilon = 1e-12);
+        assert_relative_eq!(tau.z.as_nm(), 2.0, epsilon = 1e-12);
+
+        // 力平行于力臂时力矩为零
+        let f_parallel = Vector3::new(
+            Force::from_newton(5.0),
+            Force::from_newton(0.0),
+            Force::from_newton(0.0),
+        );
+        let zero_tau: Vector3<Torque> = r.cross(&f_parallel);
+        let mag = (zero_tau.x.as_nm().powi(2)
+            + zero_tau.y.as_nm().powi(2)
+            + zero_tau.z.as_nm().powi(2))
+        .sqrt();
+        assert_relative_eq!(mag, 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_cross_magnetic_moment_induction_gives_torque() {
+        // 与 Vector3::magnetic_torque 必须完全一致
+        let m = Vector3::new(
+            MagneticMoment::from_am2(1.5),
+            MagneticMoment::from_am2(-2.5),
+            MagneticMoment::from_am2(3.0),
+        );
+        let b = Vector3::new(
+            MagneticInduction::from_tesla(0.4),
+            MagneticInduction::from_tesla(0.1),
+            MagneticInduction::from_tesla(-0.7),
+        );
+
+        let via_cross: Vector3<Torque> = m.cross(&b);
+        let via_method = m.magnetic_torque(&b);
+
+        assert_relative_eq!(via_cross.x.as_nm(), via_method.x.as_nm(), epsilon = 1e-15);
+        assert_relative_eq!(via_cross.y.as_nm(), via_method.y.as_nm(), epsilon = 1e-15);
+        assert_relative_eq!(via_cross.z.as_nm(), via_method.z.as_nm(), epsilon = 1e-15);
+    }
+
+    #[test]
+    fn test_cross_anticommutative() {
+        // 叉乘反交换：a × b = -(b × a)
+        let a: Vector3<Coef> = Vector3::new(Coef::new(2.0), Coef::new(1.0), Coef::new(0.0));
+        let b: Vector3<Coef> = Vector3::new(Coef::new(1.0), Coef::new(3.0), Coef::new(4.0));
+
+        let ab: Vector3<Coef> = a.cross(&b);
+        let ba: Vector3<Coef> = b.cross(&a);
+
+        assert_relative_eq!(ab.x.get_value(), -ba.x.get_value(), epsilon = 1e-12);
+        assert_relative_eq!(ab.y.get_value(), -ba.y.get_value(), epsilon = 1e-12);
+        assert_relative_eq!(ab.z.get_value(), -ba.z.get_value(), epsilon = 1e-12);
+
+        // 自叉乘恒为零
+        let self_cross: Vector3<Coef> = a.cross(&a);
+        assert_relative_eq!(self_cross.x.get_value(), 0.0, epsilon = 1e-12);
+        assert_relative_eq!(self_cross.y.get_value(), 0.0, epsilon = 1e-12);
+        assert_relative_eq!(self_cross.z.get_value(), 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_cross_gyroscopic_torque() {
+        // 陀螺力矩 ω × L，欧拉方程第二项
+        // ω = (0, 0, 2) rad/s，L = (3, 0, 5) N·m·s
+        // ω × L = (0×5 - 2×0, 2×3 - 0×5, 0×0 - 0×3) = (0, 6, 0)
+        let omega = Vector3::new(
+            AngularVelocity::from_rad_per_second(0.0),
+            AngularVelocity::from_rad_per_second(0.0),
+            AngularVelocity::from_rad_per_second(2.0),
+        );
+        let l = Vector3::new(
+            AngularMomentum::from_nms(3.0),
+            AngularMomentum::from_nms(0.0),
+            AngularMomentum::from_nms(5.0),
+        );
+
+        let gyro: Vector3<Torque> = omega.cross(&l);
+        assert_relative_eq!(gyro.x.as_nm(), 0.0, epsilon = 1e-12);
+        assert_relative_eq!(gyro.y.as_nm(), 6.0, epsilon = 1e-12);
+        assert_relative_eq!(gyro.z.as_nm(), 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_cross_gyroscopic_zero_when_aligned() {
+        // ω 与 L 同向时陀螺力矩为零 —— 这正是绕主轴旋转的判据，
+        // 也是各向同性刚体可以退化为标量模型的原因
+        let omega = Vector3::new(
+            AngularVelocity::from_rad_per_second(1.0),
+            AngularVelocity::from_rad_per_second(2.0),
+            AngularVelocity::from_rad_per_second(3.0),
+        );
+        let l = Vector3::new(
+            AngularMomentum::from_nms(2.0),
+            AngularMomentum::from_nms(4.0),
+            AngularMomentum::from_nms(6.0),
+        );
+        let gyro: Vector3<Torque> = omega.cross(&l);
+
+        let mag = (gyro.x.as_nm().powi(2)
+            + gyro.y.as_nm().powi(2)
+            + gyro.z.as_nm().powi(2))
+        .sqrt();
+        assert_relative_eq!(mag, 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_euler_equation_end_to_end() {
+        // 欧拉方程：M = J·ω̇ + ω × (Jω)
+        //
+        // 取非对称张量，验证第二项确实非零，且两项可以相加成总力矩。
+        use crate::compound::inertia_tensor::InertiaTensor;
+
+        let j = InertiaTensor::new(
+            Inertia::from_kg_m2(120.0),
+            Inertia::from_kg_m2(130.0),
+            Inertia::from_kg_m2(45.0),
+            Inertia::from_kg_m2(0.0),
+            Inertia::from_kg_m2(0.0),
+            Inertia::from_kg_m2(0.0),
+        );
+        let omega = Vector3::new(
+            AngularVelocity::from_rad_per_second(0.5),
+            AngularVelocity::from_rad_per_second(0.0),
+            AngularVelocity::from_rad_per_second(2.0),
+        );
+
+        // 第一项：J·ω̇（零角加速度时为零向量）
+        let alpha = Vector3::new(
+            AngularAcceleration::from_rad_per_second2(0.0),
+            AngularAcceleration::from_rad_per_second2(0.0),
+            AngularAcceleration::from_rad_per_second2(0.0),
+        );
+        let inertial: Vector3<Torque> = j * alpha;
+
+        // 第二项：ω × L，L = J·ω
+        let l = j * omega;
+        let gyro: Vector3<Torque> = omega.cross(&l);
+
+        // L = (120×0.5, 0, 45×2) = (60, 0, 90)
+        assert_relative_eq!(l.x.as_nms(), 60.0, epsilon = 1e-9);
+        assert_relative_eq!(l.z.as_nms(), 90.0, epsilon = 1e-9);
+
+        // ω × L = (0×90 - 2×0, 2×60 - 0.5×90, 0.5×0 - 0×60) = (0, 75, 0)
+        assert_relative_eq!(gyro.x.as_nm(), 0.0, epsilon = 1e-9);
+        assert_relative_eq!(gyro.y.as_nm(), 75.0, epsilon = 1e-9);
+        assert_relative_eq!(gyro.z.as_nm(), 0.0, epsilon = 1e-9);
+
+        // 总力矩 = 0 + 75 = 75 N·m 沿 y
+        let total = inertial + gyro;
+        assert_relative_eq!(total.y.as_nm(), 75.0, epsilon = 1e-9);
+    }
+
+    #[test]
+    fn test_cross_result_perpendicular_to_operands() {
+        // 叉乘结果必须同时垂直于两个操作数
+        let r = Vector3::new(
+            Distance::from_m(3.0),
+            Distance::from_m(-1.0),
+            Distance::from_m(2.0),
+        );
+        let f = Vector3::new(
+            Force::from_newton(1.0),
+            Force::from_newton(4.0),
+            Force::from_newton(-2.0),
+        );
+        let tau: Vector3<Torque> = r.cross(&f);
+
+        let dot_r = 3.0 * tau.x.as_nm() + (-1.0) * tau.y.as_nm() + 2.0 * tau.z.as_nm();
+        let dot_f = 1.0 * tau.x.as_nm() + 4.0 * tau.y.as_nm() + (-2.0) * tau.z.as_nm();
+        assert_relative_eq!(dot_r, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(dot_f, 0.0, epsilon = 1e-12);
+
+        // 手算核对
+        // x: (-1)(-2) - (2)(4) = 2 - 8 = -6
+        // y: (2)(1) - (3)(-2) = 2 + 6 = 8
+        // z: (3)(4) - (-1)(1) = 12 + 1 = 13
+        assert_relative_eq!(tau.x.as_nm(), -6.0, epsilon = 1e-12);
+        assert_relative_eq!(tau.y.as_nm(), 8.0, epsilon = 1e-12);
+        assert_relative_eq!(tau.z.as_nm(), 13.0, epsilon = 1e-12);
     }
 
     #[test]

@@ -59,6 +59,7 @@ mod electric_potential;
 mod electric_resistance;
 mod energy;
 mod force;
+pub mod gravitational_parameter;
 pub mod heat_capacity;
 pub mod heat_flux;
 pub mod inertia;
@@ -71,6 +72,7 @@ mod mass_flux;
 mod momentum;
 mod power;
 mod pressure;
+pub mod specific_angular_momentum;
 mod temperature;
 mod temperature_difference;
 pub mod thermal_conductance;
@@ -340,6 +342,101 @@ pub enum AngularMomentumType {
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub struct AngularMomentum {
     default_type: AngularMomentumType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SpecificAngularMomentumType {
+    /// 平方米每秒（SI 导出单位）
+    M2PerSecond,
+    /// 平方公里每秒。轨道计算里 `km²/s` 常用
+    Km2PerSecond,
+}
+
+/// 比角动量
+///
+/// 单位质量的角动量 `h = r × v`，量纲 m²/s。
+///
+/// # 与 [`AngularMomentum`] 的区别（必读）
+///
+/// | 量 | 符号 | 单位 | 定义 | 库里类型 |
+/// |---|---|---|---|---|
+/// | 角动量 | `L` | kg·m²/s | `r × (m·v)` | [`AngularMomentum`] |
+/// | **比**角动量 | `h` | **m²/s** | `r × v` | `SpecificAngularMomentum` |
+///
+/// 差一个质量因子。名字里的「比」就是「每单位质量」，和
+/// 比热容、比能、比冲同构。**两者不能互相赋值**，量纲检查会拦住。
+///
+/// 轨道力学用的是比角动量：二体问题里 `h` 是运动常量，与卫星自身质量无关——
+/// 这也是它比 `L` 更有用的原因（`L` 会随加注燃料、帆板展开而变化）。
+///
+/// # 同量纲的其他物理量
+///
+/// `m²/s` 还对应运动粘度（`ν = μ/ρ`）和热扩散率（`α = k/(ρc)`）。
+/// 三者量纲完全相同、物理意义毫无关系。本库按**物理意义**建类型而非按量纲，
+/// 与 [`Torque`] 和 [`Energy`] 同为 `kg·m²/s²` 却分成两个类型是同一原则。
+///
+/// # 典型量级（地球轨道）
+///
+/// - 200 km 圆轨道：约 6.7e10 m²/s（= 67 km²/s）
+/// - 700 km 圆轨道：约 5.9e10 m²/s
+/// - GTO（近地点 200 km）：约 5.9e10 m²/s，远地点速度降下来但 `h` 不变
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Distance, SpecificAngularMomentum, Vector3, Velocity};
+///
+/// // 圆轨道 7000 km：|h| = r·v
+/// let r = Vector3::new(Distance::from_m(7000e3), Distance::default(), Distance::default());
+/// let v = Vector3::new(Velocity::default(), Velocity::from_m_per_sec(7546.0), Velocity::default());
+/// let h: Vector3<SpecificAngularMomentum> = r.cross(&v);
+/// assert!((h.z.as_m2_per_second() - 7000e3 * 7546.0).abs() < 1e6);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SpecificAngularMomentum {
+    default_type: SpecificAngularMomentumType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum GravitationalParameterType {
+    /// 立方米每二次方秒（SI 导出单位）
+    M3PerSecondSquared,
+    /// 立方公里每二次方秒。天体常数表常用
+    Km3PerSecondSquared,
+}
+
+/// 引力参数
+///
+/// `μ = G·M`，中心天体的引力常数乘质量，量纲 m³/s²。
+///
+/// 本类型表示**中心天体的固有常数**——地球 `3.986004418e14 m³/s²`、
+/// 月球 `4.9048695e12`、太阳 `1.32712440018e20`。
+///
+/// # 与 `v × h` 的区别
+///
+/// `v × h` 的量纲也是 m³/s²，但它是**矢量**且不等于 μ：
+///
+/// ```text
+/// v × h = μ · (R̂ + e_vec)
+/// ```
+///
+/// 右边是「径向单位向量 + 偏心率矢量」的和再乘 μ，随轨道相位变化：
+/// 圆轨道时 `|v×h|/μ = 1`，近地点 `1+e`、远地点 `1−e`。
+///
+/// 求偏心率矢量请见
+/// [`SpecificAngularMomentum`] 的文档。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::GravitationalParameter;
+///
+/// let earth = GravitationalParameter::from_m3_per_s2(3.986004418e14);
+/// assert_eq!(earth.as_km3_per_s2(), 3.986004418e5);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GravitationalParameter {
+    default_type: GravitationalParameterType,
     pub v: f64,
 }
 

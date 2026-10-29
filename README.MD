@@ -37,7 +37,7 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 
 ## 一、物理量系统
 
-32 种物理量，每种支持多种单位，物理量之间的运算在编译期进行量纲检查。
+35 种物理量，每种支持多种单位，物理量之间的运算在编译期进行量纲检查。
 
 ### 支持的物理量
 
@@ -74,6 +74,9 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 | **导热系数 `ThermalConductivity`** | W/(m·K), kW/(m·K), mW/(cm·K) |
 | **热容 `HeatCapacity`** | J/K, kJ/K |
 | **热导 `ThermalConductance`** | W/K, mW/K |
+| **密度 `Density`** | kg/m³, g/cm³, g/L |
+| **压力 `Pressure`** | Pa, hPa, kPa, MPa, bar, atm, mmHg |
+| **质量通量 `MassFlux`** | kg/(m²·s), g/(m²·s), g/(cm²·s) |
 | 系数 `Coef` | 无量纲 |
 
 ### 时间：统一使用 `chrono::TimeDelta`
@@ -574,7 +577,88 @@ let p: Power = g * TemperatureDifference::from_celsius(20.0);    // 240 W
 
 ---
 
-## 七、空间几何
+## 七、流体量：密度、压力、质量通量
+
+力模型的两条主路径：**大气阻力** `F = ½ρv²·C_D·A` 和**光压** `F = P·A·C_R`。
+
+### 量纲链为什么要拆成三步
+
+`ρv²` 的量纲是 `kg/m³ × m/s × m/s = kg/(m·s²) = Pa`。若不给中间量，
+就只能写一条「密度 × 速度 × 速度 → 压力」的三元特殊规则，或者跳过 `ρv` 直接给命名函数。
+
+而 `ρv`（质量通量）本身是独立的物理量，动量方程、边界层、烧蚀都要用：
+
+```rust
+let rho = Density::from_kg_per_m3(1.225);     // 海平面空气
+let v = Velocity::from_m_per_sec(200.0);
+
+let mf: MassFlux = rho * v;                   // ρv  = 245 kg/(m²·s)
+let q: Pressure = mf * v;                     // ρv² = 49000 Pa（不含 ½）
+
+// 完整动压（含 ½）
+let q_half = rho.dynamic_pressure(v);         // 24500 Pa
+```
+
+| 运算 | 结果 | 含义 |
+|---|---|---|
+| `Density × Velocity` | `MassFlux` | 质量通量 `ρv` |
+| `MassFlux × Velocity` | `Pressure` | `ρv²`（**不含 ½**） |
+| `MassFlux / Velocity` | `Density` | 由通量反推密度 |
+| `Pressure / Velocity` | `MassFlux` | 由动压反推通量 |
+
+> **运算符永远不含物理系数。** `ρ * v * v` 给 `ρv²`，`½` 只能靠命名方法
+> `dynamic_pressure` / `drag_force` 补上。这和 `potential_energy` 带负号是同一个取向：
+> 运算符只管量纲，物理系数归名字。
+
+### 力模型两条路径
+
+```rust
+// 大气阻力：海平面 200 m/s，C_D = 1.2，迎风 2 m²
+let rho = Density::from_kg_per_m3(1.225);
+let v = Velocity::from_m_per_sec(200.0);
+let drag = rho.drag_force(v, Coef::new(1.2), Area::from_m2(2.0));   // 58800 N
+
+// 光压（1 AU，C_R 是反射系数）
+let f_solar = Pressure::from_pa(4.56e-6) * Area::from_m2(10.0) * Coef::new(1.5);
+```
+
+### 单位换算的三个坑
+
+```text
+1 g/cm³     = 1000   kg/m³      ← 密度，材料
+1 g/L       = 1      kg/m³      ← 密度，气体
+1 g/(cm²·s) = 10     kg/(m²·s)  ← 质量通量
+
+1 bar = 1e5    Pa
+1 atm = 101325 Pa               ← 差 1.3%，不能混用
+```
+
+**两组都差 1000 倍或 1.3%，而纸面上只差几个字符。**
+
+- 密度：`g/cm³` 和 `g/L` 差 1000 倍。材料用前者、气体用后者，用错就错三个数量级。
+- 质量通量：`g/(cm²·s)` 的因子是 **10**，不是 `1e-3`——因为分母是 cm² 而非 m²。
+  这和 `HeatFlux` 的 `mW/cm² = 10 W/m²` 是同一个陷阱。
+- 压力：`bar` 与 `atm` 差 1.325%。真空系统、密封压差这类场景会变成实质错误。
+
+> 另有精度细节：`760 mmHg` 按约定值算 = 101325.014 Pa，**不严格等于 1 atm**。
+> `Torr` 才定义为 `1/760 atm`。工程上视为相等，高精度真空计算需注意。
+
+### 与其他量的关系
+
+```rust
+// 密度 × 体积 = 质量
+let m: Mass = Density::from_kg_per_m3(2700.0) * Volume::from_m3(0.05);   // 135 kg 铝件
+
+// 压力 × 体积 = 能量（等压做功）
+let w: Energy = Pressure::from_atm(1.0) * Volume::from_m3(1.0);          // 101325 J
+
+// 力 ÷ 面积 = 压力
+let p: Pressure = Force::from_newton(1000.0) / Area::from_m2(2.0);
+```
+
+---
+
+## 八、空间几何
 
 欧拉角、方向余弦矩阵（DCM）、四元数之间的相互转换。
 
@@ -676,6 +760,19 @@ let quotient = q1 / q2;
 - `Heat` 热量、`InternalEnergy` 内能 —— 与 `Energy` 重复
 - `SpecificHeatRatio` 比热容比 γ —— 无量纲商，`Coef` 够用；且固体 `cp≈cv`、`γ≈1` 无信息量
 - `Emissivity` 发射率 —— 先用 `Coef`，不引入值域约束（库里无先例）
+
+### 流体量
+
+| 待做 | 单位 | 说明 |
+|---|---|---|
+| `MassFlowRate` 质量流量 | kg/s | `MassFlux × Area` 的落点，目前缺这个类型所以该运算未提供 |
+| `DynamicViscosity` 动力粘度 | Pa·s | 雷诺数 `Re = ρvL/μ` 需要 |
+| `KinematicViscosity` 运动粘度 | m²/s | `ν = μ/ρ` |
+| `SpecificGasConstant` 气体常数 | J/(kg·K) | 理想气体 `P = ρRT` 需要 |
+| `SpeedOfSound` 声速 | m/s | 马赫数需要；`a = √(γRT)` 含 γ，属命名函数场景 |
+
+**注意**：`MassFlux × Area` 现在**不可用**（编译错误），因为 `MassFlowRate` 不存在。
+需要时先补类型，不要退回裸 `f64`。
 
 ### `compound` 模块
 

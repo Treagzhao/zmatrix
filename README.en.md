@@ -39,7 +39,7 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ Correct
 
 ## 1. Physical Quantity System
 
-32 physical quantities, each with multiple units. Operations between quantities are dimensionally checked at compile time.
+35 physical quantities, each with multiple units. Operations between quantities are dimensionally checked at compile time.
 
 ### Supported Quantities
 
@@ -76,6 +76,9 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ Correct
 | **`ThermalConductivity`** | W/(m·K), kW/(m·K), mW/(cm·K) |
 | **`HeatCapacity`** | J/K, kJ/K |
 | **`ThermalConductance`** | W/K, mW/K |
+| **`Density`** | kg/m³, g/cm³, g/L |
+| **`Pressure`** | Pa, hPa, kPa, MPa, bar, atm, mmHg |
+| **`MassFlux`** | kg/(m²·s), g/(m²·s), g/(cm²·s) |
 | `Coef` | dimensionless |
 
 ### Time: `chrono::TimeDelta` only
@@ -592,7 +595,95 @@ let p: Power = g * TemperatureDifference::from_celsius(20.0);    // 240 W
 
 ---
 
-## 7. Spatial Geometry
+## 7. Fluid Quantities: Density, Pressure, Mass Flux
+
+The two main paths of a force model: **aerodynamic drag** `F = ½ρv²·C_D·A` and
+**solar radiation pressure** `F = P·A·C_R`.
+
+### Why the dimensional chain is split in three
+
+`ρv²` has dimensions `kg/m³ × m/s × m/s = kg/(m·s²) = Pa`. Without an intermediate
+quantity you would need either a ternary rule "density × velocity × velocity → pressure"
+or a named function that skips `ρv` entirely.
+
+But `ρv` (mass flux) is a physical quantity in its own right — momentum equations,
+boundary layers, and ablation all use it:
+
+```rust
+let rho = Density::from_kg_per_m3(1.225);     // sea-level air
+let v = Velocity::from_m_per_sec(200.0);
+
+let mf: MassFlux = rho * v;                   // ρv  = 245 kg/(m²·s)
+let q: Pressure = mf * v;                     // ρv² = 49000 Pa (no ½)
+
+// full dynamic pressure (with ½)
+let q_half = rho.dynamic_pressure(v);         // 24500 Pa
+```
+
+| Operation | Result | Meaning |
+|---|---|---|
+| `Density × Velocity` | `MassFlux` | mass flux `ρv` |
+| `MassFlux × Velocity` | `Pressure` | `ρv²` (**no ½**) |
+| `MassFlux / Velocity` | `Density` | density from flux |
+| `Pressure / Velocity` | `MassFlux` | flux from dynamic pressure |
+
+> **Operators never carry physical coefficients.** `ρ * v * v` gives `ρv²`; the `½` only
+> comes from the named methods `dynamic_pressure` / `drag_force`. Same stance as
+> `potential_energy` carrying its minus sign: operators handle dimensions, physical
+> coefficients belong to names.
+
+### The two force-model paths
+
+```rust
+// Aerodynamic drag: sea level, 200 m/s, C_D = 1.2, 2 m² frontal area
+let rho = Density::from_kg_per_m3(1.225);
+let v = Velocity::from_m_per_sec(200.0);
+let drag = rho.drag_force(v, Coef::new(1.2), Area::from_m2(2.0));   // 58800 N
+
+// Solar radiation pressure (1 AU; C_R is the reflectivity coefficient)
+let f_solar = Pressure::from_pa(4.56e-6) * Area::from_m2(10.0) * Coef::new(1.5);
+```
+
+### Three unit-conversion traps
+
+```text
+1 g/cm³     = 1000   kg/m³      density, materials
+1 g/L       = 1      kg/m³      density, gases
+1 g/(cm²·s) = 10     kg/(m²·s)  mass flux
+
+1 bar = 1e5    Pa
+1 atm = 101325 Pa               differs by 1.3%, do not mix
+```
+
+**Both groups are off by 1000× or 1.3%, and the spellings differ by a couple of characters.**
+
+- Density: `g/cm³` and `g/L` differ by 1000×. Materials use the former, gases the latter;
+  pick wrong and you are three orders of magnitude off.
+- Mass flux: `g/(cm²·s)` has a factor of **10**, not `1e-3` — because the denominator is
+  cm² rather than m². Same trap as `HeatFlux`'s `mW/cm² = 10 W/m²`.
+- Pressure: `bar` and `atm` differ by 1.325%. In vacuum systems and seal pressure
+  differentials that becomes a real error.
+
+> One more precision detail: `760 mmHg` at the conventional value is 101325.014 Pa —
+> **not exactly 1 atm**. `Torr` is what equals `1/760 atm`. Engineering treats them as
+> equal; high-precision vacuum work should not.
+
+### Relations to other quantities
+
+```rust
+// density × volume = mass
+let m: Mass = Density::from_kg_per_m3(2700.0) * Volume::from_m3(0.05);   // 135 kg aluminium
+
+// pressure × volume = energy (isobaric work)
+let w: Energy = Pressure::from_atm(1.0) * Volume::from_m3(1.0);          // 101325 J
+
+// force ÷ area = pressure
+let p: Pressure = Force::from_newton(1000.0) / Area::from_m2(2.0);
+```
+
+---
+
+## 8. Spatial Geometry
 
 Euler angles, direction cosine matrices (DCM), and quaternions with mutual conversions.
 
@@ -691,6 +782,19 @@ offered at the `f64` level, not as a dimensioned interface.
 - `SpecificHeatRatio` γ — dimensionless quotient, `Coef` suffices; for solids `cp ≈ cv` and
   `γ ≈ 1`, so it carries no information
 - `Emissivity` — use `Coef` for now; no value-range constraints exist anywhere in this crate
+
+### Fluid quantities
+
+| Missing | Unit | Notes |
+|---|---|---|
+| `MassFlowRate` | kg/s | the target of `MassFlux × Area`; unavailable until this type exists |
+| `DynamicViscosity` | Pa·s | Reynolds number `Re = ρvL/μ` |
+| `KinematicViscosity` | m²/s | `ν = μ/ρ` |
+| `SpecificGasConstant` | J/(kg·K) | ideal gas `P = ρRT` |
+| `SpeedOfSound` | m/s | Mach number; `a = √(γRT)` carries γ, so it belongs to a named function |
+
+**Note**: `MassFlux × Area` is currently **unavailable** (a compile error), because
+`MassFlowRate` does not exist. Add the type when needed — do not fall back to raw `f64`.
 
 ### `compound` module
 

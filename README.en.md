@@ -812,6 +812,29 @@ let f_solar = Pressure::from_pa(4.56e-6) * Area::from_m2(10.0) * Coef::new(1.5);
 > **not exactly 1 atm**. `Torr` is what equals `1/760 atm`. Engineering treats them as
 > equal; high-precision vacuum work should not.
 
+### Mass flow rate: flux × cross-section
+
+`MassFlux` is per square metre per second; `MassFlowRate` is per whole cross-section.
+Exactly parallel to `HeatFlux × Area = Power`.
+
+```rust
+let rho = Density::from_kg_per_m3(1.225);
+let v = Velocity::from_m_per_sec(200.0);
+let area = Area::from_m2(0.5);
+
+// full chain: ρ → flux → rate → mass
+let flux: MassFlux = rho * v;              // 245 kg/(m²·s)
+let rate: MassFlowRate = flux * area;      // 122.5 kg/s
+let mass: Mass = rate * TimeDelta::seconds(10);   // 1225 kg
+
+// recover the mean velocity
+let v_back = rate.velocity(rho, area);     // 200 m/s
+```
+
+For `t/h → kg/s` the factor is `1000/3600 ≈ 0.2778`: tonnes are 1000× kilograms while
+hours are 3600× seconds, so **the two factors point opposite ways** — mixing them up is
+off by 1e6.
+
 ### Relations to other quantities
 
 ```rust

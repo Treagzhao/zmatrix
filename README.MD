@@ -776,6 +776,28 @@ let f_solar = Pressure::from_pa(4.56e-6) * Area::from_m2(10.0) * Coef::new(1.5);
 > 另有精度细节：`760 mmHg` 按约定值算 = 101325.014 Pa，**不严格等于 1 atm**。
 > `Torr` 才定义为 `1/760 atm`。工程上视为相等，高精度真空计算需注意。
 
+### 质量流量：通量 × 截面积
+
+`MassFlux` 是「每平方米每秒」，`MassFlowRate` 是「整个截面每秒」。与
+`HeatFlux × Area = Power` 完全同构。
+
+```rust
+let rho = Density::from_kg_per_m3(1.225);
+let v = Velocity::from_m_per_sec(200.0);
+let area = Area::from_m2(0.5);
+
+// 完整链条：ρ → 通量 → 流量 → 质量
+let flux: MassFlux = rho * v;              // 245 kg/(m²·s)
+let rate: MassFlowRate = flux * area;      // 122.5 kg/s
+let mass: Mass = rate * TimeDelta::seconds(10);   // 1225 kg
+
+// 反推平均速度
+let v_back = rate.velocity(rho, area);     // 200 m/s
+```
+
+单位换算里 `t/h → kg/s` 是 `1000/3600 ≈ 0.2778`：吨比千克大 1000 倍、
+小时比秒大 3600 倍，**两个因子方向相反**，搞混会差 1e6。
+
 ### 与其他量的关系
 
 ```rust
@@ -933,9 +955,9 @@ temperature(i) -> Option<Temperature>
 
 ### 其他
 
-- `Matrix` 的 `det` / `inverse` / `solve`（见上）
 - 物理量之间的乘除法覆盖仍不完整，遇到具体场景再补
 - 单位系统仅覆盖工程常用子集，不是完整的 SI 词头体系
+- `CrossProduct` 只实现了 4 个组合（见向量章节的表格），新增一个只需两行 impl
 
 ---
 

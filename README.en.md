@@ -39,7 +39,7 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ Correct
 
 ## 1. Physical Quantity System
 
-32 physical quantities, each with multiple units. Operations between quantities are dimensionally checked at compile time.
+36 physical quantities, each with multiple units. Operations between quantities are dimensionally checked at compile time.
 
 ### Supported Quantities
 
@@ -76,6 +76,10 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ Correct
 | **`ThermalConductivity`** | W/(m·K), kW/(m·K), mW/(cm·K) |
 | **`HeatCapacity`** | J/K, kJ/K |
 | **`ThermalConductance`** | W/K, mW/K |
+| **`Density`** | kg/m³, g/cm³, g/L |
+| **`Pressure`** | Pa, hPa, kPa, MPa, bar, atm, mmHg |
+| **`MassFlux`** | kg/(m²·s), g/(m²·s), g/(cm²·s) |
+| **`MassFlowRate`** | kg/s, g/s, kg/h, t/h |
 | `Coef` | dimensionless |
 
 ### Time: `chrono::TimeDelta` only
@@ -172,6 +176,42 @@ Both operands must share the same element type, which is restricted to primitive
 
 > Note: `*` is **element-wise** (Hadamard) multiplication. Use `.product()` for matrix
 > multiplication.
+
+### Systems of equations and determinants
+
+```rust
+let m = Matrix::<3, 3, f64>::new([
+    [4.0, 7.0, 2.0],
+    [3.0, 6.0, 1.0],
+    [2.0, 5.0, 3.0],
+]);
+
+// Solve A·x = b (LU with partial pivoting)
+let x: [f64; 3] = m.solve([1.0, 2.0, 3.0])?;
+
+// Determinant: LU is O(N³), the permutation version is O(N!)
+let d = m.det_via_lu()?;      // recommended; clearly faster from N ≥ 6
+let d2 = m.det()?;            // generic version, small N only
+
+// Explicit inverse (not recommended, see below)
+let inv = m.inverse()?;
+```
+
+> **`solve` is `f64`-only.** Solving needs division, and integer division truncates
+> silently (`5/2 → 2`); Gaussian elimination on `Matrix<i32>` would return plausible
+> nonsense. `NumericElement` cannot distinguish "types with real division" from
+> "types with truncating division", so only `f64` gets it.
+>
+> **`inverse` is numerically worse than `solve`**: inverting then multiplying adds
+> rounding error and an extra matrix multiply. Solving once is enough for nearly every
+> case; it exists because some algorithms genuinely need `A⁻¹` itself.
+>
+> **Partial pivoting is mandatory**: without it, a pivot near zero amplifies rounding
+> error and even a non-singular matrix yields a badly distorted solution.
+
+`Matrix` keeps a **plain-numeric** scope, with no dimensioned version. For `J⁻¹·L` use
+`InertiaTensor::solve_omega`, which provides dimensional checking and positive-definiteness
+validation.
 
 ---
 
@@ -408,6 +448,113 @@ let rotated = j.rotate(&CosMatrix::unit());
 > products of inertia pull it down from 2. Normalization happens inside the method, so a
 > non-unit vector gives the same answer; a zero vector returns an error.
 
+### Solving: J⁻¹·L and J⁻¹·τ
+
+Attitude dynamics needs `ω = J⁻¹L` every tick. **Component-wise scalar division is wrong** —
+with non-zero products of inertia, every component of `J⁻¹L` depends on all components of `L`:
+
+```text
+J = [[120, 8, 0], [8, 130, 0], [0, 0, 45]],  L = (60, 0, 90)
+
+component-wise  ω = (0.500000,  0.000000, 2.0)   J·ω = (60, 4.0, 90)  ← 4 invented
+correct         ω = (0.502060, -0.030896, 2.0)   J·ω = (60, 0.0, 90)  ✓
+```
+
+That injects 4 N·m·s of fictitious angular momentum every tick, accumulating into visible
+attitude drift over a 90-minute orbit.
+
+```rust
+let j = InertiaTensor::from_engineering_array([120.0, 130.0, 45.0, 8.0, 0.0, 0.0]);
+let l = Vector3::new(
+    AngularMomentum::from_nms(60.0),
+    AngularMomentum::from_nms(0.0),
+    AngularMomentum::from_nms(90.0),
+);
+let tau = Vector3::new(
+    Torque::from_nm(0.0),
+    Torque::from_nm(13.0),
+    Torque::from_nm(0.0),
+);
+
+// ω = J⁻¹·L (rad/s)
+let omega = j.solve_omega(l)?;
+
+// ω̇ = J⁻¹·τ (rad/s²)
+let alpha = j.solve_alpha(tau)?;
+
+// Round-trip: J·ω must restore L
+let back = j * omega;
+assert!((back.x.as_nms() - 60.0).abs() < 1e-9);
+```
+
+**Cholesky, not LU**, because symmetric positive-definiteness is a *physical* property of an
+inertia tensor:
+
+- half the operations of general LU, no pivoting needed
+- during decomposition `L_ii² ≤ 0` is exactly the non-PD condition, so **the
+  positive-definiteness check comes free**
+- non-PD input (negative mass distribution, products of inertia out of range) returns
+  `OperationError` rather than silently returning a zero vector
+
+### Principal-axis diagonalization
+
+```rust
+let j = InertiaTensor::from_engineering_array([120.0, 130.0, 45.0, 8.0, 0.0, 0.0]);
+let (principal, rot) = j.diagonalize();
+// principal: [Inertia; 3], ascending
+// rot:       CosMatrix, columns = principal axis directions in the body frame
+assert!((principal[0].as_kg_m2() + principal[1].as_kg_m2() + principal[2].as_kg_m2()
+    - 295.0).abs() < 1e-8);
+```
+
+Satisfies `diag(J1,J2,J3) = Rᵀ · J · R`.
+
+> **The direction convention matters**: `rot`'s **columns** are the axis directions,
+> representing a **body → principal** transform. To take a body-frame vector into the
+> principal frame, use `rot.transfer()` (i.e. `Rᵀ`); to go back, use `rot`.
+> **Getting this backwards is a classic attitude-dynamics bug, and it does not error —
+> the result is just transposed.**
+
+**Jacobi sweeps rather than the closed-form cubic roots**: the analytic roots are unstable
+for nearly-degenerate eigenvalues, where a near-zero discriminant amplifies rounding error.
+Jacobi converges unconditionally for symmetric matrices.
+
+Degenerate cases (two or three equal principal inertias) leave the axes non-unique; an
+arbitrary orthonormal basis is returned rather than an error, because infinitely many
+solutions genuinely exist.
+
+### Parallel-axis theorem and the FFI sign convention
+
+```rust
+// J' = J_cm + m·(|d|²·I − d⊗d)
+let j = InertiaTensor::from_engineering_array([120.0, 130.0, 45.0, 8.0, 0.0, 0.0]);
+let offset = Vector3::new(
+    Distance::from_m(1.5),
+    Distance::from_m(0.0),
+    Distance::from_m(0.0),
+);
+let shifted = j.parallel_axis(Mass::from_kg(100.0), offset);
+// about z: 45 + 100×1.5² = 270
+assert!((shifted.get(2, 2).unwrap().as_kg_m2() - 270.0).abs() < 1e-9);
+```
+
+**The sign convention is a hard constraint at the FFI boundary.** The tensor definition
+`J_ij = -∫xᵢxⱼ dm` means off-diagonal entries have the **opposite sign** to engineering raw
+values (the `+Ixy` convention). aods' `mass_sim_para.J_kgmm2[9]` follows the engineering
+convention; passing it straight to `new` flips every product of inertia — silently.
+
+So there is one entry point that owns the convention:
+
+```rust
+// engineering raw [Ixx, Iyy, Izz, Ixy, Ixz, Iyz] → off-diagonals negated internally
+let j = InertiaTensor::from_engineering_array([120.0, 130.0, 45.0, 8.0, 0.0, 0.0]);
+
+// write back to FFI
+let raw: [f64; 6] = j.to_engineering_array();
+```
+
+**Do not re-derive "negate here" at each call site** — someone will forget.
+
 ### Gyroscopic torque and Euler's equation
 
 The point of the tensor: `L` can deviate from `ω`, so `ω × L` is nonzero.
@@ -592,7 +739,118 @@ let p: Power = g * TemperatureDifference::from_celsius(20.0);    // 240 W
 
 ---
 
-## 7. Spatial Geometry
+## 7. Fluid Quantities: Density, Pressure, Mass Flux
+
+The two main paths of a force model: **aerodynamic drag** `F = ½ρv²·C_D·A` and
+**solar radiation pressure** `F = P·A·C_R`.
+
+### Why the dimensional chain is split in three
+
+`ρv²` has dimensions `kg/m³ × m/s × m/s = kg/(m·s²) = Pa`. Without an intermediate
+quantity you would need either a ternary rule "density × velocity × velocity → pressure"
+or a named function that skips `ρv` entirely.
+
+But `ρv` (mass flux) is a physical quantity in its own right — momentum equations,
+boundary layers, and ablation all use it:
+
+```rust
+let rho = Density::from_kg_per_m3(1.225);     // sea-level air
+let v = Velocity::from_m_per_sec(200.0);
+
+let mf: MassFlux = rho * v;                   // ρv  = 245 kg/(m²·s)
+let q: Pressure = mf * v;                     // ρv² = 49000 Pa (no ½)
+
+// full dynamic pressure (with ½)
+let q_half = rho.dynamic_pressure(v);         // 24500 Pa
+```
+
+| Operation | Result | Meaning |
+|---|---|---|
+| `Density × Velocity` | `MassFlux` | mass flux `ρv` |
+| `MassFlux × Velocity` | `Pressure` | `ρv²` (**no ½**) |
+| `MassFlux / Velocity` | `Density` | density from flux |
+| `Pressure / Velocity` | `MassFlux` | flux from dynamic pressure |
+
+> **Operators never carry physical coefficients.** `ρ * v * v` gives `ρv²`; the `½` only
+> comes from the named methods `dynamic_pressure` / `drag_force`. Same stance as
+> `potential_energy` carrying its minus sign: operators handle dimensions, physical
+> coefficients belong to names.
+
+### The two force-model paths
+
+```rust
+// Aerodynamic drag: sea level, 200 m/s, C_D = 1.2, 2 m² frontal area
+let rho = Density::from_kg_per_m3(1.225);
+let v = Velocity::from_m_per_sec(200.0);
+let drag = rho.drag_force(v, Coef::new(1.2), Area::from_m2(2.0));   // 58800 N
+
+// Solar radiation pressure (1 AU; C_R is the reflectivity coefficient)
+let f_solar = Pressure::from_pa(4.56e-6) * Area::from_m2(10.0) * Coef::new(1.5);
+```
+
+### Three unit-conversion traps
+
+```text
+1 g/cm³     = 1000   kg/m³      density, materials
+1 g/L       = 1      kg/m³      density, gases
+1 g/(cm²·s) = 10     kg/(m²·s)  mass flux
+
+1 bar = 1e5    Pa
+1 atm = 101325 Pa               differs by 1.3%, do not mix
+```
+
+**Both groups are off by 1000× or 1.3%, and the spellings differ by a couple of characters.**
+
+- Density: `g/cm³` and `g/L` differ by 1000×. Materials use the former, gases the latter;
+  pick wrong and you are three orders of magnitude off.
+- Mass flux: `g/(cm²·s)` has a factor of **10**, not `1e-3` — because the denominator is
+  cm² rather than m². Same trap as `HeatFlux`'s `mW/cm² = 10 W/m²`.
+- Pressure: `bar` and `atm` differ by 1.325%. In vacuum systems and seal pressure
+  differentials that becomes a real error.
+
+> One more precision detail: `760 mmHg` at the conventional value is 101325.014 Pa —
+> **not exactly 1 atm**. `Torr` is what equals `1/760 atm`. Engineering treats them as
+> equal; high-precision vacuum work should not.
+
+### Mass flow rate: flux × cross-section
+
+`MassFlux` is per square metre per second; `MassFlowRate` is per whole cross-section.
+Exactly parallel to `HeatFlux × Area = Power`.
+
+```rust
+let rho = Density::from_kg_per_m3(1.225);
+let v = Velocity::from_m_per_sec(200.0);
+let area = Area::from_m2(0.5);
+
+// full chain: ρ → flux → rate → mass
+let flux: MassFlux = rho * v;              // 245 kg/(m²·s)
+let rate: MassFlowRate = flux * area;      // 122.5 kg/s
+let mass: Mass = rate * TimeDelta::seconds(10);   // 1225 kg
+
+// recover the mean velocity
+let v_back = rate.velocity(rho, area);     // 200 m/s
+```
+
+For `t/h → kg/s` the factor is `1000/3600 ≈ 0.2778`: tonnes are 1000× kilograms while
+hours are 3600× seconds, so **the two factors point opposite ways** — mixing them up is
+off by 1e6.
+
+### Relations to other quantities
+
+```rust
+// density × volume = mass
+let m: Mass = Density::from_kg_per_m3(2700.0) * Volume::from_m3(0.05);   // 135 kg aluminium
+
+// pressure × volume = energy (isobaric work)
+let w: Energy = Pressure::from_atm(1.0) * Volume::from_m3(1.0);          // 101325 J
+
+// force ÷ area = pressure
+let p: Pressure = Force::from_newton(1000.0) / Area::from_m2(2.0);
+```
+
+---
+
+## 8. Spatial Geometry
 
 Euler angles, direction cosine matrices (DCM), and quaternions with mutual conversions.
 
@@ -658,21 +916,24 @@ let quotient = q1 / q2;
 Ordered by current priority. **Deliberately out of scope** items are listed last so they do
 not get re-litigated.
 
-### Linear algebra gaps (blocking)
+### Linear algebra (done)
 
-`dense::Matrix` currently has only add/subtract, scalar multiply, transpose, and matrix
-product. Solving is missing entirely:
+`dense::Matrix` now has `det` / `det_via_lu` / `solve` / `inverse` / `lu_decompose`,
+all `f64`-only (see "Systems of equations and determinants" above).
 
-| Missing | Blocks |
+`InertiaTensor` now has `solve_omega` / `solve_alpha` (Cholesky) / `diagonalize` (Jacobi) /
+`parallel_axis` / `from_engineering_array` / `to_engineering_array`.
+
+Remaining gaps:
+
+| Missing | Impact |
 |---|---|
-| `det()` | singularity checks, eigenvalues |
-| `inverse()` | explicit inversion |
-| `solve()` / LU | **steady-state thermal network `G·T = Q̇`**, any linear system |
+| eigenvalue solving for `N > 3` | flexible-mode analysis; only the 3×3 `diagonalize` exists |
+| sparse matrices | large-N steady-state thermal networks would exhaust memory with dense LU |
 
-This is a prerequisite for steady-state thermal analysis and for inverting `InertiaTensor`
-(to solve `J·ω = L`). Note the dimensional problem: `J⁻¹` needs `(kg·m²)⁻¹` and `det` needs
-`(kg·m²)³`, neither of which exists as a quantity. So even with a solver, it can only be
-offered at the `f64` level, not as a dimensioned interface.
+**The dimensional constraint still holds**: `J⁻¹` needs `(kg·m²)⁻¹` and `det` needs
+`(kg·m²)³`, neither of which exists as a quantity. So `Matrix` stays `f64`-only —
+which is exactly why it keeps its plain-numeric scope.
 
 ### Thermal quantities
 
@@ -692,14 +953,25 @@ offered at the `f64` level, not as a dimensioned interface.
   `γ ≈ 1`, so it carries no information
 - `Emissivity` — use `Coef` for now; no value-range constraints exist anywhere in this crate
 
+### Fluid quantities
+
+| Missing | Unit | Notes |
+|---|---|---|
+| `DynamicViscosity` | Pa·s | Reynolds number `Re = ρvL/μ` |
+| `KinematicViscosity` | m²/s | `ν = μ/ρ` |
+| `SpecificGasConstant` | J/(kg·K) | ideal gas `P = ρRT` |
+| `SpeedOfSound` | m/s | Mach number; `a = √(γRT)` carries γ, so it belongs to a named function |
+
 ### `compound` module
 
 | Missing | Notes |
 |---|---|
-| `InertiaTensor` parallel-axis theorem | `J' = J + m(d²I - ddᵀ)`, needs `Mass` + `Distance` |
-| `InertiaTensor` principal-axis diagonalization | Jacobi iteration to zero the products |
-| `InertiaTensor` inverse / determinant | blocked by the linear algebra gap above |
+| `InertiaTensor` from a mass distribution | build directly from a point-mass table `Σ mᵢ(r²I − rrᵀ)` |
 | `ThermalNetwork` container | see below |
+
+**Explicit stepping only**: implicit stepping needs a time-stepping framework (Newton
+iteration plus convergence criteria). `Matrix::solve` now unblocks *steady-state* solving,
+but the framework is out of scope.
 
 **Planned `ThermalNetwork` scope** (deliberately narrow):
 
@@ -711,15 +983,14 @@ step(dt) -> Result<(), _>           advance one explicit step
 temperature(i) -> Option<Temperature>
 ```
 
-**Explicit stepping only**: implicit stepping and steady-state solving both need a linear
-solver, blocked as above. `step()` will check the explicit stability criterion
-`Δt < 2·Cᵢ/ΣGᵢⱼ` and return an error — without that check, a diverging solution still
-produces plausible-looking curves early on, and by the time it blows up exponentially you
-are already reading wrong conclusions.
+`step()` will check the explicit stability criterion `Δt < 2·Cᵢ/ΣGᵢⱼ` and return an error —
+without that check, a diverging solution still produces plausible-looking curves early on,
+and by the time it blows up exponentially you are already reading wrong conclusions.
 
 ### Other
 
-- `Matrix` `det` / `inverse` / `solve` (see above)
+- eigenvalue solving for `N > 3` (flexible-mode analysis; only the 3×3 `diagonalize` exists)
+- sparse matrices (large-N steady-state thermal networks would exhaust memory with dense LU)
 - Quantity-to-quantity operators are still incomplete; additions land when a concrete case
   needs them
 - The unit system covers a practical engineering subset, not the full SI prefix hierarchy

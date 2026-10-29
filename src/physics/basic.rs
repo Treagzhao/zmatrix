@@ -49,6 +49,7 @@ mod angular_momentum;
 mod angular_velocity;
 mod area;
 mod coef;
+mod density;
 mod distance;
 mod electric_capacitance;
 mod electric_charge;
@@ -65,8 +66,11 @@ mod magnetic_angular_velocity;
 mod magnetic_induction;
 mod magnetic_moment;
 pub mod mass;
+mod mass_flow_rate;
+mod mass_flux;
 mod momentum;
 mod power;
+mod pressure;
 mod temperature;
 mod temperature_difference;
 pub mod thermal_conductance;
@@ -1060,6 +1064,251 @@ pub struct ThermalConductance {
     default_type: ThermalConductanceType,
     pub v: f64,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum DensityType {
+    /// 千克每立方米（SI 导出单位）
+    KilogramPerCubicMeter,
+    /// 克每立方厘米。`1 g/cm³ = 1000 kg/m³`（水的密度，工程基准）
+    GramPerCubicCentiMeter,
+    /// 克每升。`1 g/L = 1 kg/m³`（气体密度常用）
+    GramPerLiter,
+}
+
+/// 密度
+///
+/// 单位体积的质量，量纲 kg/m³。
+///
+/// # 与比容、比重、堆积密度的区别
+///
+/// | 概念 | 单位 | 关系 | 本库 |
+/// |---|---|---|---|
+/// | 密度 ρ | kg/m³ | — | `Density` |
+/// | 比容 v | m³/kg | `v = 1/ρ` | 未实现（可派生） |
+/// | 比重 SG | 无量纲 | `ρ/ρ_water` | 用 [`Coef`] |
+/// | 堆积密度 | kg/m³ | 含空隙，非材料属性 | 同 `Density` |
+///
+/// # 单位换算的两个坑
+///
+/// ```text
+/// 1 g/cm³ = 1000 kg/m³    ← 乘 1000，因为 cm³ 是 1e-6 m³
+/// 1 g/L   = 1    kg/m³    ← 乘 1，因为 L 就是 1e-3 m³
+/// ```
+///
+/// 两个换算因子差了 1000 倍，而「g/cm³」和「g/L」在纸面上只差两个字符。
+/// 气体密度用 `g/L`，材料密度用 `g/cm³`——**用错就错 1000 倍**。
+///
+/// # 典型量级
+///
+/// - 海平面大气：1.225 kg/m³
+/// - 100 km 高度（卫星再入相关）：约 5e-7 kg/m³
+/// - 400 km 高度（LEO 运行轨）：约 4e-12 kg/m³
+/// - 水：1000 kg/m³（= 1 g/cm³）
+/// - 铝合金：2700 kg/m³
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Density, Mass, Volume};
+///
+/// let rho = Density::from_kg_per_m3(2700.0);      // 铝
+/// assert_eq!(rho.as_g_per_cm3(), 2.7);
+///
+/// // 密度 × 体积 = 质量
+/// let m: Mass = rho * Volume::from_m3(0.5);
+/// assert_eq!(m.as_kg(), 1350.0);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Density {
+    default_type: DensityType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PressureType {
+    /// 帕斯卡（SI 导出单位），等于 N/m²
+    Pascal,
+    /// 百帕。气象常用（标准大气压 = 1013.25 hPa）
+    HectoPascal,
+    /// 千帕
+    KiloPascal,
+    /// 兆帕。材料强度、液压常用
+    MegaPascal,
+    /// 巴。`1 bar = 1e5 Pa`，与 atm 差约 1.3%
+    Bar,
+    /// 标准大气压，定义为 101325 Pa
+    Atmosphere,
+    /// 毫米汞柱。`1 mmHg = 133.322387415 Pa`（约定值）
+    MilliMeterOfMercury,
+}
+
+/// 压力（压强）
+///
+/// 单位面积上的正压力，量纲 Pa = N/m²。
+///
+/// # 与应力、光压的关系
+///
+/// 量纲完全相同，都是 N/m²。本库不区分——**压力、应力、光压共用一个类型**，
+/// 场景由变量名和注释表达。这与 [`Energy`] 同时表示功、热量、势能是同一个取向：
+/// 按量纲而非按应用领域建类型。
+///
+/// # 单位换算的坑
+///
+/// ```text
+/// 1 bar = 1e5    Pa     （精确）
+/// 1 atm = 101325 Pa     （定义值，不是 1e5）
+/// 1 mmHg = 133.322387415 Pa
+/// ```
+///
+/// **`bar` 与 `atm` 差 1.3%** —— 这在很多工程计算里不算误差，但在真空系统、
+/// 密封压差这类场景会变成实质错误。两套单位在手册里混用时必须想清楚是哪一个。
+///
+/// `mmHg` 与 `Torr` 严格说不同（`1 Torr = 101325/760 ≈ 133.322368 Pa`，
+/// 差 1.4e-7 相对量），工程上视为相等，本库只提供 `mmHg`。
+///
+/// # 典型量级
+///
+/// - 标准大气压：101325 Pa
+/// - 海平面动压（典型再入）：数千 Pa
+/// - 太阳光压（1 AU）：4.56e-6 Pa
+/// - 真空罐：1e-5 Pa 以下
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Area, Force, Pressure};
+///
+/// // 太阳光压（1 AU 处）
+/// let p = Pressure::from_pa(4.56e-6);
+///
+/// // 光压 × 面积 = 力（反射系数另乘）
+/// let f: Force = p * Area::from_m2(10.0);
+/// assert!((f.as_newton() - 4.56e-5).abs() < 1e-15);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Pressure {
+    default_type: PressureType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum MassFluxType {
+    /// 千克每平方米秒（SI 导出单位）
+    KilogramPerSquareMeterSecond,
+    /// 克每平方米秒
+    GramPerSquareMeterSecond,
+    /// 克每平方厘米秒。烧蚀、驻点热流文献常用；
+    /// `1 g/(cm²·s) = 10 kg/(m²·s)`（注意不是 1e-3，分母是 cm² 不是 m²）
+    GramPerSquareCentiMeterSecond,
+}
+
+/// 质量通量
+///
+/// 单位时间通过单位面积的质量，量纲 kg/(m²·s)。
+///
+/// # 为什么需要它
+///
+/// 动压 `q = ½ρv²` 的量纲链是 `kg/m³ × m/s × m/s = kg/(m·s²) = Pa`。
+/// 若不给中间量，就只能写一个「密度 × 速度 × 速度 → 压力」的三元特殊规则，
+/// 或者做成命名函数 `density.dynamic_pressure(v)`——两者都跳过了 `ρv` 这一步。
+///
+/// 而 `ρv`（质量通量）本身是独立的物理量：
+///
+/// | 运算 | 结果 | 物理含义 |
+/// |---|---|---|
+/// | `Density × Velocity` | `MassFlux` | 质量通量 `ρv` |
+/// | `MassFlux × Velocity` | `Pressure` | 动压 `ρv²` |
+/// | `MassFlux / Velocity` | `Density` | 由通量反推密度 |
+/// | `MassFlux × Area` | kg/s | 质量流量（**未实现**，缺 `MassFlowRate` 类型） |
+///
+/// 这样每一步都有物理名，而不是靠一条三元规则藏在类型系统里。
+///
+/// # 典型用途
+///
+/// - 再入驻点热流、烧蚀率计算
+/// - 边界层与动量方程
+/// - 气动阻力：`F = ½ · (ρv) · v · C_D · A`
+///
+/// # 典型量级
+///
+/// - 再入驻点：1–100 kg/(m²·s)
+/// - 一般风洞：10–1000 kg/(m²·s)
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Density, MassFlux, Pressure, Velocity};
+///
+/// let rho = Density::from_kg_per_m3(1.225);        // 海平面空气
+/// let v = Velocity::from_m_per_sec(200.0);
+///
+/// // ρ × v = 质量通量
+/// let mf: MassFlux = rho * v;
+/// assert!((mf.as_kg_per_m2_s() - 245.0).abs() < 1e-9);
+///
+/// // 质量通量 × v = 动压（ρv²，不含 ½）
+/// let q: Pressure = mf * v;
+/// assert!((q.as_pa() - 49_000.0).abs() < 1e-6);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MassFlux {
+    default_type: MassFluxType,
+    pub v: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum MassFlowRateType {
+    /// 千克每秒（SI 导出单位）
+    KilogramPerSecond,
+    /// 克每秒
+    GramPerSecond,
+    /// 千克每小时。工程流量计常用
+    KilogramPerHour,
+    /// 吨每小时
+    TonPerHour,
+}
+
+/// 质量流量
+///
+/// 单位时间通过某个截面的质量，量纲 kg/s。
+///
+/// # 与质量通量的区别
+///
+/// | 量 | 单位 | 含义 | 关系 |
+/// |---|---|---|---|
+/// | 质量通量 `MassFlux` | kg/(m²·s) | 每平方米每秒 | `ρv` |
+/// | 质量流量 `MassFlowRate` | kg/s | 整个截面每秒 | `MassFlux × Area` |
+///
+/// 通量与截面大小无关，流量随截面增大。这与热学里
+/// [`HeatFlux`] 与 [`Power`] 的关系完全同构。
+///
+/// # 单位换算
+///
+/// ```text
+/// 1 kg/h  = 1/3600 kg/s ≈ 2.7778e-4
+/// 1 t/h   = 1000/3600 kg/s ≈ 0.27778
+/// ```
+///
+/// `t/h` 与 `kg/s` 相差 3600 倍再乘 1000，是流量换算里最容易错的一处。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Area, Mass, MassFlowRate, MassFlux};
+/// use chrono::TimeDelta;
+///
+/// // 通量 × 面积 = 流量
+/// let mf = MassFlux::from_kg_per_m2_s(245.0);
+/// let rate: MassFlowRate = mf * Area::from_m2(0.5);
+/// assert_eq!(rate.as_kg_per_s(), 122.5);
+///
+/// // 流量 × 时间 = 质量
+/// let m: Mass = rate * TimeDelta::seconds(10);
+/// assert_eq!(m.as_kg(), 1225.0);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MassFlowRate {
+    default_type: MassFlowRateType,
+    pub v: f64,
+}
+
+
 
 
 impl Default for Distance {

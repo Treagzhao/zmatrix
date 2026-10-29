@@ -66,6 +66,7 @@ mod magnetic_angular_velocity;
 mod magnetic_induction;
 mod magnetic_moment;
 pub mod mass;
+mod mass_flow_rate;
 mod mass_flux;
 mod momentum;
 mod power;
@@ -1251,6 +1252,62 @@ pub struct MassFlux {
     default_type: MassFluxType,
     pub v: f64,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum MassFlowRateType {
+    /// 千克每秒（SI 导出单位）
+    KilogramPerSecond,
+    /// 克每秒
+    GramPerSecond,
+    /// 千克每小时。工程流量计常用
+    KilogramPerHour,
+    /// 吨每小时
+    TonPerHour,
+}
+
+/// 质量流量
+///
+/// 单位时间通过某个截面的质量，量纲 kg/s。
+///
+/// # 与质量通量的区别
+///
+/// | 量 | 单位 | 含义 | 关系 |
+/// |---|---|---|---|
+/// | 质量通量 `MassFlux` | kg/(m²·s) | 每平方米每秒 | `ρv` |
+/// | 质量流量 `MassFlowRate` | kg/s | 整个截面每秒 | `MassFlux × Area` |
+///
+/// 通量与截面大小无关，流量随截面增大。这与热学里
+/// [`HeatFlux`] 与 [`Power`] 的关系完全同构。
+///
+/// # 单位换算
+///
+/// ```text
+/// 1 kg/h  = 1/3600 kg/s ≈ 2.7778e-4
+/// 1 t/h   = 1000/3600 kg/s ≈ 0.27778
+/// ```
+///
+/// `t/h` 与 `kg/s` 相差 3600 倍再乘 1000，是流量换算里最容易错的一处。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Area, Mass, MassFlowRate, MassFlux};
+/// use chrono::TimeDelta;
+///
+/// // 通量 × 面积 = 流量
+/// let mf = MassFlux::from_kg_per_m2_s(245.0);
+/// let rate: MassFlowRate = mf * Area::from_m2(0.5);
+/// assert_eq!(rate.as_kg_per_s(), 122.5);
+///
+/// // 流量 × 时间 = 质量
+/// let m: Mass = rate * TimeDelta::seconds(10);
+/// assert_eq!(m.as_kg(), 1225.0);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MassFlowRate {
+    default_type: MassFlowRateType,
+    pub v: f64,
+}
+
 
 
 

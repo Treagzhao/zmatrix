@@ -1,7 +1,7 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::physics::basic::{
-    Coef, Density, MassFlux, MassFluxType, PhysicalQuantity, Pressure, Velocity,
+    Coef, Density, MassFlowRate, MassFlux, MassFluxType, PhysicalQuantity, Pressure, Velocity,
 };
 
 /// `1 g/(m²·s)` 等于多少 `kg/(m²·s)`。
@@ -284,6 +284,67 @@ impl<'a, 'b> Div<&'b Velocity> for &'a Pressure {
     }
 }
 
+// 质量通量 × 面积 = 质量流量：ṁ = q·A
+//
+// 与热学里 `HeatFlux × Area = Power` 完全同构：
+// 通量是「每平方米每秒」，乘面积得到「整个截面每秒」。
+impl Mul<crate::physics::basic::Area> for MassFlux {
+    type Output = MassFlowRate;
+    fn mul(self, rhs: crate::physics::basic::Area) -> Self::Output {
+        MassFlowRate::from_kg_per_s(self.as_kg_per_m2_s() * rhs.as_m2())
+    }
+}
+
+impl Mul<crate::physics::basic::Area> for &MassFlux {
+    type Output = MassFlowRate;
+    fn mul(self, rhs: crate::physics::basic::Area) -> Self::Output {
+        MassFlowRate::from_kg_per_s(self.as_kg_per_m2_s() * rhs.as_m2())
+    }
+}
+
+impl<'a> Mul<&'a crate::physics::basic::Area> for MassFlux {
+    type Output = MassFlowRate;
+    fn mul(self, rhs: &'a crate::physics::basic::Area) -> Self::Output {
+        MassFlowRate::from_kg_per_s(self.as_kg_per_m2_s() * rhs.as_m2())
+    }
+}
+
+impl<'a, 'b> Mul<&'b crate::physics::basic::Area> for &'a MassFlux {
+    type Output = MassFlowRate;
+    fn mul(self, rhs: &'b crate::physics::basic::Area) -> Self::Output {
+        MassFlowRate::from_kg_per_s(self.as_kg_per_m2_s() * rhs.as_m2())
+    }
+}
+
+// 面积 × 质量通量 = 质量流量（交换律）
+impl Mul<MassFlux> for crate::physics::basic::Area {
+    type Output = MassFlowRate;
+    fn mul(self, rhs: MassFlux) -> Self::Output {
+        MassFlowRate::from_kg_per_s(self.as_m2() * rhs.as_kg_per_m2_s())
+    }
+}
+
+impl<'a> Mul<MassFlux> for &'a crate::physics::basic::Area {
+    type Output = MassFlowRate;
+    fn mul(self, rhs: MassFlux) -> Self::Output {
+        MassFlowRate::from_kg_per_s(self.as_m2() * rhs.as_kg_per_m2_s())
+    }
+}
+
+impl<'a> Mul<&'a MassFlux> for crate::physics::basic::Area {
+    type Output = MassFlowRate;
+    fn mul(self, rhs: &'a MassFlux) -> Self::Output {
+        MassFlowRate::from_kg_per_s(self.as_m2() * rhs.as_kg_per_m2_s())
+    }
+}
+
+impl<'a, 'b> Mul<&'b MassFlux> for &'a crate::physics::basic::Area {
+    type Output = MassFlowRate;
+    fn mul(self, rhs: &'b MassFlux) -> Self::Output {
+        MassFlowRate::from_kg_per_s(self.as_m2() * rhs.as_kg_per_m2_s())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -417,6 +478,44 @@ mod tests {
 
         assert_relative_eq!(two_step.as_pa(), one_step, epsilon = 1e-9);
         assert_relative_eq!(two_step.as_pa(), 49_000.0, epsilon = 1e-9);
+    }
+
+    #[test]
+    fn test_mul_area_gives_mass_flow_rate() {
+        // 通量 245 kg/(m²·s) × 截面 0.5 m² = 122.5 kg/s
+        let mf = MassFlux::from_kg_per_m2_s(245.0);
+        let area = crate::physics::basic::Area::from_m2(0.5);
+
+        assert_relative_eq!((mf * area).as_kg_per_s(), 122.5, epsilon = 1e-9);
+        assert_relative_eq!((&mf * area).as_kg_per_s(), 122.5, epsilon = 1e-9);
+        assert_relative_eq!((mf * &area).as_kg_per_s(), 122.5, epsilon = 1e-9);
+        assert_relative_eq!((&mf * &area).as_kg_per_s(), 122.5, epsilon = 1e-9);
+
+        // 交换律
+        assert_relative_eq!((area * mf).as_kg_per_s(), 122.5, epsilon = 1e-9);
+        assert_relative_eq!((&area * mf).as_kg_per_s(), 122.5, epsilon = 1e-9);
+        assert_relative_eq!((area * &mf).as_kg_per_s(), 122.5, epsilon = 1e-9);
+        assert_relative_eq!((&area * &mf).as_kg_per_s(), 122.5, epsilon = 1e-9);
+    }
+
+    #[test]
+    fn test_full_mass_flow_chain() {
+        // 完整链条：ρ → 通量 → 流量 → 质量
+        // 1.225 kg/m³ × 200 m/s = 245 kg/(m²·s)
+        // × 0.5 m² = 122.5 kg/s
+        // × 10 s = 1225 kg
+        let rho = Density::from_kg_per_m3(1.225);
+        let v = Velocity::from_m_per_sec(200.0);
+        let area = crate::physics::basic::Area::from_m2(0.5);
+
+        let flux = rho * v;
+        assert_relative_eq!(flux.as_kg_per_m2_s(), 245.0, epsilon = 1e-9);
+
+        let rate = flux * area;
+        assert_relative_eq!(rate.as_kg_per_s(), 122.5, epsilon = 1e-9);
+
+        let mass = rate * chrono::TimeDelta::seconds(10);
+        assert_relative_eq!(mass.as_kg(), 1225.0, epsilon = 1e-9);
     }
 
     #[test]

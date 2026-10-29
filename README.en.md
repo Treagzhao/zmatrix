@@ -908,7 +908,7 @@ assert!(h_scalar.semi_major_axis(mu, Coef::new(1.0)).is_none());
 
 Built-in constants: `GravitationalParameter::earth()` / `moon()` / `sun()`.
 
-### Caution: `v × h` is not the gravitational parameter
+### Eccentricity vector
 
 The standard identity:
 
@@ -916,7 +916,8 @@ The standard identity:
 v × h = μ · (R̂ + e_vec)
 ```
 
-The right side is **a vector sum multiplied by μ**, so it varies with orbital phase:
+Note the right side is **a vector sum multiplied by μ** — it varies with orbital phase
+and is not a constant:
 
 | Orbit | `|v×h|/μ` | true e |
 |---|---|---|
@@ -924,37 +925,46 @@ The right side is **a vector sum multiplied by μ**, so it varies with orbital p
 | ellipse e=0.1 at periapsis | 1.100 | 0.1 |
 | ellipse e=0.1 at apoapsis | 0.900 | 0.1 |
 
-**So this crate does not provide a `Velocity × SpecificAngularMomentum` cross product.**
-
-That result has **no standard name** in the literature — every textbook writes
-`e = v×h/μ − r̂` directly, consuming the intermediate before naming it. Dressing it as
-`GravitationalParameter` invites:
-
-```text
-let mu = v.cross(&h);      // looks like "compute μ"; off by 0–2×, silently
-```
-
-This runs against the stance behind splitting `Torque` and `Energy`: those exist to
-**prevent** confusion, while this name would **manufacture** it.
-
-To get the eccentricity vector, use one of these two equivalent forms (**neither needs
-`v×h`**):
+Compute the eccentricity vector with either form:
 
 ```text
 e = v×h/μ − r̂                              (Laplace-Runge-Lenz vector)
 e = (|v|²/μ − 1/|r|)·r − ((r·v)/μ)·v        (uses only r, v, μ)
 ```
 
-⚠️ **The second form cannot currently be written in pure typed form** in this crate,
-because two operations are missing:
+The second cannot currently be written in pure typed form; two operators are missing:
 
-- a **dot product** between `Vector3<Distance>` and `Vector3<Velocity>` (`dot` requires
-  both sides to have the same element type)
-- `Velocity × Velocity` (needed for `|v|²`)
+| Missing | Needed for |
+|---|---|
+| dot product between `Vector3<Distance>` and `Vector3<Velocity>` | `r·v` (the existing `dot` requires identical element types) |
+| `Velocity × Velocity` | `\|v\|²` |
 
-Both require dropping to `f64` components first. This is a **known gap**, recorded rather
-than papered over. In practice, compute component-wise or wait for these two operators —
-neither is hard, they simply have no concrete demand yet.
+To compute `r·v` and `|v|²`, drop to `f64` components first:
+
+```rust
+let r = Vector3::new(Distance::from_m(7078e3), Distance::default(), Distance::default());
+let v = Vector3::new(Velocity::default(), Velocity::from_m_per_sec(7504.36), Velocity::default());
+
+let rv = r.x.as_m() * v.x.as_m_per_sec()
+       + r.y.as_m() * v.y.as_m_per_sec()
+       + r.z.as_m() * v.z.as_m_per_sec();
+let v_sq = v.x.as_m_per_sec().powi(2)
+         + v.y.as_m_per_sec().powi(2)
+         + v.z.as_m_per_sec().powi(2);
+let r_mag = (r.x.as_m().powi(2) + r.y.as_m().powi(2) + r.z.as_m().powi(2)).sqrt();
+
+let mu = GravitationalParameter::earth().as_m3_per_s2();
+let k = v_sq / mu - 1.0 / r_mag;      // |v|²/μ − 1/|r|
+let e = [
+    k * r.x.as_m() - rv / mu * v.x.as_m_per_sec(),
+    k * r.y.as_m() - rv / mu * v.y.as_m_per_sec(),
+    k * r.z.as_m() - rv / mu * v.z.as_m_per_sec(),
+];
+let e_mag = (e[0].powi(2) + e[1].powi(2) + e[2].powi(2)).sqrt();
+
+// circular orbit: |e| ≈ 0
+assert!(e_mag < 1e-5);
+```
 
 ---
 
@@ -1101,7 +1111,6 @@ and by the time it blows up exponentially you are already reading wrong conclusi
 |---|---|
 | dot product between `Vector3<Distance>` and `Vector3<Velocity>` | needed for `r·v` in the eccentricity vector; `dot` requires identical element types |
 | `Velocity × Velocity` | needed for `\|v\|²`; alternatively a scalar squaring entry on `Velocity` |
-| `Velocity × SpecificAngularMomentum` | **deliberately absent**, see the warning in the orbital mechanics section |
 | periapsis/apoapsis radius, true/mean anomaly | add when there is concrete demand |
 
 ### Other

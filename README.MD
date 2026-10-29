@@ -867,7 +867,7 @@ assert!(h_scalar.semi_major_axis(mu, Coef::new(1.0)).is_none());
 
 内置天体常数：`GravitationalParameter::earth()` / `moon()` / `sun()`。
 
-### ⚠️ `v × h` 不是引力参数
+### 偏心率矢量
 
 标准恒等式：
 
@@ -875,7 +875,7 @@ assert!(h_scalar.semi_major_axis(mu, Coef::new(1.0)).is_none());
 v × h = μ · (R̂ + e_vec)
 ```
 
-右边是**两个矢量的和再乘 μ**，随轨道相位变化：
+注意右边是**两个矢量的和再乘 μ**，随轨道相位变化，不是常数：
 
 | 轨道 | `|v×h|/μ` | 真实 e |
 |---|---|---|
@@ -883,33 +883,46 @@ v × h = μ · (R̂ + e_vec)
 | 椭圆 e=0.1 近地点 | 1.100 | 0.1 |
 | 椭圆 e=0.1 远地点 | 0.900 | 0.1 |
 
-**所以本库不提供 `Velocity × SpecificAngularMomentum` 的叉乘。**
-
-那个结果在轨道力学文献里**没有标准名字**——所有教材都直接写成
-`e = v×h/μ − r̂`，这个中间量在有名字之前就被用掉了。硬套
-`GravitationalParameter` 会诱导写出：
-
-```text
-let mu = v.cross(&h);      // 看起来像"算出引力参数"，实际差 0~2 倍，且不报错
-```
-
-这与 `Torque`/`Energy` 量纲相同却分类型的取向相反——那里是为了**防止**混淆，
-这里命名成 μ 等于**制造**混淆。
-
-需要偏心率矢量时，用这两个等价形式之一（**都不需要 `v×h`**）：
+求偏心率矢量用这两式之一：
 
 ```text
 e = v×h/μ − r̂                              （Laplace-Runge-Lenz 矢量）
 e = (|v|²/μ − 1/|r|)·r − ((r·v)/μ)·v        （只用 r、v、μ）
 ```
 
-⚠️ **本库暂时写不出第二式的纯类型形式**，原因是缺两样东西：
+第二式在纯类型层面暂时写不出来，缺两个运算符：
 
-- `Vector3<Distance>` 与 `Vector3<Velocity>` 的**点乘**（`dot` 要求两个向量同类型）
-- `Velocity × Velocity`（`|v|²` 需要它）
+| 缺什么 | 用途 |
+|---|---|
+| `Vector3<Distance>` 与 `Vector3<Velocity>` 的点乘 | `r·v`（现有 `dot` 要求两侧同类型） |
+| `Velocity × Velocity` | `\|v\|²` |
 
-两处都得先取 `f64` 分量。这是**已知缺口**，记录下来而不是绕过去假装能写。
-真要用时按分量算，或等这两个运算符补上（都不难，缺的是明确需求）。
+要算 `r·v` 和 `|v|²` 时先取 `f64` 分量：
+
+```rust
+let r = Vector3::new(Distance::from_m(7078e3), Distance::default(), Distance::default());
+let v = Vector3::new(Velocity::default(), Velocity::from_m_per_sec(7504.36), Velocity::default());
+
+let rv = r.x.as_m() * v.x.as_m_per_sec()
+       + r.y.as_m() * v.y.as_m_per_sec()
+       + r.z.as_m() * v.z.as_m_per_sec();
+let v_sq = v.x.as_m_per_sec().powi(2)
+         + v.y.as_m_per_sec().powi(2)
+         + v.z.as_m_per_sec().powi(2);
+let r_mag = (r.x.as_m().powi(2) + r.y.as_m().powi(2) + r.z.as_m().powi(2)).sqrt();
+
+let mu = GravitationalParameter::earth().as_m3_per_s2();
+let k = v_sq / mu - 1.0 / r_mag;      // |v|²/μ − 1/|r|
+let e = [
+    k * r.x.as_m() - rv / mu * v.x.as_m_per_sec(),
+    k * r.y.as_m() - rv / mu * v.y.as_m_per_sec(),
+    k * r.z.as_m() - rv / mu * v.z.as_m_per_sec(),
+];
+let e_mag = (e[0].powi(2) + e[1].powi(2) + e[2].powi(2)).sqrt();
+
+// 圆轨道：|e| ≈ 0
+assert!(e_mag < 1e-5);
+```
 
 ---
 
@@ -1059,7 +1072,6 @@ temperature(i) -> Option<Temperature>
 |---|---|
 | `Vector3<Distance>` 与 `Vector3<Velocity>` 的点乘 | 算偏心率矢量需要 `r·v`；现在 `dot` 要求两侧同类型 |
 | `Velocity × Velocity` | `\|v\|²` 需要；也可以为 `Velocity` 加标量平方入口 |
-| `Velocity × SpecificAngularMomentum` | **刻意不做**，见轨道力学章节的警告 |
 | 近地点/远地点半径、真近点角、平近点角 | 等有明确需求再补 |
 
 ### 其他

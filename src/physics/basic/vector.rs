@@ -709,12 +709,11 @@ impl CrossProduct<Velocity> for Distance {
     type Out = crate::physics::basic::SpecificAngularMomentum;
 }
 
-// 不提供 `Velocity × SpecificAngularMomentum` 的叉乘。
+// 注意：无 `Velocity × SpecificAngularMomentum`。
 //
-// `v × h = μ(R̂ + e)`，结果随轨道相位变化（圆轨道模长为 μ、
-// 近地点 μ(1+e)、远地点 μ(1−e)），**不是引力参数 μ**，也没有标准物理名。
-// 硬套 `GravitationalParameter` 会诱导写出 `let mu = v.cross(&h)` 这种
-// 看起来对、实际差 0~2 倍的代码。需要偏心率矢量请用命名方法。
+// `v × h = μ(R̂ + e)`，量纲虽是 m³/s²，但随轨道相位变化
+// （圆轨道模长为 μ、近地点 μ(1+e)、远地点 μ(1−e)），不是引力参数 μ。
+// 求偏心率矢量见 SpecificAngularMomentum 的文档。
 
 
 #[cfg(test)]

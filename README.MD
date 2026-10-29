@@ -37,7 +37,7 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 
 ## 一、物理量系统
 
-36 种物理量，每种支持多种单位，物理量之间的运算在编译期进行量纲检查。
+38 种物理量，每种支持多种单位，物理量之间的运算在编译期进行量纲检查。
 
 ### 支持的物理量
 
@@ -78,6 +78,8 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 | **压力 `Pressure`** | Pa, hPa, kPa, MPa, bar, atm, mmHg |
 | **质量通量 `MassFlux`** | kg/(m²·s), g/(m²·s), g/(cm²·s) |
 | **质量流量 `MassFlowRate`** | kg/s, g/s, kg/h, t/h |
+| **比角动量 `SpecificAngularMomentum`** | m²/s, km²/s |
+| **引力参数 `GravitationalParameter`** | m³/s², km³/s² |
 | 系数 `Coef` | 无量纲 |
 
 ### 时间：统一使用 `chrono::TimeDelta`
@@ -813,7 +815,105 @@ let p: Pressure = Force::from_newton(1000.0) / Area::from_m2(2.0);
 
 ---
 
-## 八、空间几何
+## 八、轨道力学：比角动量与引力参数
+
+### 比角动量与角动量是两个量
+
+```text
+角动量   L = r × (m·v)   kg·m²/s    → AngularMomentum
+比角动量 h = r × v       m²/s       → SpecificAngularMomentum
+```
+
+差一个质量因子。名字里的「比」就是「每单位质量」，与比热容、比能同构。
+
+**轨道力学用的是 `h`**：二体问题里 `h` 是运动常量，与卫星质量无关。
+`L` 会随加注燃料、帆板展开变化，`h` 不会——这是它更有用的原因。
+
+```rust
+let r = Vector3::new(Distance::from_m(7078e3), Distance::default(), Distance::default());
+let v = Vector3::new(Velocity::default(), Velocity::from_m_per_sec(7504.36), Velocity::default());
+
+let h: Vector3<SpecificAngularMomentum> = r.cross(&v);   // h = r × v
+```
+
+方向遵循右手定则：`v` 逆时针时 `h` 指向轨道面法向。
+
+### 轨道要素
+
+```rust
+let mu = GravitationalParameter::earth();   // 3.986004418e14 m³/s²
+
+// 700 km 圆轨道：h = r·v
+let h_scalar = SpecificAngularMomentum::from_m2_per_second(7078e3 * 7504.36);
+
+// 半通径 p = h²/μ
+let p: Distance = h_scalar.semi_latus_rectum(mu);
+assert!((p.as_m() - 7078e3).abs() < 1e3);    // 圆轨道 p = r
+
+// 半长轴 a = p/(1−e²)，e=1（抛物线）时返回 None
+let a: Option<Distance> = h_scalar.semi_major_axis(mu, Coef::new(0.1));
+assert!(a.is_some());
+
+// 抛物线
+assert!(h_scalar.semi_major_axis(mu, Coef::new(1.0)).is_none());
+```
+
+> **`h²/μ` 是半通径 `p`，不是半长轴。** 关系是 `p = a(1−e²)`，
+> 所以 `a = p/(1−e²)`——**是除不是乘**。写成乘会得到 `a(1−e²)²`，
+> e=0.1 时偏小 1.99%，e=0.9 时只剩真值的 3.6%。
+>
+> **`semi_major_axis` 返回 `Option` 而不是 `inf`**：抛物线时 `a` 无定义，
+> 无穷大会静默污染下游计算。双曲线 `e>1` 时返回负值，这是约定（`a<0` 表示不闭合），不是错误。
+
+内置天体常数：`GravitationalParameter::earth()` / `moon()` / `sun()`。
+
+### ⚠️ `v × h` 不是引力参数
+
+标准恒等式：
+
+```text
+v × h = μ · (R̂ + e_vec)
+```
+
+右边是**两个矢量的和再乘 μ**，随轨道相位变化：
+
+| 轨道 | `|v×h|/μ` | 真实 e |
+|---|---|---|
+| 圆轨道 e=0 | 1.000 | 0 |
+| 椭圆 e=0.1 近地点 | 1.100 | 0.1 |
+| 椭圆 e=0.1 远地点 | 0.900 | 0.1 |
+
+**所以本库不提供 `Velocity × SpecificAngularMomentum` 的叉乘。**
+
+那个结果在轨道力学文献里**没有标准名字**——所有教材都直接写成
+`e = v×h/μ − r̂`，这个中间量在有名字之前就被用掉了。硬套
+`GravitationalParameter` 会诱导写出：
+
+```text
+let mu = v.cross(&h);      // 看起来像"算出引力参数"，实际差 0~2 倍，且不报错
+```
+
+这与 `Torque`/`Energy` 量纲相同却分类型的取向相反——那里是为了**防止**混淆，
+这里命名成 μ 等于**制造**混淆。
+
+需要偏心率矢量时，用这两个等价形式之一（**都不需要 `v×h`**）：
+
+```text
+e = v×h/μ − r̂                              （Laplace-Runge-Lenz 矢量）
+e = (|v|²/μ − 1/|r|)·r − ((r·v)/μ)·v        （只用 r、v、μ）
+```
+
+⚠️ **本库暂时写不出第二式的纯类型形式**，原因是缺两样东西：
+
+- `Vector3<Distance>` 与 `Vector3<Velocity>` 的**点乘**（`dot` 要求两个向量同类型）
+- `Velocity × Velocity`（`|v|²` 需要它）
+
+两处都得先取 `f64` 分量。这是**已知缺口**，记录下来而不是绕过去假装能写。
+真要用时按分量算，或等这两个运算符补上（都不难，缺的是明确需求）。
+
+---
+
+## 九、空间几何
 
 欧拉角、方向余弦矩阵（DCM）、四元数之间的相互转换。
 
@@ -953,11 +1053,20 @@ temperature(i) -> Option<Temperature>
 `step()` 会检查显式稳定性判据 `Δt < 2·Cᵢ/ΣGᵢⱼ` 并返回错误 ——
 不检查的话发散初期的曲线仍然"看起来合理"，等指数爆炸时已经在看错误结论了。
 
+### 轨道力学
+
+| 待做 | 说明 |
+|---|---|
+| `Vector3<Distance>` 与 `Vector3<Velocity>` 的点乘 | 算偏心率矢量需要 `r·v`；现在 `dot` 要求两侧同类型 |
+| `Velocity × Velocity` | `\|v\|²` 需要；也可以为 `Velocity` 加标量平方入口 |
+| `Velocity × SpecificAngularMomentum` | **刻意不做**，见轨道力学章节的警告 |
+| 近地点/远地点半径、真近点角、平近点角 | 等有明确需求再补 |
+
 ### 其他
 
+- `CrossProduct` 实现了 5 个组合（见向量章节），新增一个只需两行 impl
 - 物理量之间的乘除法覆盖仍不完整，遇到具体场景再补
 - 单位系统仅覆盖工程常用子集，不是完整的 SI 词头体系
-- `CrossProduct` 只实现了 4 个组合（见向量章节的表格），新增一个只需两行 impl
 
 ---
 

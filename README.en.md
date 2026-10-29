@@ -39,7 +39,7 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ Correct
 
 ## 1. Physical Quantity System
 
-36 physical quantities, each with multiple units. Operations between quantities are dimensionally checked at compile time.
+38 physical quantities, each with multiple units. Operations between quantities are dimensionally checked at compile time.
 
 ### Supported Quantities
 
@@ -80,6 +80,8 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ Correct
 | **`Pressure`** | Pa, hPa, kPa, MPa, bar, atm, mmHg |
 | **`MassFlux`** | kg/(m²·s), g/(m²·s), g/(cm²·s) |
 | **`MassFlowRate`** | kg/s, g/s, kg/h, t/h |
+| **`SpecificAngularMomentum`** | m²/s, km²/s |
+| **`GravitationalParameter`** | m³/s², km³/s² |
 | `Coef` | dimensionless |
 
 ### Time: `chrono::TimeDelta` only
@@ -850,7 +852,113 @@ let p: Pressure = Force::from_newton(1000.0) / Area::from_m2(2.0);
 
 ---
 
-## 8. Spatial Geometry
+## 8. Orbital Mechanics: Specific Angular Momentum and μ
+
+### Specific angular momentum is not angular momentum
+
+```text
+angular momentum    L = r × (m·v)   kg·m²/s    → AngularMomentum
+specific ang. mom.  h = r × v       m²/s       → SpecificAngularMomentum
+```
+
+They differ by one mass factor. The "specific" prefix means per unit mass, the same
+construction as specific heat capacity or specific energy.
+
+**Orbital mechanics uses `h`**: in the two-body problem `h` is a constant of motion,
+independent of the spacecraft's mass. `L` changes as propellant burns or panels deploy;
+`h` does not — which is why it is more useful.
+
+```rust
+let r = Vector3::new(Distance::from_m(7078e3), Distance::default(), Distance::default());
+let v = Vector3::new(Velocity::default(), Velocity::from_m_per_sec(7504.36), Velocity::default());
+
+let h: Vector3<SpecificAngularMomentum> = r.cross(&v);   // h = r × v
+```
+
+Direction follows the right-hand rule: `h` points along the orbit normal when `v` is
+counter-clockwise.
+
+### Orbital elements
+
+```rust
+let mu = GravitationalParameter::earth();   // 3.986004418e14 m³/s²
+
+// 700 km circular orbit: h = r·v
+let h_scalar = SpecificAngularMomentum::from_m2_per_second(7078e3 * 7504.36);
+
+// semi-latus rectum p = h²/μ
+let p: Distance = h_scalar.semi_latus_rectum(mu);
+assert!((p.as_m() - 7078e3).abs() < 1e3);    // circular: p = r
+
+// semi-major axis a = p/(1−e²); None for e=1 (parabolic)
+let a: Option<Distance> = h_scalar.semi_major_axis(mu, Coef::new(0.1));
+assert!(a.is_some());
+
+// parabolic
+assert!(h_scalar.semi_major_axis(mu, Coef::new(1.0)).is_none());
+```
+
+> **`h²/μ` is the semi-latus rectum `p`, not the semi-major axis.** The relation is
+> `p = a(1−e²)`, so `a = p/(1−e²)` — **divide, not multiply**. Multiplying instead
+> yields `a(1−e²)²`: 1.99% too small at e=0.1, down to 3.6% of the true value at e=0.9.
+>
+> **`semi_major_axis` returns `Option`, not `inf`**: `a` is undefined for a parabola, and
+> infinity silently poisons downstream arithmetic. Hyperbolic orbits (`e>1`) return a
+> negative value — that is the convention (`a<0` means unclosed), not an error.
+
+Built-in constants: `GravitationalParameter::earth()` / `moon()` / `sun()`.
+
+### Caution: `v × h` is not the gravitational parameter
+
+The standard identity:
+
+```text
+v × h = μ · (R̂ + e_vec)
+```
+
+The right side is **a vector sum multiplied by μ**, so it varies with orbital phase:
+
+| Orbit | `|v×h|/μ` | true e |
+|---|---|---|
+| circular e=0 | 1.000 | 0 |
+| ellipse e=0.1 at periapsis | 1.100 | 0.1 |
+| ellipse e=0.1 at apoapsis | 0.900 | 0.1 |
+
+**So this crate does not provide a `Velocity × SpecificAngularMomentum` cross product.**
+
+That result has **no standard name** in the literature — every textbook writes
+`e = v×h/μ − r̂` directly, consuming the intermediate before naming it. Dressing it as
+`GravitationalParameter` invites:
+
+```text
+let mu = v.cross(&h);      // looks like "compute μ"; off by 0–2×, silently
+```
+
+This runs against the stance behind splitting `Torque` and `Energy`: those exist to
+**prevent** confusion, while this name would **manufacture** it.
+
+To get the eccentricity vector, use one of these two equivalent forms (**neither needs
+`v×h`**):
+
+```text
+e = v×h/μ − r̂                              (Laplace-Runge-Lenz vector)
+e = (|v|²/μ − 1/|r|)·r − ((r·v)/μ)·v        (uses only r, v, μ)
+```
+
+⚠️ **The second form cannot currently be written in pure typed form** in this crate,
+because two operations are missing:
+
+- a **dot product** between `Vector3<Distance>` and `Vector3<Velocity>` (`dot` requires
+  both sides to have the same element type)
+- `Velocity × Velocity` (needed for `|v|²`)
+
+Both require dropping to `f64` components first. This is a **known gap**, recorded rather
+than papered over. In practice, compute component-wise or wait for these two operators —
+neither is hard, they simply have no concrete demand yet.
+
+---
+
+## 9. Spatial Geometry
 
 Euler angles, direction cosine matrices (DCM), and quaternions with mutual conversions.
 
@@ -987,10 +1095,20 @@ temperature(i) -> Option<Temperature>
 without that check, a diverging solution still produces plausible-looking curves early on,
 and by the time it blows up exponentially you are already reading wrong conclusions.
 
+### Orbital mechanics
+
+| Missing | Notes |
+|---|---|
+| dot product between `Vector3<Distance>` and `Vector3<Velocity>` | needed for `r·v` in the eccentricity vector; `dot` requires identical element types |
+| `Velocity × Velocity` | needed for `\|v\|²`; alternatively a scalar squaring entry on `Velocity` |
+| `Velocity × SpecificAngularMomentum` | **deliberately absent**, see the warning in the orbital mechanics section |
+| periapsis/apoapsis radius, true/mean anomaly | add when there is concrete demand |
+
 ### Other
 
 - eigenvalue solving for `N > 3` (flexible-mode analysis; only the 3×3 `diagonalize` exists)
 - sparse matrices (large-N steady-state thermal networks would exhaust memory with dense LU)
+- `CrossProduct` ships 5 combinations (see the vector section); adding one is a two-line impl
 - Quantity-to-quantity operators are still incomplete; additions land when a concrete case
   needs them
 - The unit system covers a practical engineering subset, not the full SI prefix hierarchy

@@ -698,6 +698,25 @@ impl CrossProduct<AngularMomentum> for AngularVelocity {
     type Out = Torque;
 }
 
+// 比角动量：h = r × v
+//
+// 量纲 m × (m/s) = m²/s ✓。注意与 `Distance × Momentum → AngularMomentum`
+// （多一个质量因子）区分：这里得到的是**单位质量**的角动量，
+// 也就是轨道力学里那个运动常量 `h`。
+//
+// 方向：v 逆时针时 h 指向轨道面法向，右手定则。
+impl CrossProduct<Velocity> for Distance {
+    type Out = crate::physics::basic::SpecificAngularMomentum;
+}
+
+// 不提供 `Velocity × SpecificAngularMomentum` 的叉乘。
+//
+// `v × h = μ(R̂ + e)`，结果随轨道相位变化（圆轨道模长为 μ、
+// 近地点 μ(1+e)、远地点 μ(1−e)），**不是引力参数 μ**，也没有标准物理名。
+// 硬套 `GravitationalParameter` 会诱导写出 `let mu = v.cross(&h)` 这种
+// 看起来对、实际差 0~2 倍的代码。需要偏心率矢量请用命名方法。
+
+
 #[cfg(test)]
 mod tests {
     use super::*;

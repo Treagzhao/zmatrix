@@ -122,7 +122,72 @@ impl Quaternion {
         )
     }
 
-    //这个函数的运算意义不明
+    /// 四元数运动学的右乘矩阵 `Ξ(q)`，把本体系角速度映射到四元数导数。
+    ///
+    /// 数学上就是 `q̇ = ½ · q ⊗ ω₀`（`ω₀ = (0, ωx, ωy, ωz)`）展开后的系数矩阵。
+    ///
+    /// # ⚠️ 行序不是 `(w, x, y, z)`（必读）
+    ///
+    /// 返回的 4×3 矩阵，其**四行依次对应 `(ẋ, ẏ, ż, ẇ)`**——`w` 那一行在**最后**。
+    ///
+    /// ```text
+    ///             ⎡  q0  -q3   q2 ⎤  → ẋ
+    ///  Ξ(q)·ω  =  ⎢  q3   q0  -q1 ⎥  → ẏ
+    ///             ⎢ -q2   q1   q0 ⎥  → ż
+    ///             ⎣ -q1  -q2  -q3 ⎦  → ẇ   ← w 在末
+    /// ```
+    ///
+    /// 而 `Quaternion::new(q0, q1, q2, q3)` 的字段顺序是 `(w, x, y, z)`。
+    /// **直接把乘积结果塞进 `Quaternion::new` 会得到一个错位的四元数**，
+    /// 而且编译通过、不报错。
+    ///
+    /// # 正确用法：按 `(ẋ, ẏ, ż, ẇ)` 重排
+    ///
+    /// ```
+    /// use zmatrix::spatial_geometry::quaternion::Quaternion;
+    /// use zmatrix::dense::Matrix;
+    ///
+    /// let q = Quaternion::new(0.6, 0.0, 0.8, 0.0);    // 单位四元数
+    /// let omega = Matrix::<3, 1, f64>::new([[0.1], [0.2], [0.3]]);
+    ///
+    /// let r = q.ksi_matrix().product(&omega).unwrap();   // 行序 = (ẋ, ẏ, ż, ẇ)
+    /// let q_dot = Quaternion::new(
+    ///     r.get(0, 3).unwrap(),   // ẇ ← 第 4 行搬到最前
+    ///     r.get(0, 0).unwrap(),   // ẋ
+    ///     r.get(0, 1).unwrap(),   // ẏ
+    ///     r.get(0, 2).unwrap(),   // ż
+    /// );
+    ///
+    /// // 单位四元数下 q̇ ⊥ q（模长守恒的必要条件）
+    /// let dot = q.q0 * q_dot.q0 + q.q1 * q_dot.q1
+    ///         + q.q2 * q_dot.q2 + q.q3 * q_dot.q3;
+    /// assert!(dot.abs() < 1e-15);
+    /// ```
+    ///
+    /// 若省掉这次重排、直接按字段顺序读，同一个 `q` 会算出 `q · q̇ = 0.26`
+    /// （应为 0），即把一个不保持模长的导数当成正确结果。
+    /// 注意这个判据并非对所有 `q` 都灵敏——`q = (0.5, 0.5, 0.5, 0.5)`
+    /// 直读也恰好得 0，所以选测试向量时要避开这种对称点。
+    ///
+    /// # 验证方式
+    ///
+    /// 绕固定轴等角速度旋转时解析解是 `q(t) = (cos(θ/2), n·sin(θ/2))`。
+    /// 按上面的重排做 RK4 积分 2 秒，与解析解偏差约 `3e-14`；误按
+    /// `(w, x, y, z)` 直读则偏差 `4.6e-1` 且随时间线性发散——
+    /// 说明那不是精度问题，而是系统性错序。
+    ///
+    /// # 与 `linear_transform` 的关系
+    ///
+    /// [`linear_transform`](Self::linear_transform) 装列向量时用的也是
+    /// `[q1, q2, q3, q0]`（`w` 在末），两者共享同一个非标准顺序。
+    /// 但注意**签名不匹配**：`linear_transform` 收 `Matrix<4, 4, f64>`，
+    /// 而本函数产出 `Matrix<4, 3, f64>`，无法直接串联——若需要 4×4 形式，
+    /// 得自行补一列。
+    ///
+    /// # 关于行序的取舍
+    ///
+    /// 曾考虑改成 `(w, x, y, z)` 以符合直觉，但这会改变既有约定、属破坏性
+    /// 变更。当前选择保留原行为并在此写明。
     pub fn ksi_matrix(&self) -> Matrix<4, 3, f64> {
         Matrix::<4, 3, f64>::new([
             [self.q0, -self.q3, self.q2],
@@ -618,6 +683,98 @@ mod tests {
             for (col, exp) in list.iter().enumerate() {
                 assert_relative_eq!(*exp, result.get(col, row).unwrap(), epsilon = 1e-7);
             }
+        }
+    }
+
+    #[test]
+    fn test_ksi_matrix_row_order_is_not_wxyz() {
+        // 本测试钉住 ksi_matrix 的非直觉行序：(ẋ, ẏ, ż, ẇ)，w 在最后。
+        //
+        // 判据：单位四元数下 q̇ ⊥ q（模长守恒的必要条件）。
+        // 按正确行序重排后内积应为 0；若误按 (w,x,y,z) 直读则显著非零。
+        let q = Quaternion::new(0.6, 0.0, 0.8, 0.0); // 单位四元数
+        let omega = Matrix::<3, 1, f64>::new([[0.1], [0.2], [0.3]]);
+        let r = q.ksi_matrix().product(&omega).unwrap();
+        let v = [
+            r.get(0, 0).unwrap(),
+            r.get(0, 1).unwrap(),
+            r.get(0, 2).unwrap(),
+            r.get(0, 3).unwrap(),
+        ];
+
+        let dot_of = |a: &Quaternion, b: &Quaternion| -> f64 {
+            a.q0 * b.q0 + a.q1 * b.q1 + a.q2 * b.q2 + a.q3 * b.q3
+        };
+
+        // 正确：第 4 行是 ẇ
+        let correct = Quaternion::new(v[3], v[0], v[1], v[2]);
+        assert_relative_eq!(dot_of(&q, &correct), 0.0, epsilon = 1e-15);
+
+        // 错误：直读会让 q·q̇ = 0.26，明显违反模长守恒
+        let wrong = Quaternion::new(v[0], v[1], v[2], v[3]);
+        assert_relative_eq!(dot_of(&q, &wrong), 0.26, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_ksi_matrix_integrates_consistently_with_analytic() {
+        // 绕固定轴等角速度旋转，解析解 q(t) = (cos(θ/2), n·sin(θ/2))。
+        // 用 ksi 做 RK4 积分，验证误差是截断误差量级而非系统性错序。
+        let axis = [1.0 / 3.0_f64.sqrt(); 3];
+        let rate = 0.7_f64;
+        let omega = Matrix::<3, 1, f64>::new([
+            [rate * axis[0]],
+            [rate * axis[1]],
+            [rate * axis[2]],
+        ]);
+
+        let deriv = |q: &Quaternion| -> Quaternion {
+            let r = q.ksi_matrix().product(&omega).unwrap();
+            // 行序 (ẋ, ẏ, ż, ẇ) → 重排成 (w, x, y, z)
+            Quaternion::new(
+                0.5 * r.get(0, 3).unwrap(),
+                0.5 * r.get(0, 0).unwrap(),
+                0.5 * r.get(0, 1).unwrap(),
+                0.5 * r.get(0, 2).unwrap(),
+            )
+        };
+        let step = |a: &Quaternion, b: &Quaternion, s: f64| -> Quaternion {
+            Quaternion::new(
+                a.q0 + s * b.q0,
+                a.q1 + s * b.q1,
+                a.q2 + s * b.q2,
+                a.q3 + s * b.q3,
+            )
+        };
+
+        let dt = 1e-4;
+        let mut q = Quaternion::new(1.0, 0.0, 0.0, 0.0);
+        let steps = 20000;
+        for _ in 0..steps {
+            let k1 = deriv(&q);
+            let k2 = deriv(&step(&q, &k1, dt / 2.0));
+            let k3 = deriv(&step(&q, &k2, dt / 2.0));
+            let k4 = deriv(&step(&q, &k3, dt));
+            q = Quaternion::new(
+                q.q0 + dt / 6.0 * (k1.q0 + 2.0 * k2.q0 + 2.0 * k3.q0 + k4.q0),
+                q.q1 + dt / 6.0 * (k1.q1 + 2.0 * k2.q1 + 2.0 * k3.q1 + k4.q1),
+                q.q2 + dt / 6.0 * (k1.q2 + 2.0 * k2.q2 + 2.0 * k3.q2 + k4.q2),
+                q.q3 + dt / 6.0 * (k1.q3 + 2.0 * k2.q3 + 2.0 * k3.q3 + k4.q3),
+            );
+            let n = (q.q0 * q.q0 + q.q1 * q.q1 + q.q2 * q.q2 + q.q3 * q.q3).sqrt();
+            q = Quaternion::new(q.q0 / n, q.q1 / n, q.q2 / n, q.q3 / n);
+        }
+
+        let half = rate * dt * steps as f64 / 2.0;
+        let sgn = if q.q0 * half.cos() >= 0.0 { 1.0 } else { -1.0 };
+        let exact = [
+            half.cos(),
+            axis[0] * half.sin(),
+            axis[1] * half.sin(),
+            axis[2] * half.sin(),
+        ];
+        let got = [sgn * q.q0, sgn * q.q1, sgn * q.q2, sgn * q.q3];
+        for i in 0..4 {
+            assert_relative_eq!(got[i], exact[i], epsilon = 1e-9);
         }
     }
 

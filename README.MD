@@ -474,11 +474,8 @@ let back = j * omega;
 assert!((back.x.as_nms() - 60.0).abs() < 1e-9);
 ```
 
-**算法用 Cholesky 而非 LU**，理由是惯量张量对称正定是**物理固有性质**：
-
-- 运算量比通用 LU 少一半，不需要选主元
-- 分解时对角元 `L_ii² ≤ 0` 就等价于非正定，**正定校验是免费的副产品**
-- 非正定（负质量分布、惯性积超限）返回 `OperationError`，不静默返回零向量
+惯量张量对称正定是物理固有性质。非正定输入（负质量分布、惯性积超限）
+返回 `OperationError`，不静默返回零向量。
 
 ### 主轴对角化
 
@@ -497,13 +494,10 @@ assert!((principal[0].as_kg_m2() + principal[1].as_kg_m2() + principal[2].as_kg_
 > 要把本体系向量转到主轴系，用 `rot.transfer()`（即 `Rᵀ`）；从主轴系转回本体系用 `rot`。
 > **这个方向搞反是姿态动力学的经典错误，而且不报错、只是结果转置了。**
 
-**用 Jacobi 旋转而非特征多项式解析解**：3×3 对称阵的根有解析公式，但近乎重根时
-判别式接近零，开方会放大舍入误差。Jacobi 对对称阵无条件收敛。
-
 退化情形（两个或三个主惯量相等）时主轴不唯一，返回任意一组正交基，不报错——
 物理上确实有无穷多解。
 
-### 平行轴定理与 FFI 符号约定
+### 平行轴定理
 
 ```rust
 // J' = J_cm + m·(|d|²·I − d⊗d)
@@ -518,21 +512,22 @@ let shifted = j.parallel_axis(Mass::from_kg(100.0), offset);
 assert!((shifted.get(2, 2).unwrap().as_kg_m2() - 270.0).abs() < 1e-9);
 ```
 
-**符号约定是 FFI 对接的硬约束。** 张量定义 `J_ij = -∫xᵢxⱼ dm` 意味着非对角元
-与工程裸值（`+Ixy` 约定）**反号**。aods 的 `mass_sim_para.J_kgmm2[9]` 属工程裸值口径，
-直接传给 `new` 会让惯性积符号全反——不报错，只是算错。
+### 惯性积的符号约定
 
-所以提供了把符号约定收敛到一处的入口：
+张量定义 `J_ij = -∫xᵢxⱼ dm` 意味着非对角元与多数工程资料给出的
+`+Ixy` 约定**反号**。用手册或 CAD 导出的
+`[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]` 裸值直接传给 `new`，会让惯性积符号全反——
+不报错，只是算错。
+
+`from_engineering_array` 把这层转换收敛到一处：
 
 ```rust
 // 工程裸值 [Ixx, Iyy, Izz, Ixy, Ixz, Iyz] → 内部自动取负非对角元
 let j = InertiaTensor::from_engineering_array([120.0, 130.0, 45.0, 8.0, 0.0, 0.0]);
 
-// 回写 FFI
+// 反向导出，与输入同口径
 let raw: [f64; 6] = j.to_engineering_array();
 ```
-
-**不要在每个调用点自己记「这里要取负」**——一定会有人漏掉。
 
 ### 陀螺力矩与欧拉方程
 
@@ -620,7 +615,7 @@ let u = m.potential_energy(&b);
 - `(t1 - t2).as_celsius()` 返回 `-253.15` 这类荒谬值
 - `G * T` 与 `G * ΔT` 量纲**都成立**（`W/K × K = W`），但数值差几十倍，**量纲检查无能为力**
 
-因此 `Temperature` 与 `TemperatureDifference` 独立成型，且刻意没有这些运算：
+因此 `Temperature` 与 `TemperatureDifference` 独立成型，以下运算不允许：
 
 | 运算 | 是否允许 | 理由 |
 |---|---|---|
@@ -1050,7 +1045,7 @@ let quotient = q1 / q2;
 | `InertiaTensor` 由质量分布积分生成 | 从离散质点表 `Σ mᵢ(r²I − rrᵀ)` 直接构造 |
 | `ThermalNetwork` 热网络容器 | 见下 |
 
-**`ThermalNetwork` 计划范围**（刻意收窄）：
+**`ThermalNetwork` 计划范围**：
 
 ```text
 add_node(capacity, temperature)     加节点

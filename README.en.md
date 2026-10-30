@@ -489,14 +489,9 @@ let back = j * omega;
 assert!((back.x.as_nms() - 60.0).abs() < 1e-9);
 ```
 
-**Cholesky, not LU**, because symmetric positive-definiteness is a *physical* property of an
-inertia tensor:
-
-- half the operations of general LU, no pivoting needed
-- during decomposition `L_ii² ≤ 0` is exactly the non-PD condition, so **the
-  positive-definiteness check comes free**
-- non-PD input (negative mass distribution, products of inertia out of range) returns
-  `OperationError` rather than silently returning a zero vector
+Symmetric positive-definiteness is a physical property of an inertia tensor. Non-PD input
+(negative mass distribution, products of inertia out of range) returns `OperationError`
+rather than silently returning a zero vector.
 
 ### Principal-axis diagonalization
 
@@ -517,15 +512,11 @@ Satisfies `diag(J1,J2,J3) = Rᵀ · J · R`.
 > **Getting this backwards is a classic attitude-dynamics bug, and it does not error —
 > the result is just transposed.**
 
-**Jacobi sweeps rather than the closed-form cubic roots**: the analytic roots are unstable
-for nearly-degenerate eigenvalues, where a near-zero discriminant amplifies rounding error.
-Jacobi converges unconditionally for symmetric matrices.
-
 Degenerate cases (two or three equal principal inertias) leave the axes non-unique; an
 arbitrary orthonormal basis is returned rather than an error, because infinitely many
 solutions genuinely exist.
 
-### Parallel-axis theorem and the FFI sign convention
+### Parallel-axis theorem
 
 ```rust
 // J' = J_cm + m·(|d|²·I − d⊗d)
@@ -540,22 +531,22 @@ let shifted = j.parallel_axis(Mass::from_kg(100.0), offset);
 assert!((shifted.get(2, 2).unwrap().as_kg_m2() - 270.0).abs() < 1e-9);
 ```
 
-**The sign convention is a hard constraint at the FFI boundary.** The tensor definition
-`J_ij = -∫xᵢxⱼ dm` means off-diagonal entries have the **opposite sign** to engineering raw
-values (the `+Ixy` convention). aods' `mass_sim_para.J_kgmm2[9]` follows the engineering
-convention; passing it straight to `new` flips every product of inertia — silently.
+### Product-of-inertia sign convention
 
-So there is one entry point that owns the convention:
+The tensor definition `J_ij = -∫xᵢxⱼ dm` means off-diagonal entries have the
+**opposite sign** to the `+Ixy` convention used by most engineering references.
+Passing a raw `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]` array from a handbook or a CAD export
+straight to `new` flips every product of inertia — silently.
+
+`from_engineering_array` owns that conversion:
 
 ```rust
 // engineering raw [Ixx, Iyy, Izz, Ixy, Ixz, Iyz] → off-diagonals negated internally
 let j = InertiaTensor::from_engineering_array([120.0, 130.0, 45.0, 8.0, 0.0, 0.0]);
 
-// write back to FFI
+// export back in the same convention
 let raw: [f64; 6] = j.to_engineering_array();
 ```
-
-**Do not re-derive "negate here" at each call site** — someone will forget.
 
 ### Gyroscopic torque and Euler's equation
 
@@ -647,8 +638,7 @@ Collapsing them into one type has two consequences:
 - `G * T` and `G * ΔT` both typecheck (`W/K × K = W`) but differ by tens of times, with
   **dimensional analysis unable to tell them apart**
 
-So `Temperature` and `TemperatureDifference` are separate, and these operations are
-deliberately absent:
+So `Temperature` and `TemperatureDifference` are separate. These operations are disallowed:
 
 | Operation | Allowed | Why |
 |---|---|---|
@@ -1091,7 +1081,7 @@ which is exactly why it keeps its plain-numeric scope.
 iteration plus convergence criteria). `Matrix::solve` now unblocks *steady-state* solving,
 but the framework is out of scope.
 
-**Planned `ThermalNetwork` scope** (deliberately narrow):
+**Planned `ThermalNetwork` scope**:
 
 ```text
 add_node(capacity, temperature)     add a node

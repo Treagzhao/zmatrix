@@ -1,5 +1,5 @@
 use crate::dense::Matrix;
-use crate::physics::basic::vector::angular::{RotationSeq, TAG_X, TAG_Y, TAG_Z};
+use crate::physics::basic::vector::angular::RotationSeq;
 use crate::physics::basic::{Angular, Coef, Vector3, VectorQuantity};
 use crate::spatial_geometry::quaternion::Quaternion;
 use crate::utils::float::sgn;
@@ -514,40 +514,37 @@ impl CosMatrix {
         Matrix::new(data)
     }
 
-    // 将方向余弦矩阵转换为欧拉角，根据指定的旋转顺序
+    /// 按给定旋转顺序把方向余弦矩阵分解为欧拉角。
+    ///
+    /// 返回值的 `x` / `y` / `z` 分量是**绕对应轴的转角**，与 `seq` 的写入顺序无关。
+    /// 这一点与 [`Vector3::<Angular>::to_cos_matrix`] 不同：那个函数按**步骤顺序**
+    /// 取角度（`.x` 是第一步的转角）。两者只在序列以 X 开头时等价，
+    /// 做往返验证时需要按 `seq` 重排角度。
+    ///
+    /// # Panics
+    ///
+    /// `seq` 不是恰好三个轴时 panic（`RotationSeq::value()` 返回 `Err`）。
+    /// 三个轴有重复时也 panic —— 例如 `X-X-X` 不是合法的欧拉序列，
+    /// 雅可比矩阵退化，没有唯一的分解。
+    ///
+    /// 这两种输入在构造阶段就能避免：`x()` / `y()` / `z()` 各返回 `Result`，
+    /// 第三次之后的调用会返回 `Err`。本函数不做二次校验。
     pub fn to_euler(&self, seq: &RotationSeq) -> Vector3<Angular> {
         // 获取旋转顺序的编码值
         let seq_tag = seq.value().unwrap();
 
-        // 解析旋转顺序的三个轴
-        let axis1 = (seq_tag >> 4) & 0x3;
-        let axis2 = (seq_tag >> 2) & 0x3;
-        let axis3 = seq_tag & 0x3;
-
-        // 将轴标签转换为1/2/3
-        let i = match axis1 {
-            TAG_X => 1,
-            TAG_Y => 2,
-            TAG_Z => 3,
-            _ => panic!("Invalid axis1 tag: {}", axis1),
-        };
-
-        let j = match axis2 {
-            TAG_X => 1,
-            TAG_Y => 2,
-            TAG_Z => 3,
-            _ => panic!("Invalid axis2 tag: {}", axis2),
-        };
-
-        let k = match axis3 {
-            TAG_X => 1,
-            TAG_Y => 2,
-            TAG_Z => 3,
-            _ => panic!("Invalid axis3 tag: {}", axis3),
-        };
+        // 解析旋转顺序的三个轴。
+        //
+        // tag 的每个 2 bit 段由 `RotationSeq::set_tag` 写入，只可能是
+        // `TAG_X`/`TAG_Y`/`TAG_Z`（1/2/3），所以这里的取值本身就已经是
+        // 需要的 1/2/3 编码，不需要再逐位 match。非法的 0 或重复轴
+        // 由下面 `ijk` 的兜底分支统一处理。
+        let i = ((seq_tag >> 4) & 0x3) as u32;
+        let j = ((seq_tag >> 2) & 0x3) as u32;
+        let k = (seq_tag & 0x3) as u32;
 
         // 组合成三位数字编码，如 ZYX → 321
-        let ijk = (i * 100 + j * 10 + k) as u32;
+        let ijk = i * 100 + j * 10 + k;
 
         // 全程 f64。
         //
@@ -1598,13 +1595,41 @@ mod tests {
                 over,
                 got
             );
-            // 越过万向锁时应钳制到 ±π/2
-            assert!(
-                (got[1].abs() - std::f64::consts::FRAC_PI_2).abs() < 1e-9,
-                "中间角应钳制到 ±π/2，实际 {}",
-                got[1]
-            );
+            // 越过万向锁时应钳制到 ±π/2。
+            // 先把值取出来再断言：把 `got[1]` 直接写进 assert 的消息参数，
+            // 那个索引表达式只在断言失败时求值，永远不计入覆盖。
+            let mid = got[1];
+            let mid_err = (mid.abs() - std::f64::consts::FRAC_PI_2).abs();
+            assert!(mid_err < 1e-9, "中间角应钳制到 ±π/2，实际 {}", mid);
         }
+    }
+
+    /// `to_euler` 对非法序列 panic，而不是返回错误结果。
+    ///
+    /// 函数签名返回 `Vector3<Angular>` 而非 `Result`，所以无法传回错误。
+    /// 这些 panic 是既有行为；本测试把「哪种输入会 panic」钉住，
+    /// 免得以后有人以为它会对任意 `RotationSeq` 都有定义。
+    #[test]
+    #[should_panic(expected = "Unsupported rotation sequence")]
+    fn test_to_euler_panics_on_repeated_axis() {
+        let m = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        // X-X-X：三个轴都合法，但重复序列的分解不唯一
+        let mut seq = crate::physics::basic::vector::angular::RotationSeq::default();
+        seq.x().unwrap();
+        seq.x().unwrap();
+        seq.x().unwrap();
+        let _ = CosMatrix::new(m).to_euler(&seq);
+    }
+
+    /// `to_euler` 对轴数不足的序列 panic。
+    #[test]
+    #[should_panic]
+    fn test_to_euler_panics_on_incomplete_sequence() {
+        let m = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        let mut seq = crate::physics::basic::vector::angular::RotationSeq::default();
+        seq.x().unwrap();
+        seq.y().unwrap(); // 只有两个轴
+        let _ = CosMatrix::new(m).to_euler(&seq);
     }
 
     /// `to_pry` / `to_rpy` 与 `to_euler` 对应转序必须完全一致。

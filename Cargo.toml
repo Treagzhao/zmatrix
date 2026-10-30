@@ -1,7 +1,8 @@
 [package]
 name = "zmatrix"
-version = "0.4.7"
-edition = "2021"
+version = "0.4.8"
+edition = "2024"
+rust-version = "1.85"
 authors = ["Treagzhao"]
 license = "MIT"
 description = "Compile-time dimensional analysis & physics-aware linear algebra for aerospace and robotics"

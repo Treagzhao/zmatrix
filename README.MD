@@ -1090,6 +1090,9 @@ zmatrix = "0.4"
 chrono = "0.4"
 ```
 
+> 需要 **Rust 1.85 或更高**（本 crate 使用 2024 edition，`Cargo.toml` 中已声明
+> `rust-version = "1.85"`）。
+>
 > 时间运算使用 `chrono::TimeDelta`，因此需要将 `chrono` 一并加入依赖。
 > 也可以只用 `time_delta_from_secs_f64` / `time_delta_to_secs_f64` 两个辅助函数，
 > 无需直接 `use chrono`。

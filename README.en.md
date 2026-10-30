@@ -1132,6 +1132,9 @@ zmatrix = "0.4"
 chrono = "0.4"
 ```
 
+> Requires **Rust 1.85 or newer** — this crate uses the 2024 edition, declared via
+> `rust-version = "1.85"` in `Cargo.toml`.
+>
 > Time arithmetic uses `chrono::TimeDelta`, so `chrono` must be in scope.
 > The helpers `time_delta_from_secs_f64` / `time_delta_to_secs_f64` let you avoid
 > importing `chrono` directly.

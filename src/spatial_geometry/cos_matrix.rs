@@ -475,7 +475,13 @@ impl CosMatrix {
             + self.data[8] * other.data[8];
         CosMatrix { data }
     }
-    // 将余弦阵转换到欧拉角，xzy 转序
+    // 将余弦阵转换到欧拉角，YXZ 转序
+    //
+    // 对应 Pitch(Y)-Roll(X)-Yaw(Z)。返回值按轴序：`.x` 是绕 X 的角、
+    // `.y` 绕 Y、`.z` 绕 Z —— 与 `to_euler(YXZ)` 完全一致（有测试钉住）。
+    //
+    // 注意：这里的「YXZ」是轴的先后顺序，与 `to_cos_matrix` 的「步骤序」
+    // 角度分配不同，两者往返时需要重排角度。
     pub fn to_pry(&self) -> Vector3<Angular> {
         let data = self.to_array();
         let y = Angular::atan2(data[2][0], data[2][2]);
@@ -518,7 +524,7 @@ impl CosMatrix {
         let axis2 = (seq_tag >> 2) & 0x3;
         let axis3 = seq_tag & 0x3;
 
-        // 将轴标签转换为1/2/3，与dcm2angle函数的编码一致
+        // 将轴标签转换为1/2/3
         let i = match axis1 {
             TAG_X => 1,
             TAG_Y => 2,
@@ -540,51 +546,48 @@ impl CosMatrix {
             _ => panic!("Invalid axis3 tag: {}", axis3),
         };
 
-        // 组合成dcm2angle函数使用的9位数字编码
+        // 组合成三位数字编码，如 ZYX → 321
         let ijk = (i * 100 + j * 10 + k) as u32;
 
-        // 获取方向余弦矩阵的数组表示
-        let data = self.to_array();
+        // 全程 f64。
+        //
+        // 历史注意：本函数曾在内部转成 f32 再转回 f64 —— 那是为了匹配已删除的
+        // `dcm2angle` 的参数类型。该中转会让中间角（asin 入参）在接近 ±1 时
+        // 被 f32 精度（约 1e-7）截断，导致中间角在趋近万向锁时退化到精确的
+        // ±π/2。实测 89.99° 的解会算成 −90.000°，偏差 1.7e-4 rad。
+        let m = self.to_array();
 
-        // 转换为f32类型，与dcm2angle函数的参数类型匹配
-        let pa: [[f32; 3]; 3] = [
-            [data[0][0] as f32, data[0][1] as f32, data[0][2] as f32],
-            [data[1][0] as f32, data[1][1] as f32, data[1][2] as f32],
-            [data[2][0] as f32, data[2][1] as f32, data[2][2] as f32],
-        ];
-
-        // 使用dcm2angle函数的数学公式计算欧拉角
         let mut euler: [f64; 3] = [0.0; 3];
         match ijk {
             321 => {
-                euler[0] = f64::atan2(pa[1][2] as f64, pa[2][2] as f64);
-                euler[1] = f64::asin(0.0 - pa[0][2] as f64);
-                euler[2] = f64::atan2(pa[0][1] as f64, pa[0][0] as f64);
+                euler[0] = f64::atan2(m[1][2], m[2][2]);
+                euler[1] = safe_asin(0.0 - m[0][2]);
+                euler[2] = f64::atan2(m[0][1], m[0][0]);
             }
             312 => {
-                euler[0] = f64::asin(0.0 + pa[1][2] as f64);
-                euler[1] = f64::atan2(0.0 - pa[0][2] as f64, pa[2][2] as f64);
-                euler[2] = f64::atan2(0.0 - pa[1][0] as f64, pa[1][1] as f64);
+                euler[0] = safe_asin(0.0 + m[1][2]);
+                euler[1] = f64::atan2(0.0 - m[0][2], m[2][2]);
+                euler[2] = f64::atan2(0.0 - m[1][0], m[1][1]);
             }
             123 => {
-                euler[0] = f64::atan2(0.0 - pa[2][1] as f64, pa[2][2] as f64);
-                euler[1] = f64::asin(pa[2][0] as f64);
-                euler[2] = f64::atan2(0.0 - pa[1][0] as f64, pa[0][0] as f64);
+                euler[0] = f64::atan2(0.0 - m[2][1], m[2][2]);
+                euler[1] = safe_asin(m[2][0]);
+                euler[2] = f64::atan2(0.0 - m[1][0], m[0][0]);
             }
             132 => {
-                euler[0] = f64::atan2(pa[1][2] as f64, pa[1][1] as f64);
-                euler[1] = f64::atan2(pa[2][0] as f64, pa[0][0] as f64);
-                euler[2] = f64::asin(0.0 - pa[1][0] as f64);
+                euler[0] = f64::atan2(m[1][2], m[1][1]);
+                euler[1] = f64::atan2(m[2][0], m[0][0]);
+                euler[2] = safe_asin(0.0 - m[1][0]);
             }
             213 => {
-                euler[0] = f64::asin(0.0 - pa[2][1] as f64);
-                euler[1] = f64::atan2(pa[2][0] as f64, pa[2][2] as f64);
-                euler[2] = f64::atan2(pa[0][1] as f64, pa[1][1] as f64);
+                euler[0] = safe_asin(0.0 - m[2][1]);
+                euler[1] = f64::atan2(m[2][0], m[2][2]);
+                euler[2] = f64::atan2(m[0][1], m[1][1]);
             }
             231 => {
-                euler[0] = f64::atan2(0.0 - pa[2][1] as f64, pa[1][1] as f64);
-                euler[1] = f64::atan2(0.0 - pa[0][2] as f64, pa[0][0] as f64);
-                euler[2] = f64::asin(pa[0][1] as f64);
+                euler[0] = f64::atan2(0.0 - m[2][1], m[1][1]);
+                euler[1] = f64::atan2(0.0 - m[0][2], m[0][0]);
+                euler[2] = safe_asin(m[0][1]);
             }
             _ => panic!("Unsupported rotation sequence: {}", ijk),
         };
@@ -595,6 +598,24 @@ impl CosMatrix {
             Angular::from_rad(euler[1]),
             Angular::from_rad(euler[2]),
         )
+    }
+}
+
+/// `asin` 的安全版本：入参先钳制到 `[-1, 1]`。
+///
+/// 合法 DCM 的元素恒在 `[-1, 1]` 内，但连续矩阵乘法会引入舍入漂移
+/// （实测 1000 次累乘后可能出现 `1.00000000000005`）。直接传给 `asin`
+/// 会得到 NaN，且这个 NaN 会一路污染到姿态输出。
+///
+/// 超出范围的部分按边界值处理：`|x| > 1` 在几何上等价于「已经越过万向锁」，
+/// 返回 `±π/2` 是唯一合理答案（这也是 `to_pry` / `to_rpy` 原本就有的处理）。
+fn safe_asin(x: f64) -> f64 {
+    if x > 1.0 {
+        std::f64::consts::FRAC_PI_2
+    } else if x < -1.0 {
+        -std::f64::consts::FRAC_PI_2
+    } else {
+        x.asin()
     }
 }
 
@@ -1420,5 +1441,192 @@ mod tests {
         }
 
         println!("\n=== 所有to_euler测试通过！ ===");
+    }
+
+    // ===== to_euler 精度与健壮性回归 =====
+
+    fn seq_of(s: &str) -> crate::physics::basic::vector::angular::RotationSeq {
+        use crate::physics::basic::vector::angular::RotationSeq;
+        let mut q = RotationSeq::default();
+        for ch in s.chars() {
+            match ch {
+                'X' => q.x().unwrap(),
+                'Y' => q.y().unwrap(),
+                _ => q.z().unwrap(),
+            };
+        }
+        q
+    }
+
+    /// 用库自带的正向函数构造 DCM，再反解，验证往返精度。
+    ///
+    /// # 两个方向的角度约定不同（易踩）
+    ///
+    /// - `to_cos_matrix`：**步骤序**。返回的 `Angular.x` 是「第 1 步绕该步轴的角」，
+    ///   `.y` 是第 2 步，`.z` 是第 3 步。ZYX 时 `.x` 就是绕 Z 的角。
+    /// - `to_euler`：**轴序**。返回的 `.x` 恒为绕 X 轴的角，与序列位置无关。
+    ///
+    /// 所以往返时必须把轴键角按 `seq` 重排成步骤序喂给 `to_cos_matrix`。
+    /// 序列以 X 开头时两者恰好相同，其余序列不等价——这也是本测试用
+    /// 重排而非直接用同一组角的原因。
+    fn round_trip_angles(seq_name: &str, per_axis: [f64; 3]) -> [f64; 3] {
+        use crate::physics::basic::vector::angular::RotationHand;
+        use crate::physics::basic::{Angular, Vector3};
+
+        let step: [f64; 3] = {
+            let mut s = [0.0_f64; 3];
+            for (t, ch) in seq_name.chars().enumerate() {
+                let idx = match ch {
+                    'X' => 0,
+                    'Y' => 1,
+                    _ => 2,
+                };
+                s[t] = per_axis[idx];
+            }
+            s
+        };
+        let ang = Vector3::new(
+            Angular::from_rad(step[0]),
+            Angular::from_rad(step[1]),
+            Angular::from_rad(step[2]),
+        );
+        let m = ang
+            .to_cos_matrix(seq_of(seq_name), RotationHand::Left)
+            .unwrap();
+        let e = m.to_euler(&seq_of(seq_name));
+        [e.x.as_rad(), e.y.as_rad(), e.z.as_rad()]
+    }
+
+    /// 六转序在非退化角下必须精确往返。
+    #[test]
+    fn test_to_euler_round_trip_all_sequences() {
+        let per_axis: [f64; 3] = [
+            10.0_f64.to_radians(),
+            (-35.0_f64).to_radians(),
+            20.0_f64.to_radians(),
+        ];
+        for name in ["ZYX", "ZXY", "XYZ", "XZY", "YXZ", "YZX"] {
+            let got = round_trip_angles(name, per_axis);
+            for i in 0..3 {
+                assert_relative_eq!(got[i], per_axis[i], epsilon = 1e-12);
+            }
+        }
+    }
+
+    /// 万向锁附近必须保持 f64 精度。
+    ///
+    /// 回归对象：`to_euler` 曾经内部转成 `f32` 再转回 `f64`（为匹配已删除的
+    /// `dcm2angle` 参数类型）。f32 只有约 7 位十进制精度，当中间角趋近 90° 时
+    /// `asin` 入参是 `1 − ε`，ε 小于 f32 epsilon 就被舍入成 1，导致解退化到
+    /// 精确的 ±π/2。实测 89.99° 的误差曾达 1.75e-4 rad（约 0.01°）。
+    #[test]
+    fn test_to_euler_precision_near_gimbal_lock() {
+        // 中间轴（第二个轴）是万向锁敏感轴
+        let middle_of = |name: &str| -> usize {
+            match name.chars().nth(1).unwrap() {
+                'X' => 0,
+                'Y' => 1,
+                _ => 2,
+            }
+        };
+
+        for mid_deg in [30.0_f64, 85.0, 89.9, 89.99] {
+            for name in ["ZYX", "ZXY", "XYZ", "XZY", "YXZ", "YZX"] {
+                let mi = middle_of(name);
+                let mut per_axis: [f64; 3] = [
+                    10.0_f64.to_radians(),
+                    (-30.0_f64).to_radians(),
+                    20.0_f64.to_radians(),
+                ];
+                per_axis[mi] = (-mid_deg).to_radians();
+
+                let got = round_trip_angles(name, per_axis);
+                let err = (0..3)
+                    .map(|i| (got[i] - per_axis[i]).abs())
+                    .fold(0.0_f64, f64::max);
+                assert!(
+                    err < 1e-10,
+                    "{} 中间角 {:.2}° 误差 {:.3e} 过大，解={:?}，期望={:?}",
+                    name,
+                    mid_deg,
+                    err,
+                    got,
+                    per_axis
+                );
+            }
+        }
+    }
+
+    /// `safe_asin` 双向钳制都要覆盖。
+    #[test]
+    fn test_safe_asin_clamps_both_directions() {
+        let half_pi = std::f64::consts::FRAC_PI_2;
+        // 正常区间原样返回
+        assert_relative_eq!(safe_asin(0.0), 0.0, epsilon = 1e-15);
+        assert_relative_eq!(safe_asin(1.0), half_pi, epsilon = 1e-15);
+        assert_relative_eq!(safe_asin(-1.0), -half_pi, epsilon = 1e-15);
+        // 正向超界 → +π/2
+        assert_relative_eq!(safe_asin(1.0 + 1e-9), half_pi, epsilon = 1e-15);
+        assert_relative_eq!(safe_asin(5.0), half_pi, epsilon = 1e-15);
+        // 负向超界 → -π/2
+        assert_relative_eq!(safe_asin(-1.0 - 1e-9), -half_pi, epsilon = 1e-15);
+        assert_relative_eq!(safe_asin(-5.0), -half_pi, epsilon = 1e-15);
+        // NaN 原样传播（不吞掉）
+        assert!(safe_asin(f64::NAN).is_nan());
+    }
+
+    /// `asin` 入参略超 1 时不能返回 NaN。
+    ///
+    /// 合法 DCM 元素恒在 `[-1, 1]`，但连续矩阵乘法会引入舍入漂移
+    /// （实测 1000 次累乘后可出现 `1.00000000000005`）。原先 `to_euler`
+    /// 直接调用 `asin`，此时返回 NaN 并污染整个姿态输出；
+    /// `to_pry` / `to_rpy` 本来就有守卫，两者行为不一致。
+    #[test]
+    fn test_to_euler_no_nan_on_out_of_range_input() {
+        for over in [1e-12_f64, 1e-9, 1e-7, 1e-4] {
+            // 构造让 321 分支 asin 入参为 -(1+over) 的矩阵
+            let m = [
+                [1.0, 0.0, 1.0 + over],
+                [0.0, 1.0, 0.0],
+                [1.0, 0.0, 1.0],
+            ];
+            let e = CosMatrix::new(m).to_euler(&seq_of("ZYX"));
+            let got = [e.x.as_rad(), e.y.as_rad(), e.z.as_rad()];
+            assert!(
+                got.iter().all(|v| v.is_finite()),
+                "超出 {:.0e} 时出现非有限值: {:?}",
+                over,
+                got
+            );
+            // 越过万向锁时应钳制到 ±π/2
+            assert!(
+                (got[1].abs() - std::f64::consts::FRAC_PI_2).abs() < 1e-9,
+                "中间角应钳制到 ±π/2，实际 {}",
+                got[1]
+            );
+        }
+    }
+
+    /// `to_pry` / `to_rpy` 与 `to_euler` 对应转序必须完全一致。
+    ///
+    /// 实测结论：`to_rpy` ≡ `to_euler(XYZ)`，`to_pry` ≡ `to_euler(YXZ)`。
+    /// 注意 `to_pry` 原注释写的是「xzy」，与实现不符——
+    /// YXZ 才对应 Pitch(Y)-Roll(X)-Yaw(Z) 这个名字。本测试钉住实际行为。
+    #[test]
+    fn test_pry_rpy_agree_with_to_euler() {
+        let m = [[0.36_f64, 0.48, -0.8], [-0.8, 0.6, 0.0], [0.48, 0.64, 0.6]];
+        let c = CosMatrix::new(m);
+
+        let rpy = c.to_rpy();
+        let exyz = c.to_euler(&seq_of("XYZ"));
+        assert_relative_eq!(rpy.x.as_rad(), exyz.x.as_rad(), epsilon = 1e-12);
+        assert_relative_eq!(rpy.y.as_rad(), exyz.y.as_rad(), epsilon = 1e-12);
+        assert_relative_eq!(rpy.z.as_rad(), exyz.z.as_rad(), epsilon = 1e-12);
+
+        let pry = c.to_pry();
+        let eyxz = c.to_euler(&seq_of("YXZ"));
+        assert_relative_eq!(pry.x.as_rad(), eyxz.x.as_rad(), epsilon = 1e-12);
+        assert_relative_eq!(pry.y.as_rad(), eyxz.y.as_rad(), epsilon = 1e-12);
+        assert_relative_eq!(pry.z.as_rad(), eyxz.z.as_rad(), epsilon = 1e-12);
     }
 }

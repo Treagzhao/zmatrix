@@ -26,7 +26,31 @@ impl Default for Quaternion {
 }
 
 impl Quaternion {
-    //归一化，生成单位四元数
+    /// 归一化，并做两项姿态正则化。
+    ///
+    /// 除了 `q/|q|` 之外还做两件事，都是为「表示一个姿态」服务的：
+    ///
+    /// 1. **半球规范**：`q0 < 0` 时全分量取反，使结果恒满足 `q0 >= 0`
+    /// 2. **零值回落**：`|q|` 小于阈值时返回单位四元数 `(1, 0, 0, 0)`
+    ///
+    /// # 为什么这两项对姿态表示是合理的
+    ///
+    /// 四元数是姿态的双覆盖：`q` 与 `-q` 表示**同一个**旋转。取 `q0 >= 0`
+    /// 那一半就消除了这种二义性，比较两个四元数是否等价时不必再考虑符号。
+    /// 零四元数不对应任何旋转，回落单位四元数给了一个可用的默认值。
+    ///
+    /// # ⚠️ 作为 ODE 积分状态时不能用它
+    ///
+    /// 姿态动力学积分的是 `q̇ = ½·Ξ(q)·ω`，需要 `q(t)` **连续可微**。
+    /// 上面两项都会引入真实的不连续：
+    ///
+    /// - `q(t)` 穿过 `q0 = 0` 时，半球规范把整条轨迹翻到另一侧。
+    ///   实测：`q = (cos(θ/2), sin(θ/2), 0, 0)` 在 `θ` 略过 `π` 时，
+    ///   矢量部分的 `q1` 从 `+0.999` 跳到 `-0.999`，`q0` 的导数也反号
+    /// - 数值发散到接近零时突然回落到单位四元数，等于凭空重置状态
+    ///
+    /// 这两种情况下积分器看到的是虚假的跳变，误差会持续累积。
+    /// 积分过程中做归一化请用 [`normalize_direct`](Self::normalize_direct)。
     pub fn normalize(&self) -> Self {
         let mut tmp_norm = f64::sqrt(
             self.q0 * self.q0 + self.q1 * self.q1 + self.q2 * self.q2 + self.q3 * self.q3,
@@ -47,6 +71,57 @@ impl Quaternion {
             result.q3 = 0.0;
         }
         result
+    }
+
+    /// 纯径向归一化：只做 `q/|q|`，不改符号、不做零值回落。
+    ///
+    /// 与 [`normalize`](Self::normalize) 的区别只有这两点：
+    ///
+    /// | | `normalize` | `normalize_direct` |
+    /// |---|---|---|
+    /// | `q0 < 0` | 全分量取反 | **保持原符号** |
+    /// | `\|q\| ≈ 0` | 返回单位四元数 | **返回 NaN** |
+    ///
+    /// # 用于 ODE 积分状态
+    ///
+    /// 姿态积分每步都要把 `q` 拉回单位球面（否则数值漂移会让 `|q|` 慢慢偏离 1）。
+    /// 这一步必须是**连续的**：`q` 与 `-q` 虽然表示同一个姿态，但作为微分方程的
+    /// 状态变量是两个不同的点，中途换边等于注入跳变。
+    ///
+    /// 同理，零值回落会掩盖真实的数值发散——积分炸了却得到单位四元数，
+    /// 看起来像"正常收敛到初始姿态"。返回 NaN 让它立刻暴露。
+    ///
+    /// # 用法
+    ///
+    /// ```
+    /// use zmatrix::spatial_geometry::quaternion::Quaternion;
+    ///
+    /// // q0 < 0 时保持符号：这是关键区别
+    /// let q = Quaternion::new(-0.5, 0.5, -0.5, 0.5);
+    /// assert!(q.normalize().q0 > 0.0);        // 半球规范会翻符号
+    /// assert!(q.normalize_direct().q0 < 0.0); // 径向投影不会
+    ///
+    /// // 零四元数：normalize 回落单位，normalize_direct 透传 NaN
+    /// let zero = Quaternion::new(0.0, 0.0, 0.0, 0.0);
+    /// assert_eq!(zero.normalize().q0, 1.0);
+    /// assert!(zero.normalize_direct().q0.is_nan());
+    /// ```
+    ///
+    /// # 若只想拿方向、不在乎符号
+    ///
+    /// 用 `normalize` 更省心——半球规范消除了双覆盖的二义性。
+    /// `normalize_direct` 存在的唯一理由是「需要保持轨迹连续」。
+    pub fn normalize_direct(&self) -> Self {
+        let norm = f64::sqrt(
+            self.q0 * self.q0 + self.q1 * self.q1 + self.q2 * self.q2 + self.q3 * self.q3,
+        );
+        // 不做零值判断：0/0 自然得到 NaN，比静默回落更诚实
+        Quaternion {
+            q0: self.q0 / norm,
+            q1: self.q1 / norm,
+            q2: self.q2 / norm,
+            q3: self.q3 / norm,
+        }
     }
 
     pub fn new(q0: f64, q1: f64, q2: f64, q3: f64) -> Self {
@@ -479,6 +554,99 @@ mod tests {
         };
         let norm = q.norm();
         assert_relative_eq!(norm, 5.477225575051661);
+    }
+
+    // ===== R8：normalize_direct =====
+
+    #[test]
+    fn test_normalize_direct_preserves_sign() {
+        // q0 < 0 时：normalize 翻符号，normalize_direct 不动
+        let q = Quaternion::new(-0.5, 0.5, -0.5, 0.5);
+
+        let hem = q.normalize();
+        assert!(hem.q0 > 0.0, "normalize 应把 q0 规范到非负");
+        assert!(hem.q1 < 0.0, "同时全分量取反");
+
+        let dir = q.normalize_direct();
+        assert!(dir.q0 < 0.0, "normalize_direct 必须保持原符号");
+        assert!(dir.q1 > 0.0);
+        // 数值上就是 q/|q|，|q| = 1 所以等于原值
+        assert_relative_eq!(dir.q0, -0.5, epsilon = 1e-15);
+        assert_relative_eq!(dir.q3, 0.5, epsilon = 1e-15);
+    }
+
+    #[test]
+    fn test_normalize_direct_is_pure_radial_projection() {
+        // 任意非单位四元数：normalize_direct 结果应与手算 q/|q| 逐位相同
+        let q = Quaternion::new(1.169028639793, -0.131382584572, -0.102712780237, -0.148116677999);
+        let n = q.norm();
+        let d = q.normalize_direct();
+        assert_relative_eq!(d.q0, q.q0 / n, epsilon = 1e-15);
+        assert_relative_eq!(d.q1, q.q1 / n, epsilon = 1e-15);
+        assert_relative_eq!(d.q2, q.q2 / n, epsilon = 1e-15);
+        assert_relative_eq!(d.q3, q.q3 / n, epsilon = 1e-15);
+        // 模长为 1
+        assert_relative_eq!(d.norm(), 1.0, epsilon = 1e-15);
+    }
+
+    #[test]
+    fn test_normalize_direct_zero_gives_nan() {
+        // 零四元数：normalize 回落单位，normalize_direct 透传 NaN
+        let z = Quaternion::new(0.0, 0.0, 0.0, 0.0);
+
+        let hem = z.normalize();
+        assert_eq!(hem.q0, 1.0);
+        assert_eq!(hem.q1, 0.0);
+
+        let dir = z.normalize_direct();
+        assert!(dir.q0.is_nan(), "零值应得 NaN，而不是静默回落");
+        assert!(dir.q1.is_nan());
+        assert!(dir.q2.is_nan());
+        assert!(dir.q3.is_nan());
+    }
+
+    #[test]
+    fn test_normalize_direct_continuous_across_q0_zero() {
+        // 核心场景：q(t) 连续穿过 q0 = 0。
+        //
+        // 这是 ODE 积分的状态轨迹。normalize 会在穿越点把整条轨迹翻到另一侧，
+        // 造成矢量部分的跳变；normalize_direct 必须保持连续。
+        let steps = 200;
+        let mut prev_hem: Option<Quaternion> = None;
+        let mut prev_dir: Option<Quaternion> = None;
+        let mut max_jump_hem = 0.0_f64;
+        let mut max_jump_dir = 0.0_f64;
+
+        for i in 0..=steps {
+            // θ 从 π-0.5 扫到 π+0.5，正好穿过 q0 = cos(θ/2) = 0 的点
+            let theta = std::f64::consts::PI + (i as f64 / steps as f64 - 0.5);
+            let q = Quaternion::new((theta / 2.0).cos(), (theta / 2.0).sin(), 0.0, 0.0);
+
+            let h = q.normalize();
+            let d = q.normalize_direct();
+
+            if let Some(p) = prev_hem {
+                max_jump_hem = max_jump_hem.max((h.q1 - p.q1).abs());
+            }
+            if let Some(p) = prev_dir {
+                max_jump_dir = max_jump_dir.max((d.q1 - p.q1).abs());
+            }
+            prev_hem = Some(h);
+            prev_dir = Some(d);
+        }
+
+        // 相邻步长 Δθ = 1/200 = 0.005，q1 = sin(θ/2) 的相邻差约 0.0025
+        assert!(
+            max_jump_dir < 0.01,
+            "normalize_direct 应保持连续，实测最大步进 {}",
+            max_jump_dir
+        );
+        // normalize 在穿越点跳变，幅度约 2（q1 从 +1 翻到 -1）
+        assert!(
+            max_jump_hem > 1.0,
+            "normalize 应当在 q0 过零处跳变，实测最大步进 {}",
+            max_jump_hem
+        );
     }
 
     #[test]

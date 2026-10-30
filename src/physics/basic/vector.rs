@@ -537,6 +537,71 @@ impl<T: VectorQuantity + Mul<f64, Output = T> + Default> Mul<Vector3<T>> for f64
     }
 }
 
+/// 位移向量 ÷ 位移标量 = 无量纲向量。
+///
+/// 典型用途是求单位方向：`d = r / |r|`。除法逐分量进行，调用方自己保证
+/// 分母是「同一量纲的标量」（通常就是该向量的模长）。
+///
+/// # 为什么不是泛型
+///
+/// 期望的泛型形式是 `impl<T> Div<T> for Vector3<T> where T: Div<T, Output = Coef>`，
+/// 但 `T = Coef` 时它会与已有的 `impl<T> Div<Coef> for Vector3<T>` 产生
+/// 重叠实现，Rust 拒绝。只能按类型逐个实现。
+///
+/// 目前只为 [`Distance`] 提供（求方向的最常见场景）。需要其他量纲时
+/// 照此复制一份即可，`4` 个引用变体一起加。
+///
+/// # 示例
+/// ```
+/// use zmatrix::physics::basic::{Coef, Distance, Vector3};
+///
+/// let r = Vector3::new(
+///     Distance::from_m(3.0),
+///     Distance::from_m(4.0),
+///     Distance::from_m(0.0),
+/// );
+/// let len = Distance::from_m(5.0);
+/// let d: Vector3<Coef> = r / len;      // 逐分量：(0.6, 0.8, 0.0)
+/// assert!((d.x.get_value() - 0.6).abs() < 1e-12);
+/// assert!((d.y.get_value() - 0.8).abs() < 1e-12);
+/// ```
+impl Div<Distance> for Vector3<Distance> {
+    type Output = Vector3<Coef>;
+
+    fn div(self, rhs: Distance) -> Self::Output {
+        let m = rhs.as_m();
+        Vector3::new(
+            Coef::new(self.x.as_m() / m),
+            Coef::new(self.y.as_m() / m),
+            Coef::new(self.z.as_m() / m),
+        )
+    }
+}
+
+impl<'a> Div<Distance> for &'a Vector3<Distance> {
+    type Output = Vector3<Coef>;
+
+    fn div(self, rhs: Distance) -> Self::Output {
+        (*self) / rhs
+    }
+}
+
+impl<'a> Div<&'a Distance> for Vector3<Distance> {
+    type Output = Vector3<Coef>;
+
+    fn div(self, rhs: &'a Distance) -> Self::Output {
+        self / *rhs
+    }
+}
+
+impl<'a, 'b> Div<&'b Distance> for &'a Vector3<Distance> {
+    type Output = Vector3<Coef>;
+
+    fn div(self, rhs: &'b Distance) -> Self::Output {
+        (*self) / *rhs
+    }
+}
+
 impl<T: VectorQuantity + Div<f64, Output = T> + Default> Div<Vector3<T>> for f64
 where
     f64: Div<T, Output = T>,
@@ -660,9 +725,15 @@ pub trait CrossProduct<B> {
     type Out: VectorQuantity + Default;
 }
 
-// 方向向量叉乘：无量纲 × 无量纲 = 无量纲
-impl CrossProduct<Coef> for Coef {
-    type Out = Coef;
+// 无量纲向量叉乘任意量纲向量：结果保持右侧的量纲
+//
+// 量纲上 `1 × [B] = [B]`——叉乘是双线性的，无量纲因子不改变结果的量纲。
+// 所以 `d × (J·d)`（d 是纯方向、`J·d` 是 kg·m² 量级）得到同量纲结果，
+// 用它做引力梯度力矩时不必中途把物理量拆回 f64。
+//
+// 这条泛化同时覆盖了原先单独的「无量纲 × 无量纲 = 无量纲」情形。
+impl<B: VectorQuantity + Default> CrossProduct<B> for Coef {
+    type Out = B;
 }
 
 // 力矩：τ = r × F
@@ -1751,5 +1822,98 @@ mod tests {
         assert_relative_eq!(result_negative.x.as_newton(), -10.0);
         assert_relative_eq!(result_negative.y.as_newton(), -20.0);
         assert_relative_eq!(result_negative.z.as_newton(), -30.0);
+    }
+
+    // ===== R6：Coef × 任意量纲 → 同量纲 =====
+
+    #[test]
+    fn test_coef_cross_preserves_right_dimension() {
+        // 无量纲方向 × 力矩 → 力矩（量纲随右侧）
+        let d = Vector3::new(
+            Coef::new(1.0),
+            Coef::new(0.0),
+            Coef::new(0.0),
+        );
+        let t = Vector3::new(
+            Torque::from_nm(0.0),
+            Torque::from_nm(3.0),
+            Torque::from_nm(0.0),
+        );
+        let r: Vector3<Torque> = d.cross(&t);
+        assert_relative_eq!(r.z.as_nm(), 3.0, epsilon = 1e-12);
+
+        // 无量纲 × 无量纲 → 无量纲（泛化覆盖原单独 impl）
+        let a = Vector3::new(Coef::new(1.0), Coef::new(0.0), Coef::new(0.0));
+        let b = Vector3::new(Coef::new(0.0), Coef::new(2.0), Coef::new(0.0));
+        let c: Vector3<Coef> = a.cross(&b);
+        assert_relative_eq!(c.z.get_value(), 2.0, epsilon = 1e-12);
+
+        // 无量纲 × 位移 → 位移
+        let dist = Vector3::new(
+            Distance::from_m(0.0),
+            Distance::from_m(5.0),
+            Distance::from_m(0.0),
+        );
+        let dr: Vector3<Distance> = a.cross(&dist);
+        assert_relative_eq!(dr.z.as_m(), 5.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_coef_cross_is_bilinear() {
+        // 系数应原样带出：a=(2,0,0)，b=(0,3,0) → a×b = (0,0,6)
+        let a = Vector3::new(Coef::new(2.0), Coef::new(0.0), Coef::new(0.0));
+        let b = Vector3::new(
+            Force::from_newton(0.0),
+            Force::from_newton(3.0),
+            Force::from_newton(0.0),
+        );
+        let ab: Vector3<Force> = a.cross(&b);
+        assert_relative_eq!(ab.z.as_newton(), 6.0, epsilon = 1e-12);
+        assert_relative_eq!(ab.x.as_newton(), 0.0, epsilon = 1e-12);
+        assert_relative_eq!(ab.y.as_newton(), 0.0, epsilon = 1e-12);
+
+        // 反向（Force × Coef）刻意不提供，与本库其余反序组合一致
+    }
+
+    // ===== R7：位移向量 ÷ 位移标量 → 无量纲方向 =====
+
+    #[test]
+    fn test_vector_div_same_dimension_scalar() {
+        let r = Vector3::new(
+            Distance::from_m(3.0),
+            Distance::from_m(4.0),
+            Distance::from_m(0.0),
+        );
+        let len = Distance::from_m(5.0);
+
+        let d: Vector3<Coef> = r / len;
+        assert_relative_eq!(d.x.get_value(), 0.6, epsilon = 1e-12);
+        assert_relative_eq!(d.y.get_value(), 0.8, epsilon = 1e-12);
+        assert_relative_eq!(d.z.get_value(), 0.0, epsilon = 1e-12);
+
+        // 4 个引用变体
+        let d2: Vector3<Coef> = (&r) / len;
+        let d3: Vector3<Coef> = r / (&len);
+        let d4: Vector3<Coef> = (&r) / (&len);
+        for v in [d2, d3, d4] {
+            assert_relative_eq!(v.x.get_value(), 0.6, epsilon = 1e-12);
+        }
+    }
+
+    #[test]
+    fn test_vector_div_by_own_norm_gives_unit() {
+        // r / |r| 的模长必须是 1
+        let r = Vector3::new(
+            Distance::from_m(1.5),
+            Distance::from_m(-2.5),
+            Distance::from_m(4.0),
+        );
+        let n = (r.x.as_m().powi(2) + r.y.as_m().powi(2) + r.z.as_m().powi(2)).sqrt();
+        let d: Vector3<Coef> = r / Distance::from_m(n);
+        let norm = (d.x.get_value().powi(2)
+            + d.y.get_value().powi(2)
+            + d.z.get_value().powi(2))
+        .sqrt();
+        assert_relative_eq!(norm, 1.0, epsilon = 1e-15);
     }
 }

@@ -271,10 +271,15 @@ let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 > | `AngularVelocity` | `AngularMomentum` | `Torque` | 陀螺力矩 `ω × L`（欧拉方程第二项） |
 > | `MagneticMoment` | `MagneticInduction` | `Torque` | 磁力矩 `τ = m × B` |
 > | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | 磁角速度 |
-> | `Coef` | `Coef` | `Coef` | 方向向量叉乘 |
+> | `Distance` | `Velocity` | `SpecificAngularMomentum` | 比角动量 `h = r × v` |
+> | `Coef` | 任意 `B` | `B` | 无量纲方向叉乘任意量纲，量纲随右侧 |
 >
 > **没有定义的组合会在编译期报错**，而不是悄悄给出错误类型。反序（`F × r`、`B × m`）
 > 不提供 —— 那是同一个量的相反数，写 `-tau` 更清楚。
+>
+> `Coef × B → B` 这一条是泛化的：`a × (c·v) = c·(a × v)`，无量纲因子不改变结果
+> 量纲，所以纯方向与任意物理量向量叉乘都合法。原先单独的 `Coef × Coef → Coef`
+> 已被它覆盖。
 
 ### 向量的时间算术
 
@@ -528,6 +533,45 @@ let j = InertiaTensor::from_engineering_array([120.0, 130.0, 45.0, 8.0, 0.0, 0.0
 // 反向导出，与输入同口径
 let raw: [f64; 6] = j.to_engineering_array();
 ```
+
+### 张量乘方向向量
+
+```rust
+// J · d，d 为无量纲方向
+let d = Vector3::new(Coef::new(0.6), Coef::new(0.8), Coef::new(0.0));
+let jd: Vector3<Coef> = j * d;
+```
+
+输出不携带 `kg·m²` 的量纲，属于**系数域**运算——惯性张量的数值以"系数"
+身份进入结果，由调用方在后续与真正的量纲因子相乘时补回。这样做的用处是让
+「先算方向关系、最后统一装回物理量」的流程不必中途拆回 `f64`。
+
+若希望中间保有量纲检查，用 `J * Vector3<AngularAcceleration>`（输出
+`Vector3<Torque>`）：那条路径把方向当作带 `1/s²` 的量，量纲自洽，
+但语义上要把方向读成角加速度。
+
+### 引力梯度力矩
+
+```rust
+// τ = 3(μ/R³) · (d × J·d)，d = R/|R|
+let mu = GravitationalParameter::earth();
+
+// 方向向量：位移 ÷ 同量纲标量
+let d: Vector3<Coef> = r / r_mag;
+
+let jd: Vector3<Coef> = j * d;        // 张量乘方向
+let cross: Vector3<Coef> = d.cross(&jd);   // 无量纲叉乘
+
+// 3μ/R³ 是唯一的量纲因子，末端装回
+let k = 3.0 * mu.as_m3_per_s2() / r_mag.as_m().powi(3);
+let tau = Vector3::new(
+    Torque::from_nm(k * cross.x.get_value()),
+    Torque::from_nm(k * cross.y.get_value()),
+    Torque::from_nm(k * cross.z.get_value()),
+);
+```
+
+全链只有 `k` 一处需要量纲，中间两步都在系数域。
 
 ### 陀螺力矩与欧拉方程
 
@@ -987,6 +1031,30 @@ let product = q1 * q2;
 let quotient = q1 / q2;
 ```
 
+#### 两种归一化，用途不同
+
+| | `normalize()` | `normalize_direct()` |
+|---|---|---|
+| 计算 | `q / \|q\|` | `q / \|q\|` |
+| `q0 < 0` 时 | 全分量取反，保证 `q0 >= 0` | 保持原符号 |
+| `\|q\| ≈ 0` 时 | 返回单位四元数 | 返回 NaN |
+| 适用 | 表示一个姿态、比较姿态 | **ODE 积分状态** |
+
+**姿态积分必须用 `normalize_direct`。** 积分的状态变量要求连续可微，
+而 `normalize()` 的两项正则化都会引入真实的不连续：
+
+- `q(t)` 穿过 `q0 = 0` 时，半球规范把整条轨迹翻到另一侧。
+  实测 `q = (cos(θ/2), sin(θ/2), 0, 0)` 在 `θ` 略过 `π` 时，
+  矢量部分的 `q1` 从 `+0.999` 跳到 `-0.999`
+- 数值发散到接近零时静默回落单位四元数，等于凭空重置状态
+
+```rust
+// 积分循环里每步拉回单位球面
+let mut q = Quaternion::new(1.0, 0.0, 0.0, 0.0);
+q = q.normalize_direct();
+assert!((q.norm() - 1.0).abs() < 1e-15);
+```
+
 ---
 
 ## 尚未实现的账
@@ -1071,7 +1139,8 @@ temperature(i) -> Option<Temperature>
 
 ### 其他
 
-- `CrossProduct` 实现了 5 个组合（见向量章节），新增一个只需两行 impl
+- `CrossProduct` 实现了 6 个组合（见向量章节），新增一个只需两行 impl；
+  `Coef × 任意量纲` 已泛化，不再需要逐个量纲添加
 - 物理量之间的乘除法覆盖仍不完整，遇到具体场景再补
 - 单位系统仅覆盖工程常用子集，不是完整的 SI 词头体系
 

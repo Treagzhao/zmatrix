@@ -277,11 +277,16 @@ let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 > | `AngularVelocity` | `AngularMomentum` | `Torque` | gyroscopic torque `ω × L` (Euler's second term) |
 > | `MagneticMoment` | `MagneticInduction` | `Torque` | magnetic torque `τ = m × B` |
 > | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | magnetic angular velocity |
-> | `Coef` | `Coef` | `Coef` | direction-vector cross product |
+> | `Distance` | `Velocity` | `SpecificAngularMomentum` | specific angular momentum `h = r × v` |
+> | `Coef` | any `B` | `B` | dimensionless direction crossed with anything; units follow the right side |
 >
 > **Undefined combinations fail to compile** rather than silently producing the wrong type.
 > Reversed orders (`F × r`, `B × m`) are not provided — they are the same quantity negated,
 > and writing `-tau` states the intent.
+>
+> The `Coef × B → B` row is general: `a × (c·v) = c·(a × v)`, a dimensionless factor does
+> not change the result's units, so a pure direction can be crossed with any quantity
+> vector. It also covers the former standalone `Coef × Coef → Coef`.
 
 ### Vector time arithmetic
 
@@ -489,14 +494,9 @@ let back = j * omega;
 assert!((back.x.as_nms() - 60.0).abs() < 1e-9);
 ```
 
-**Cholesky, not LU**, because symmetric positive-definiteness is a *physical* property of an
-inertia tensor:
-
-- half the operations of general LU, no pivoting needed
-- during decomposition `L_ii² ≤ 0` is exactly the non-PD condition, so **the
-  positive-definiteness check comes free**
-- non-PD input (negative mass distribution, products of inertia out of range) returns
-  `OperationError` rather than silently returning a zero vector
+Symmetric positive-definiteness is a physical property of an inertia tensor. Non-PD input
+(negative mass distribution, products of inertia out of range) returns `OperationError`
+rather than silently returning a zero vector.
 
 ### Principal-axis diagonalization
 
@@ -517,15 +517,11 @@ Satisfies `diag(J1,J2,J3) = Rᵀ · J · R`.
 > **Getting this backwards is a classic attitude-dynamics bug, and it does not error —
 > the result is just transposed.**
 
-**Jacobi sweeps rather than the closed-form cubic roots**: the analytic roots are unstable
-for nearly-degenerate eigenvalues, where a near-zero discriminant amplifies rounding error.
-Jacobi converges unconditionally for symmetric matrices.
-
 Degenerate cases (two or three equal principal inertias) leave the axes non-unique; an
 arbitrary orthonormal basis is returned rather than an error, because infinitely many
 solutions genuinely exist.
 
-### Parallel-axis theorem and the FFI sign convention
+### Parallel-axis theorem
 
 ```rust
 // J' = J_cm + m·(|d|²·I − d⊗d)
@@ -540,22 +536,62 @@ let shifted = j.parallel_axis(Mass::from_kg(100.0), offset);
 assert!((shifted.get(2, 2).unwrap().as_kg_m2() - 270.0).abs() < 1e-9);
 ```
 
-**The sign convention is a hard constraint at the FFI boundary.** The tensor definition
-`J_ij = -∫xᵢxⱼ dm` means off-diagonal entries have the **opposite sign** to engineering raw
-values (the `+Ixy` convention). aods' `mass_sim_para.J_kgmm2[9]` follows the engineering
-convention; passing it straight to `new` flips every product of inertia — silently.
+### Product-of-inertia sign convention
 
-So there is one entry point that owns the convention:
+The tensor definition `J_ij = -∫xᵢxⱼ dm` means off-diagonal entries have the
+**opposite sign** to the `+Ixy` convention used by most engineering references.
+Passing a raw `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]` array from a handbook or a CAD export
+straight to `new` flips every product of inertia — silently.
+
+`from_engineering_array` owns that conversion:
 
 ```rust
 // engineering raw [Ixx, Iyy, Izz, Ixy, Ixz, Iyz] → off-diagonals negated internally
 let j = InertiaTensor::from_engineering_array([120.0, 130.0, 45.0, 8.0, 0.0, 0.0]);
 
-// write back to FFI
+// export back in the same convention
 let raw: [f64; 6] = j.to_engineering_array();
 ```
 
-**Do not re-derive "negate here" at each call site** — someone will forget.
+### Tensor times a direction vector
+
+```rust
+// J · d, with d dimensionless
+let d = Vector3::new(Coef::new(0.6), Coef::new(0.8), Coef::new(0.0));
+let jd: Vector3<Coef> = j * d;
+```
+
+The output does not carry the `kg·m²` unit — this is a **coefficient-domain** operation:
+the tensor's numbers enter as coefficients and the caller restores the unit when
+multiplying by the real dimensional factor. That lets a "resolve directions first,
+apply units once at the end" workflow avoid dropping to `f64` midway.
+
+For intermediate dimensional checking, use `J * Vector3<AngularAcceleration>` (output
+`Vector3<Torque>`): that path treats the direction as carrying `1/s²`, which is
+dimensionally self-consistent but semantically reads the direction as angular acceleration.
+
+### Gravity-gradient torque
+
+```rust
+// τ = 3(μ/R³) · (d × J·d), d = R/|R|
+let mu = GravitationalParameter::earth();
+
+// direction vector: displacement ÷ same-dimension scalar
+let d: Vector3<Coef> = r / r_mag;
+
+let jd: Vector3<Coef> = j * d;             // tensor times direction
+let cross: Vector3<Coef> = d.cross(&jd);   // dimensionless cross product
+
+// 3μ/R³ is the only dimensional factor; restore the unit at the end
+let k = 3.0 * mu.as_m3_per_s2() / r_mag.as_m().powi(3);
+let tau = Vector3::new(
+    Torque::from_nm(k * cross.x.get_value()),
+    Torque::from_nm(k * cross.y.get_value()),
+    Torque::from_nm(k * cross.z.get_value()),
+);
+```
+
+Only `k` carries units; both intermediate steps stay in the coefficient domain.
 
 ### Gyroscopic torque and Euler's equation
 
@@ -647,8 +683,7 @@ Collapsing them into one type has two consequences:
 - `G * T` and `G * ΔT` both typecheck (`W/K × K = W`) but differ by tens of times, with
   **dimensional analysis unable to tell them apart**
 
-So `Temperature` and `TemperatureDifference` are separate, and these operations are
-deliberately absent:
+So `Temperature` and `TemperatureDifference` are separate. These operations are disallowed:
 
 | Operation | Allowed | Why |
 |---|---|---|
@@ -1027,6 +1062,32 @@ let product = q1 * q2;
 let quotient = q1 / q2;
 ```
 
+#### Two normalizations, different purposes
+
+| | `normalize()` | `normalize_direct()` |
+|---|---|---|
+| Computation | `q / \|q\|` | `q / \|q\|` |
+| When `q0 < 0` | all components negated, `q0 >= 0` guaranteed | sign preserved |
+| When `\|q\| ≈ 0` | returns identity quaternion | returns NaN |
+| Use for | representing or comparing an attitude | **ODE integration state** |
+
+**Attitude integration must use `normalize_direct`.** The integrated state has to stay
+continuous and differentiable, and both regularizations in `normalize()` inject real
+discontinuities:
+
+- when `q(t)` crosses `q0 = 0`, the hemisphere rule flips the whole trajectory to the
+  other side. Measured on `q = (cos(θ/2), sin(θ/2), 0, 0)`: as `θ` passes `π`, the
+  vector part `q1` jumps from `+0.999` to `-0.999`
+- when the numerics diverge toward zero it silently returns the identity quaternion,
+  which amounts to resetting the state out of nowhere
+
+```rust
+// pull back onto the unit sphere each step of the integration loop
+let mut q = Quaternion::new(1.0, 0.0, 0.0, 0.0);
+q = q.normalize_direct();
+assert!((q.norm() - 1.0).abs() < 1e-15);
+```
+
 ---
 
 ## Not yet implemented
@@ -1091,7 +1152,7 @@ which is exactly why it keeps its plain-numeric scope.
 iteration plus convergence criteria). `Matrix::solve` now unblocks *steady-state* solving,
 but the framework is out of scope.
 
-**Planned `ThermalNetwork` scope** (deliberately narrow):
+**Planned `ThermalNetwork` scope**:
 
 ```text
 add_node(capacity, temperature)     add a node
@@ -1117,7 +1178,8 @@ and by the time it blows up exponentially you are already reading wrong conclusi
 
 - eigenvalue solving for `N > 3` (flexible-mode analysis; only the 3×3 `diagonalize` exists)
 - sparse matrices (large-N steady-state thermal networks would exhaust memory with dense LU)
-- `CrossProduct` ships 5 combinations (see the vector section); adding one is a two-line impl
+- `CrossProduct` ships 6 combinations (see the vector section); adding one is a two-line
+  impl. `Coef × any quantity` is now general, so no per-quantity entry is needed there
 - Quantity-to-quantity operators are still incomplete; additions land when a concrete case
   needs them
 - The unit system covers a practical engineering subset, not the full SI prefix hierarchy
@@ -1132,6 +1194,9 @@ zmatrix = "0.4"
 chrono = "0.4"
 ```
 
+> Requires **Rust 1.85 or newer** — this crate uses the 2024 edition, declared via
+> `rust-version = "1.85"` in `Cargo.toml`.
+>
 > Time arithmetic uses `chrono::TimeDelta`, so `chrono` must be in scope.
 > The helpers `time_delta_from_secs_f64` / `time_delta_to_secs_f64` let you avoid
 > importing `chrono` directly.

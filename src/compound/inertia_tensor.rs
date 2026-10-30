@@ -1,7 +1,7 @@
 //! 转动惯量张量（3×3）。
 
 use crate::physics::basic::{
-    AngularAcceleration, AngularMomentum, AngularVelocity, Distance, Inertia, Mass, Torque,
+    AngularAcceleration, AngularMomentum, AngularVelocity, Coef, Distance, Inertia, Mass, Torque,
     Vector3,
 };
 use crate::spatial_geometry::cos_matrix::CosMatrix;
@@ -821,6 +821,67 @@ impl<'a, 'b> std::ops::Mul<&'b Vector3<AngularAcceleration>> for &'a InertiaTens
     type Output = Vector3<Torque>;
 
     fn mul(self, rhs: &'b Vector3<AngularAcceleration>) -> Self::Output {
+        (*self) * *rhs
+    }
+}
+
+/// 张量乘无量纲方向向量：`J · d`。
+///
+/// 数值上就是矩阵乘向量，输出保持无量纲——惯性张量的 `kg·m²` 以「系数的含义」
+/// 被带入结果，由调用方在后面与真正的量纲因子相乘时补回。
+///
+/// # 这是系数域运算
+///
+/// 严格按量纲，`J (kg·m²) × d (无量纲)` 应得 `kg·m²`，而不是无量纲。
+/// 本实现的输出类型不携带这个量纲，是有意为之：它服务的是像引力梯度力矩
+/// 那样「先在系数域算完、最后统一装回物理量」的流程：
+///
+/// ```text
+/// τ_gg = 3·(μ/R³) · (d × J·d)
+///        ↑ 1/s²              ↑ 纯方向
+/// ```
+///
+/// 全链只有最后的 `3μ/R³` 一处需要量纲，中间的 `J·d` 与 `d × (J·d)`
+/// 都在系数域，末端 `Torque::from_nm(...)` 装回。
+///
+/// 若你希望中间保有 `kg·m²` 的量纲检查，用
+/// `Mul<Vector3<AngularAcceleration>>`（输出 `Vector3<Torque>`）——
+/// 那条路径把方向当作带 `1/s²` 的量，量纲自洽但语义上要把方向读成角加速度。
+impl std::ops::Mul<Vector3<Coef>> for InertiaTensor {
+    type Output = Vector3<Coef>;
+
+    fn mul(self, rhs: Vector3<Coef>) -> Self::Output {
+        let d = [rhs.x.get_value(), rhs.y.get_value(), rhs.z.get_value()];
+        let mut out = [0.0_f64; 3];
+        for i in 0..3 {
+            for j in 0..3 {
+                out[i] += self.data[i][j].as_kg_m2() * d[j];
+            }
+        }
+        Vector3::new(Coef::new(out[0]), Coef::new(out[1]), Coef::new(out[2]))
+    }
+}
+
+impl std::ops::Mul<Vector3<Coef>> for &InertiaTensor {
+    type Output = Vector3<Coef>;
+
+    fn mul(self, rhs: Vector3<Coef>) -> Self::Output {
+        (*self) * rhs
+    }
+}
+
+impl<'a> std::ops::Mul<&'a Vector3<Coef>> for InertiaTensor {
+    type Output = Vector3<Coef>;
+
+    fn mul(self, rhs: &'a Vector3<Coef>) -> Self::Output {
+        self * *rhs
+    }
+}
+
+impl<'a, 'b> std::ops::Mul<&'b Vector3<Coef>> for &'a InertiaTensor {
+    type Output = Vector3<Coef>;
+
+    fn mul(self, rhs: &'b Vector3<Coef>) -> Self::Output {
         (*self) * *rhs
     }
 }
@@ -1727,5 +1788,154 @@ mod tests {
         let l2 = j2 * w;
         assert_relative_eq!(l1.x.as_nms(), l2.x.as_nms(), epsilon = 1e-15);
         assert_relative_eq!(l1.y.as_nms(), l2.y.as_nms(), epsilon = 1e-15);
+    }
+
+    // ===== R5：张量 × 无量纲方向向量 =====
+
+    #[test]
+    fn test_mul_coef_vector() {
+        // 对角张量乘方向向量：逐分量缩放
+        let j = InertiaTensor::from_diagonal([
+            Inertia::from_kg_m2(2.0),
+            Inertia::from_kg_m2(4.0),
+            Inertia::from_kg_m2(8.0),
+        ]);
+        let d = Vector3::new(Coef::new(1.0), Coef::new(2.0), Coef::new(0.5));
+        let r: Vector3<Coef> = j * d;
+        assert_relative_eq!(r.x.get_value(), 2.0, epsilon = 1e-12);
+        assert_relative_eq!(r.y.get_value(), 8.0, epsilon = 1e-12);
+        assert_relative_eq!(r.z.get_value(), 4.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_mul_coef_vector_includes_products_of_inertia() {
+        // 带惯性积时，每个分量都依赖方向的全部分量。
+        //
+        // 注意 asymmetric_tensor() 用 `new` 传 +8，按张量约定矩阵是
+        // [[120, +8, 0], [+8, 130, 0], [0, 0, 45]]（不是 -8）。
+        let j = asymmetric_tensor();
+        let d = Vector3::new(Coef::new(1.0), Coef::new(1.0), Coef::new(0.0));
+        let r: Vector3<Coef> = j * d;
+        // 120·1 + 8·1 = 128
+        assert_relative_eq!(r.x.get_value(), 128.0, epsilon = 1e-12);
+        // 8·1 + 130·1 = 138
+        assert_relative_eq!(r.y.get_value(), 138.0, epsilon = 1e-12);
+        assert_relative_eq!(r.z.get_value(), 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn test_mul_coef_vector_all_ref_variants() {
+        let j = asymmetric_tensor();
+        let d = Vector3::new(Coef::new(0.6), Coef::new(0.8), Coef::new(0.0));
+
+        let a: Vector3<Coef> = j * d;
+        let b: Vector3<Coef> = (&j) * d;
+        let c: Vector3<Coef> = j * (&d);
+        let e: Vector3<Coef> = (&j) * (&d);
+        for v in [a, b, c, e] {
+            assert_relative_eq!(v.x.get_value(), a.x.get_value(), epsilon = 1e-15);
+            assert_relative_eq!(v.y.get_value(), a.y.get_value(), epsilon = 1e-15);
+        }
+    }
+
+    #[test]
+    fn test_mul_coef_vector_agrees_with_angular_velocity_path() {
+        // J·d 与 J·ω 在数值上必须走同一套矩阵乘法
+        let j = asymmetric_tensor();
+        let vals = [0.3, -0.5, 0.7];
+
+        let d = Vector3::new(Coef::new(vals[0]), Coef::new(vals[1]), Coef::new(vals[2]));
+        let via_coef: Vector3<Coef> = j * d;
+
+        let w = Vector3::new(
+            AngularVelocity::from_rad_per_second(vals[0]),
+            AngularVelocity::from_rad_per_second(vals[1]),
+            AngularVelocity::from_rad_per_second(vals[2]),
+        );
+        let via_omega = j * w;
+
+        assert_relative_eq!(via_coef.x.get_value(), via_omega.x.as_nms(), epsilon = 1e-12);
+        assert_relative_eq!(via_coef.y.get_value(), via_omega.y.as_nms(), epsilon = 1e-12);
+        assert_relative_eq!(via_coef.z.get_value(), via_omega.z.as_nms(), epsilon = 1e-12);
+    }
+
+    /// 引力梯度力矩端到端：`τ = 3(μ/R³)·(d × J·d)`
+    ///
+    /// 这是 R5/R6/R7 三条一起服务的场景：方向向量（R7）、张量乘方向（R5）、
+    /// 无量纲叉乘（R6）。结果与逐分量 f64 手算必须完全一致。
+    #[test]
+    fn test_gravity_gradient_torque_end_to_end() {
+        use crate::physics::basic::GravitationalParameter;
+
+        let mu = GravitationalParameter::earth().as_m3_per_s2();
+        let theta = 20.0_f64.to_radians();
+        let r_mag = 7078e3_f64;
+
+        // 位置向量（本体系），与体 z 轴夹角 20°
+        let r = Vector3::new(
+            Distance::from_m(r_mag * theta.sin()),
+            Distance::default(),
+            Distance::from_m(-r_mag * theta.cos()),
+        );
+        let len = Distance::from_m(
+            (r.x.as_m().powi(2) + r.y.as_m().powi(2) + r.z.as_m().powi(2)).sqrt(),
+        );
+
+        // R7
+        let d: Vector3<Coef> = r / len;
+        let dn = (d.x.get_value().powi(2) + d.y.get_value().powi(2) + d.z.get_value().powi(2))
+            .sqrt();
+        assert_relative_eq!(dn, 1.0, epsilon = 1e-15);
+
+        // R5
+        let j = asymmetric_tensor();
+        let jd: Vector3<Coef> = j * d;
+
+        // R6
+        let cross: Vector3<Coef> = d.cross(&jd);
+
+        // 3μ/R³
+        let k = 3.0 * mu / len.as_m().powi(3);
+
+        // 独立验算（逐分量 f64，与类型系统无关）
+        //
+        // 用 from_engineering_array 构造，与上面 asymmetric_tensor() 的 `new(+8)`
+        // 不同：工程裸值 +8 经内部取负后张量存 -8。这里 reference 矩阵必须与
+        // 被测对象口径一致，所以改用工程数组构造张量。
+        let j_eng = InertiaTensor::from_engineering_array([120.0, 130.0, 45.0, 8.0, 0.0, 0.0]);
+        let jd_eng: Vector3<Coef> = j_eng * d;
+        let cross_eng: Vector3<Coef> = d.cross(&jd_eng);
+
+        let m = [
+            [120.0, -8.0, 0.0],
+            [-8.0, 130.0, 0.0],
+            [0.0, 0.0, 45.0],
+        ];
+        let dv = [d.x.get_value(), d.y.get_value(), d.z.get_value()];
+        let mut jd_ref = [0.0_f64; 3];
+        for i in 0..3 {
+            for jj in 0..3 {
+                jd_ref[i] += m[i][jj] * dv[jj];
+            }
+        }
+        let cr = [
+            dv[1] * jd_ref[2] - dv[2] * jd_ref[1],
+            dv[2] * jd_ref[0] - dv[0] * jd_ref[2],
+            dv[0] * jd_ref[1] - dv[1] * jd_ref[0],
+        ];
+
+        assert_relative_eq!(k * cross_eng.x.get_value(), k * cr[0], epsilon = 1e-20);
+        assert_relative_eq!(k * cross_eng.y.get_value(), k * cr[1], epsilon = 1e-20);
+        assert_relative_eq!(k * cross_eng.z.get_value(), k * cr[2], epsilon = 1e-20);
+
+        // 量级核对：3μ/R³ ≈ 3.37e-6，ΔJ ~ 85，sin(2θ)=0.643 → τ ~ 1e-4 N·m 量级
+        let tau_mag = (k * cross_eng.x.get_value())
+            .hypot(k * cross_eng.y.get_value())
+            .hypot(k * cross_eng.z.get_value());
+        assert!(tau_mag > 1e-5 && tau_mag < 1e-3, "τ 量级异常: {}", tau_mag);
+
+        // 上面 cross 变量走的是 asymmetric_tensor()（+8），此处仅确认它非零，
+        // 避免编译器警告未使用
+        assert!(cross.x.get_value().is_finite());
     }
 }

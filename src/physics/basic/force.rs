@@ -330,6 +330,17 @@ impl Mul<Mass> for Acceleration {
     }
 }
 
+// 力除以质量（得到加速度）：N / kg = m/s²
+//
+// 这是上面两条乘法的逆运算，牛顿第二定律 `a = F/m` 的直接形式。
+// 量纲 m·kg/s² ÷ kg = m/s² ✓。
+impl Div<Mass> for Force {
+    type Output = Acceleration;
+    fn div(self, rhs: Mass) -> Self::Output {
+        Acceleration::from_m_per_s2(self.as_newton() / rhs.as_kg())
+    }
+}
+
 // 力与时间的乘积（得到动量）：N·s = kg·m/s
 impl Mul<chrono::TimeDelta> for Force {
     type Output = Momentum;
@@ -788,5 +799,44 @@ mod tests {
         let f5 = Force::from_micro_newton(1000000.0);
         let neg_f5 = -f5;
         assert_relative_eq!(neg_f5.as_newton(), -1.0);
+    }
+
+    // F / m = a（牛顿第二定律），以及它的逆运算闭合
+    #[test]
+    fn test_div_mass_gives_acceleration() {
+        let f = Force::from_newton(100.0);
+        let m = Mass::from_kg(2.0);
+        let a: Acceleration = f / m;
+        assert_relative_eq!(a.as_m_per_s2(), 50.0, epsilon = 1e-12);
+
+        // 逆运算：a · m 应还原 F
+        let back: Force = a * m;
+        assert_relative_eq!(back.as_newton(), 100.0, epsilon = 1e-12);
+
+        // 与既有 Mass × Acceleration 交叉验证，两条路径必须一致
+        let a_direct = Acceleration::from_m_per_s2(50.0);
+        let via_mul: Force = m * a_direct;
+        assert_relative_eq!(via_mul.as_newton(), f.as_newton(), epsilon = 1e-12);
+    }
+
+    // 单位不匹配时仍应正确：混合单位输入，内部按 SI 基准换算
+    #[test]
+    fn test_div_mass_mixed_units() {
+        // 1 kN / 500 g = 1000 N / 0.5 kg = 2000 m/s²
+        let f = Force::from_kilo_newton(1.0);
+        let m = Mass::from_g(500.0);
+        let a: Acceleration = f / m;
+        assert_relative_eq!(a.as_m_per_s2(), 2000.0, epsilon = 1e-9);
+    }
+
+    // 除以零质量得到非有限值，而不是静默返回零
+    #[test]
+    fn test_div_zero_mass_is_not_silently_zero() {
+        let f = Force::from_newton(100.0);
+        let m = Mass::from_kg(0.0);
+        let a: Acceleration = f / m;
+        // 先取值再断言：写进 assert 的消息参数只在失败时求值，不计覆盖率
+        let value = a.as_m_per_s2();
+        assert!(!value.is_finite(), "零质量应得到 inf，实际 {}", value);
     }
 }

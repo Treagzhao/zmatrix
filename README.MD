@@ -269,13 +269,25 @@ let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 > |---|---|---|---|
 > | `Distance` | `Force` | `Torque` | 力矩 `τ = r × F` |
 > | `AngularVelocity` | `AngularMomentum` | `Torque` | 陀螺力矩 `ω × L`（欧拉方程第二项） |
+> | `AngularVelocity` | `Distance` | `Velocity` | 牵连速度 `v = ω × r` |
 > | `MagneticMoment` | `MagneticInduction` | `Torque` | 磁力矩 `τ = m × B` |
 > | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | 磁角速度 |
 > | `Distance` | `Velocity` | `SpecificAngularMomentum` | 比角动量 `h = r × v` |
 > | `Coef` | 任意 `B` | `B` | 无量纲方向叉乘任意量纲，量纲随右侧 |
 >
-> **没有定义的组合会在编译期报错**，而不是悄悄给出错误类型。反序（`F × r`、`B × m`）
-> 不提供 —— 那是同一个量的相反数，写 `-tau` 更清楚。
+> **没有定义的组合会在编译期报错**，而不是悄悄给出错误类型。反序（`F × r`、`B × m`、
+> `r × ω`）不提供 —— 那是同一个量的相反数，写 `-tau` 更清楚。
+>
+> ⚠️ **牵连速度有两种算法，用途不同。** `ω * r`（标量乘法）只把两个模相乘，
+> 给出速率；`ω × r`（叉乘）才给出方向和正确的牵连关系：
+>
+> ```text
+> ω = 2 ẑ rad/s, r = (3, 0, 4) m      ← r 有沿轴分量
+>   叉乘 ω × r   → (0, 6, 0) m/s     轴向分量不贡献速度
+>   标量 ω * |r| → 10 m/s            把 4 m 轴向距离也算进去了
+> ```
+>
+> 已知半径求速率用标量版；向量场里算牵连速度必须用叉乘。
 >
 > `Coef × B → B` 这一条是泛化的：`a × (c·v) = c·(a × v)`，无量纲因子不改变结果
 > 量纲，所以纯方向与任意物理量向量叉乘都合法。原先单独的 `Coef × Coef → Coef`
@@ -796,6 +808,29 @@ let drag = rho.drag_force(v, Coef::new(1.2), Area::from_m2(2.0));   // 58800 N
 let f_solar = Pressure::from_pa(4.56e-6) * Area::from_m2(10.0) * Coef::new(1.5);
 ```
 
+### 力转加速度：F / m
+
+```rust
+let m = Mass::from_kg(500.0);
+
+// 标量：a = F/m
+let a: Acceleration = Force::from_newton(100.0) / m;      // 0.2 m/s²
+
+// 向量：逐分量
+let f = Vector3::new(
+    Force::from_newton(10.0),
+    Force::from_newton(20.0),
+    Force::from_newton(-30.0),
+);
+let a_vec: Vector3<Acceleration> = f / m;   // (0.02, 0.04, -0.06) m/s²
+
+// 反代验证：(a·m) 应还原 F
+let back: Force = (Force::from_newton(100.0) / m) * m;
+```
+
+`a * m` 和 `m * a` 都能得到 `Force`，`F / m` 是它们的逆运算。
+除数为零时得到 `inf` 而不是静默返回零 —— 后续传播会暴露它，而不是掩盖。
+
 ### 单位换算的三个坑
 
 ```text
@@ -1139,7 +1174,7 @@ temperature(i) -> Option<Temperature>
 
 ### 其他
 
-- `CrossProduct` 实现了 6 个组合（见向量章节），新增一个只需两行 impl；
+- `CrossProduct` 实现了 7 个组合（见向量章节），新增一个只需两行 impl；
   `Coef × 任意量纲` 已泛化，不再需要逐个量纲添加
 - 物理量之间的乘除法覆盖仍不完整，遇到具体场景再补
 - 单位系统仅覆盖工程常用子集，不是完整的 SI 词头体系

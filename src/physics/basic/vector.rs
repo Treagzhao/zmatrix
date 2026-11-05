@@ -602,6 +602,43 @@ impl<'a, 'b> Div<&'b Distance> for &'a Vector3<Distance> {
     }
 }
 
+impl Div<Mass> for Vector3<Force> {
+    type Output = Vector3<Acceleration>;
+
+    fn div(self, rhs: Mass) -> Self::Output {
+        let m = rhs.as_kg();
+        Vector3::new(
+            Acceleration::from_m_per_s2(self.x.as_newton() / m),
+            Acceleration::from_m_per_s2(self.y.as_newton() / m),
+            Acceleration::from_m_per_s2(self.z.as_newton() / m),
+        )
+    }
+}
+
+impl<'a> Div<Mass> for &'a Vector3<Force> {
+    type Output = Vector3<Acceleration>;
+
+    fn div(self, rhs: Mass) -> Self::Output {
+        (*self) / rhs
+    }
+}
+
+impl<'a> Div<&'a Mass> for Vector3<Force> {
+    type Output = Vector3<Acceleration>;
+
+    fn div(self, rhs: &'a Mass) -> Self::Output {
+        self / *rhs
+    }
+}
+
+impl<'a, 'b> Div<&'b Mass> for &'a Vector3<Force> {
+    type Output = Vector3<Acceleration>;
+
+    fn div(self, rhs: &'b Mass) -> Self::Output {
+        (*self) / *rhs
+    }
+}
+
 impl<T: VectorQuantity + Div<f64, Output = T> + Default> Div<Vector3<T>> for f64
 where
     f64: Div<T, Output = T>,
@@ -767,6 +804,31 @@ impl CrossProduct<AngularVelocity> for MagneticInduction {
 // 刚体绕非主轴旋转时该项非零，是姿态动力学不能用标量描述的根本原因。
 impl CrossProduct<AngularMomentum> for AngularVelocity {
     type Out = Torque;
+}
+
+// 牵连速度：v = ω × r
+//
+// 量纲 (rad/s) × m = m/s ✓（rad 无量纲）。
+//
+// ⚠️ **与 `AngularVelocity * Distance` 不是同一件事，别混用。**
+//
+// 那个是标量乘法：`ω * r` 把两个模长相乘，结果是速率（m/s 的标量）。
+// 它只在「r 恰好处在垂直于 ω 的平面内、且只需要大小」时给出正确数值。
+// 一旦 r 有沿 ω 的分量，或者需要方向，就必须用叉乘：
+//
+// ```text
+// ω = 2 ẑ rad/s, r = (3, 0, 0) m
+//   叉乘 ω × r   → (0, 6, 0) m/s     方向对，这就是牵连速度
+//   标量 ω * |r| → 6 m/s             只有大小，没有方向
+// ω = 2 ẑ rad/s, r = (3, 0, 4) m      ← r 有轴向分量
+//   叉乘 ω × r   → (0, 6, 0) m/s     正确，轴向分量不贡献速度
+//   标量 ω * |r| → 10 m/s            错，把 4 m 的轴向距离也算进去了
+// ```
+//
+// 所以标量版本适用于「已知半径求速率」这类一维场景；向量场里的牵连速度
+// 必须走叉乘。
+impl CrossProduct<Distance> for AngularVelocity {
+    type Out = Velocity;
 }
 
 // 比角动量：h = r × v
@@ -1915,5 +1977,111 @@ mod tests {
             + d.z.get_value().powi(2))
         .sqrt();
         assert_relative_eq!(norm, 1.0, epsilon = 1e-15);
+    }
+
+    // R9：牵连速度 v = ω × r
+    #[test]
+    fn test_cross_angular_velocity_distance_is_transport_velocity() {
+        // ω = 2 ẑ rad/s，r = (3, 0, 0) m → v = (0, 6, 0) m/s
+        let w = Vector3::new(
+            AngularVelocity::default(),
+            AngularVelocity::default(),
+            AngularVelocity::from_rad_per_second(2.0),
+        );
+        let r = Vector3::new(Distance::from_m(3.0), Distance::default(), Distance::default());
+        let v: Vector3<Velocity> = w.cross(&r);
+
+        assert_relative_eq!(v.x.as_m_per_sec(), 0.0, epsilon = 1e-12);
+        assert_relative_eq!(v.y.as_m_per_sec(), 6.0, epsilon = 1e-12);
+        assert_relative_eq!(v.z.as_m_per_sec(), 0.0, epsilon = 1e-12);
+
+        // 右手定则：v 应垂直于 ω 和 r（用 f64 分量算，dot 要求两侧同类型）
+        let v_dot_r = v.x.as_m_per_sec() * r.x.as_m()
+            + v.y.as_m_per_sec() * r.y.as_m()
+            + v.z.as_m_per_sec() * r.z.as_m();
+        let v_dot_w = v.x.as_m_per_sec() * w.x.as_rad_per_second()
+            + v.y.as_m_per_sec() * w.y.as_rad_per_second()
+            + v.z.as_m_per_sec() * w.z.as_rad_per_second();
+        assert_relative_eq!(v_dot_r, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(v_dot_w, 0.0, epsilon = 1e-12);
+    }
+
+    // r 沿 ω 的分量不产生速度 —— 这正是叉乘与标量乘法 `ω * |r|` 的差别
+    #[test]
+    fn test_transport_velocity_ignores_axial_component() {
+        let w = Vector3::new(
+            AngularVelocity::default(),
+            AngularVelocity::default(),
+            AngularVelocity::from_rad_per_second(2.0),
+        );
+        // 径向 3 m + 轴向 4 m，|r| = 5 m
+        let r = Vector3::new(
+            Distance::from_m(3.0),
+            Distance::default(),
+            Distance::from_m(4.0),
+        );
+        let v: Vector3<Velocity> = w.cross(&r);
+
+        // 叉乘：只有径向分量贡献速度 → 6 m/s
+        assert_relative_eq!(v.y.as_m_per_sec(), 6.0, epsilon = 1e-12);
+
+        // 标量乘法：把 4 m 的轴向距离也算进去 → 10 m/s，错
+        let scalar_v: Velocity =
+            AngularVelocity::from_rad_per_second(2.0) * Distance::from_m(5.0);
+        assert_relative_eq!(scalar_v.as_m_per_sec(), 10.0, epsilon = 1e-12);
+
+        // 两者必须不同，否则这个测试证明不了任何东西
+        assert!(
+            (scalar_v.as_m_per_sec() - v.y.as_m_per_sec()).abs() > 3.0,
+            "标量与叉乘给出相同结果，测试无法区分二者"
+        );
+    }
+
+    // R10：Vector3<Force> / Mass → Vector3<Acceleration>
+    #[test]
+    fn test_vector_force_div_mass() {
+        let f = Vector3::new(
+            Force::from_newton(10.0),
+            Force::from_newton(20.0),
+            Force::from_newton(-30.0),
+        );
+        let m = Mass::from_kg(2.0);
+        let a: Vector3<Acceleration> = f / m;
+
+        assert_relative_eq!(a.x.as_m_per_s2(), 5.0, epsilon = 1e-12);
+        assert_relative_eq!(a.y.as_m_per_s2(), 10.0, epsilon = 1e-12);
+        assert_relative_eq!(a.z.as_m_per_s2(), -15.0, epsilon = 1e-12);
+
+        // 四种引用变体必须给出相同结果
+        let a1: Vector3<Acceleration> = f / &m;
+        let a2: Vector3<Acceleration> = (&f) / m;
+        let a3: Vector3<Acceleration> = (&f) / &m;
+        for (i, av) in [a1, a2, a3].iter().enumerate() {
+            assert_relative_eq!(av.x.as_m_per_s2(), 5.0, epsilon = 1e-12);
+            assert_relative_eq!(av.y.as_m_per_s2(), 10.0, epsilon = 1e-12);
+            assert_relative_eq!(av.z.as_m_per_s2(), -15.0, epsilon = 1e-12);
+            let _ = i;
+        }
+    }
+
+    // 向量层与标量层必须一致：逐分量除法 = 先算标量再装向量
+    #[test]
+    fn test_vector_force_div_mass_matches_scalar() {
+        let m = Mass::from_kg(4.0);
+        let f = Vector3::new(
+            Force::from_newton(8.0),
+            Force::from_newton(-12.0),
+            Force::from_newton(0.0),
+        );
+        let a: Vector3<Acceleration> = f / m;
+
+        let expect = [
+            (Force::from_newton(8.0) / m).as_m_per_s2(),
+            (Force::from_newton(-12.0) / m).as_m_per_s2(),
+            (Force::from_newton(0.0) / m).as_m_per_s2(),
+        ];
+        assert_relative_eq!(a.x.as_m_per_s2(), expect[0], epsilon = 1e-12);
+        assert_relative_eq!(a.y.as_m_per_s2(), expect[1], epsilon = 1e-12);
+        assert_relative_eq!(a.z.as_m_per_s2(), expect[2], epsilon = 1e-12);
     }
 }

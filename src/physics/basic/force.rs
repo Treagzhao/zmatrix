@@ -341,6 +341,65 @@ impl Div<Mass> for Force {
     }
 }
 
+impl<'a> Div<Mass> for &'a Force {
+    type Output = Acceleration;
+    fn div(self, rhs: Mass) -> Self::Output {
+        Acceleration::from_m_per_s2(self.as_newton() / rhs.as_kg())
+    }
+}
+
+impl<'a> Div<&'a Mass> for Force {
+    type Output = Acceleration;
+    fn div(self, rhs: &'a Mass) -> Self::Output {
+        Acceleration::from_m_per_s2(self.as_newton() / rhs.as_kg())
+    }
+}
+
+impl<'a, 'b> Div<&'b Mass> for &'a Force {
+    type Output = Acceleration;
+    fn div(self, rhs: &'b Mass) -> Self::Output {
+        Acceleration::from_m_per_s2(self.as_newton() / rhs.as_kg())
+    }
+}
+
+// 力除以加速度（得到质量）：N / (m/s²) = kg
+//
+// `F = m·a` 的第三个变体。三者构成闭环：
+//
+//     F = m·a      (已有，两个乘法方向)
+//     a = F/m      (上一版补的)
+//     m = F/a      ← 本条
+//
+// 缺这一条时，从测得的力和加速度反推质量只能手拆 `as_newton()/as_m_per_s2()`，
+// 数值等价但绕过了量纲检查。
+impl Div<Acceleration> for Force {
+    type Output = Mass;
+    fn div(self, rhs: Acceleration) -> Self::Output {
+        Mass::from_kg(self.as_newton() / rhs.as_m_per_s2())
+    }
+}
+
+impl<'a> Div<Acceleration> for &'a Force {
+    type Output = Mass;
+    fn div(self, rhs: Acceleration) -> Self::Output {
+        Mass::from_kg(self.as_newton() / rhs.as_m_per_s2())
+    }
+}
+
+impl<'a> Div<&'a Acceleration> for Force {
+    type Output = Mass;
+    fn div(self, rhs: &'a Acceleration) -> Self::Output {
+        Mass::from_kg(self.as_newton() / rhs.as_m_per_s2())
+    }
+}
+
+impl<'a, 'b> Div<&'b Acceleration> for &'a Force {
+    type Output = Mass;
+    fn div(self, rhs: &'b Acceleration) -> Self::Output {
+        Mass::from_kg(self.as_newton() / rhs.as_m_per_s2())
+    }
+}
+
 // 力与时间的乘积（得到动量）：N·s = kg·m/s
 impl Mul<chrono::TimeDelta> for Force {
     type Output = Momentum;
@@ -817,6 +876,14 @@ mod tests {
         let a_direct = Acceleration::from_m_per_s2(50.0);
         let via_mul: Force = m * a_direct;
         assert_relative_eq!(via_mul.as_newton(), f.as_newton(), epsilon = 1e-12);
+
+        // 四种引用变体（上一版只测了单值，引用变体一直没走到）
+        let a2: Acceleration = f / &m;
+        let a3: Acceleration = (&f) / m;
+        let a4: Acceleration = (&f) / &m;
+        for v in [a2.as_m_per_s2(), a3.as_m_per_s2(), a4.as_m_per_s2()] {
+            assert_relative_eq!(v, 50.0, epsilon = 1e-12);
+        }
     }
 
     // 单位不匹配时仍应正确：混合单位输入，内部按 SI 基准换算
@@ -838,5 +905,40 @@ mod tests {
         // 先取值再断言：写进 assert 的消息参数只在失败时求值，不计覆盖率
         let value = a.as_m_per_s2();
         assert!(!value.is_finite(), "零质量应得到 inf，实际 {}", value);
+    }
+
+    // m = F/a：牛顿第二定律的第三个变体，与 F = m·a、a = F/m 构成闭环
+    #[test]
+    fn test_div_acceleration_gives_mass() {
+        let f = Force::from_newton(100.0);
+        let a = Acceleration::from_m_per_s2(4.0);
+        let m: Mass = f / a;
+        assert_relative_eq!(m.as_kg(), 25.0, epsilon = 1e-12);
+
+        // 反代 m·a 应还原 F
+        let back: Force = m * a;
+        assert_relative_eq!(back.as_newton(), 100.0, epsilon = 1e-12);
+
+        // 三条路径必须一致：F/a 与 F/(F/m) 给出同一个质量
+        let m_via_a: Mass = f / (f / m);
+        assert_relative_eq!(m_via_a.as_kg(), m.as_kg(), epsilon = 1e-12);
+
+        // 四种引用变体
+        let m2: Mass = f / &a;
+        let m3: Mass = (&f) / a;
+        let m4: Mass = (&f) / &a;
+        for v in [m2.as_kg(), m3.as_kg(), m4.as_kg()] {
+            assert_relative_eq!(v, 25.0, epsilon = 1e-12);
+        }
+    }
+
+    // 零加速度得到 inf，与其他除法行为一致
+    #[test]
+    fn test_div_zero_acceleration_is_not_silently_zero() {
+        let f = Force::from_newton(100.0);
+        let a = Acceleration::from_m_per_s2(0.0);
+        let m: Mass = f / a;
+        let value = m.as_kg();
+        assert!(!value.is_finite(), "零加速度应得到 inf，实际 {}", value);
     }
 }

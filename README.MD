@@ -831,6 +831,39 @@ let back: Force = (Force::from_newton(100.0) / m) * m;
 `a * m` 和 `m * a` 都能得到 `Force`，`F / m` 是它们的逆运算。
 除数为零时得到 `inf` 而不是静默返回零 —— 后续传播会暴露它，而不是掩盖。
 
+### 平动关系的三个变量可以互解
+
+`F = m·a` 这一族有六种写法，本库全部提供：
+
+| 已知 | 求 | 写法 |
+|---|---|---|
+| `m`, `a` | `F` | `m * a` 或 `a * m` |
+| `F`, `m` | `a` | `F / m` |
+| `F`, `a` | `m` | `F / a` |
+
+同理还有两组：
+
+| 关系 | 正向 | 逆向 |
+|---|---|---|
+| `W = F·d` | `F * d` 或 `d * F` | `W / F` → `Distance` |
+| `p = F·t` | `F * dt` | `p / dt` → `Force` |
+
+```rust
+// 反推质量：测到力和加速度，求质量
+let m: Mass = Force::from_newton(100.0) / Acceleration::from_m_per_s2(4.0);   // 25 kg
+
+// 反推行程：已知做功和推力
+let d: Distance = Energy::from_joule(500.0) / Force::from_newton(50.0);       // 10 m
+
+// 反推推力：500 kg 卫星 10 秒内 Δv = 0.5 m/s
+let impulse: Momentum = Mass::from_kg(500.0) * Velocity::from_m_per_sec(0.5);
+let thrust: Force = impulse / TimeDelta::seconds(10);                         // 25 N
+```
+
+这一族全部是「已知两个求第三个」的闭环，所以没有歧义：除出来的量纲唯一。
+**如果某个关系只实现了正向、没有逆向，那就是缺口** —— 量纲上说得通但写不出来，
+只能手拆 `as_newton()` 之类的基准值，绕过检查。
+
 ### 单位换算的三个坑
 
 ```text

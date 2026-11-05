@@ -1,6 +1,9 @@
 use std::any::Any;
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use crate::physics::basic::{AngularMomentum, Coef, Distance, Momentum, MomentumType, PhysicalQuantity};
+use crate::physics::basic::{
+    AngularMomentum, Coef, Distance, Force, Momentum, MomentumType, PhysicalQuantity,
+    time_delta_to_secs_f64,
+};
 
 impl Default for Momentum {
     fn default() -> Self {
@@ -178,6 +181,40 @@ impl Div<Coef> for Momentum {
     fn div(self, rhs: Coef) -> Self::Output {
         let v = self.as_kg_m_s() / rhs.get_value();
         Self::from_kg_m_s(v)
+    }
+}
+
+// 动量除以时间（得到力）：(kg·m/s) / s = kg·m/s² = N
+//
+// 冲量定理 `p = F·Δt` 的逆运算，即平均力 `F̄ = Δp/Δt`。
+// 量纲 kg·m/s ÷ s = kg·m/s² ✓。
+//
+// 用途：由速度增量反推所需推力（推进、碰撞、气动减速都走这条）。
+impl Div<chrono::TimeDelta> for Momentum {
+    type Output = Force;
+    fn div(self, rhs: chrono::TimeDelta) -> Self::Output {
+        Force::from_newton(self.as_kg_m_s() / time_delta_to_secs_f64(&rhs))
+    }
+}
+
+impl<'a> Div<chrono::TimeDelta> for &'a Momentum {
+    type Output = Force;
+    fn div(self, rhs: chrono::TimeDelta) -> Self::Output {
+        Force::from_newton(self.as_kg_m_s() / time_delta_to_secs_f64(&rhs))
+    }
+}
+
+impl<'a> Div<&'a chrono::TimeDelta> for Momentum {
+    type Output = Force;
+    fn div(self, rhs: &'a chrono::TimeDelta) -> Self::Output {
+        Force::from_newton(self.as_kg_m_s() / time_delta_to_secs_f64(rhs))
+    }
+}
+
+impl<'a, 'b> Div<&'b chrono::TimeDelta> for &'a Momentum {
+    type Output = Force;
+    fn div(self, rhs: &'b chrono::TimeDelta) -> Self::Output {
+        Force::from_newton(self.as_kg_m_s() / time_delta_to_secs_f64(rhs))
     }
 }
 
@@ -427,5 +464,39 @@ mod tests {
         let m5 = Momentum::from_kg_m_s(2.0);
         let neg_m5 = -m5;
         assert_relative_eq!(neg_m5.as_kg_km_s(), -0.002);
+    }
+
+    // F = p/t：冲量定理的逆运算，即平均力
+    #[test]
+    fn test_div_timedelta_gives_force() {
+        let p = Momentum::from_kg_m_s(1000.0);
+        let dt = chrono::TimeDelta::seconds(5);
+        let f: Force = p / dt;
+        assert_relative_eq!(f.as_newton(), 200.0, epsilon = 1e-12);
+
+        // 反代 F·Δt 应还原动量
+        let back: Momentum = f * dt;
+        assert_relative_eq!(back.as_kg_m_s(), 1000.0, epsilon = 1e-12);
+
+        // 四种引用变体
+        let f1: Force = p / &dt;
+        let f2: Force = (&p) / dt;
+        let f3: Force = (&p) / &dt;
+        for v in [f1.as_newton(), f2.as_newton(), f3.as_newton()] {
+            assert_relative_eq!(v, 200.0, epsilon = 1e-12);
+        }
+    }
+
+    // 场景：由速度增量反推平均推力
+    #[test]
+    fn test_impulse_reverse_gives_thrust() {
+        let m = crate::physics::basic::Mass::from_kg(500.0);
+        let dv = crate::physics::basic::Velocity::from_m_per_sec(0.5);
+        let impulse: Momentum = m * dv;
+        assert_relative_eq!(impulse.as_kg_m_s(), 250.0, epsilon = 1e-12);
+
+        // 10 秒内完成这个 Δv 所需的平均推力
+        let thrust: Force = impulse / chrono::TimeDelta::seconds(10);
+        assert_relative_eq!(thrust.as_newton(), 25.0, epsilon = 1e-12);
     }
 }

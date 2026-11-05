@@ -863,6 +863,41 @@ Both `a * m` and `m * a` produce a `Force`; `F / m` is their inverse. A zero div
 yields `inf` rather than silently returning zero — downstream propagation exposes it
 instead of hiding it.
 
+### The three translational variables solve for each other
+
+`F = m·a` has six spellings; this crate provides all of them:
+
+| Known | Solve for | Expression |
+|---|---|---|
+| `m`, `a` | `F` | `m * a` or `a * m` |
+| `F`, `m` | `a` | `F / m` |
+| `F`, `a` | `m` | `F / a` |
+
+Two more families work the same way:
+
+| Relation | Forward | Inverse |
+|---|---|---|
+| `W = F·d` | `F * d` or `d * F` | `W / F` → `Distance` |
+| `p = F·t` | `F * dt` | `p / dt` → `Force` |
+
+```rust
+// recover mass: measured force and acceleration
+let m: Mass = Force::from_newton(100.0) / Acceleration::from_m_per_s2(4.0);   // 25 kg
+
+// recover distance: known work and thrust
+let d: Distance = Energy::from_joule(500.0) / Force::from_newton(50.0);       // 10 m
+
+// recover thrust: 500 kg satellite, Δv = 0.5 m/s in 10 s
+let impulse: Momentum = Mass::from_kg(500.0) * Velocity::from_m_per_sec(0.5);
+let thrust: Force = impulse / TimeDelta::seconds(10);                         // 25 N
+```
+
+Each of these is a closed "known two, solve the third" relation, so the result's
+dimension is unambiguous. **A relation that has the forward direction but not the
+inverse is a gap** — the dimensions work out but the expression does not compile, and
+the only way to write it is to drop to base values like `as_newton()`, bypassing the
+checked boundary.
+
 ### Three unit-conversion traps
 
 ```text

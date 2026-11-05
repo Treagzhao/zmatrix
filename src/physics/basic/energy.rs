@@ -341,6 +341,40 @@ impl Div<Coef> for Energy {
     }
 }
 
+// 能量除以力（得到距离）：J / N = m
+//
+// `W = F·d` 的逆运算（`F·d` 与 `d·F` 两个乘法方向都已存在）。
+// 量纲 kg·m²/s² ÷ (kg·m/s²) = m ✓。
+//
+// 用途：已知做功和推力反推行程；再结合时间可反推平均速度。
+impl Div<Force> for Energy {
+    type Output = Distance;
+    fn div(self, rhs: Force) -> Self::Output {
+        Distance::from_m(self.as_joule() / rhs.as_newton())
+    }
+}
+
+impl<'a> Div<Force> for &'a Energy {
+    type Output = Distance;
+    fn div(self, rhs: Force) -> Self::Output {
+        Distance::from_m(self.as_joule() / rhs.as_newton())
+    }
+}
+
+impl<'a> Div<&'a Force> for Energy {
+    type Output = Distance;
+    fn div(self, rhs: &'a Force) -> Self::Output {
+        Distance::from_m(self.as_joule() / rhs.as_newton())
+    }
+}
+
+impl<'a, 'b> Div<&'b Force> for &'a Energy {
+    type Output = Distance;
+    fn div(self, rhs: &'b Force) -> Self::Output {
+        Distance::from_m(self.as_joule() / rhs.as_newton())
+    }
+}
+
 impl Neg for Energy {
     type Output = Self;
     fn neg(self) -> Self::Output {
@@ -1153,5 +1187,38 @@ mod tests {
         let v8 = ElectricPotential::from_v(2.0);
         let q8 = ElectricCharge::from_coulomb(3.0);
         assert_relative_eq!((&v8 * q8).as_joule(), 6.0);
+    }
+
+    // d = W/F：`W = F·d` 的逆运算
+    #[test]
+    fn test_div_force_gives_distance() {
+        let w = Energy::from_joule(500.0);
+        let f = Force::from_newton(50.0);
+        let d: Distance = w / f;
+        assert_relative_eq!(d.as_m(), 10.0, epsilon = 1e-12);
+
+        // 两个乘法方向都应还原能量
+        let back1: Energy = d * f;
+        let back2: Energy = f * d;
+        assert_relative_eq!(back1.as_joule(), 500.0, epsilon = 1e-12);
+        assert_relative_eq!(back2.as_joule(), 500.0, epsilon = 1e-12);
+
+        // 四种引用变体
+        let d2: Distance = w / &f;
+        let d3: Distance = (&w) / f;
+        let d4: Distance = (&w) / &f;
+        for v in [d2.as_m(), d3.as_m(), d4.as_m()] {
+            assert_relative_eq!(v, 10.0, epsilon = 1e-12);
+        }
+    }
+
+    // 零力得到 inf，而不是静默零
+    #[test]
+    fn test_div_zero_force_is_not_silently_zero() {
+        let w = Energy::from_joule(500.0);
+        let f = Force::from_newton(0.0);
+        let d: Distance = w / f;
+        let value = d.as_m();
+        assert!(!value.is_finite(), "零力应得到 inf，实际 {}", value);
     }
 }

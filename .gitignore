@@ -5,3 +5,6 @@ Cargo.lock
 *.profraw
 /coverage/
 .workbuddy/
+
+# 临时日志 / 草稿（根目录曾误提交过 cargo 编译日志）
+/1.txt

@@ -275,14 +275,28 @@ let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 > |---|---|---|---|
 > | `Distance` | `Force` | `Torque` | torque `τ = r × F` |
 > | `AngularVelocity` | `AngularMomentum` | `Torque` | gyroscopic torque `ω × L` (Euler's second term) |
+> | `AngularVelocity` | `Distance` | `Velocity` | transport velocity `v = ω × r` |
 > | `MagneticMoment` | `MagneticInduction` | `Torque` | magnetic torque `τ = m × B` |
 > | `MagneticInduction` | `AngularVelocity` | `MagneticAngularVelocity` | magnetic angular velocity |
 > | `Distance` | `Velocity` | `SpecificAngularMomentum` | specific angular momentum `h = r × v` |
 > | `Coef` | any `B` | `B` | dimensionless direction crossed with anything; units follow the right side |
 >
 > **Undefined combinations fail to compile** rather than silently producing the wrong type.
-> Reversed orders (`F × r`, `B × m`) are not provided — they are the same quantity negated,
-> and writing `-tau` states the intent.
+> Reversed orders (`F × r`, `B × m`, `r × ω`) are not provided — they are the same quantity
+> negated, and writing `-tau` states the intent.
+>
+> ⚠️ **Transport velocity has two spellings with different jobs.** `ω * r` (scalar
+> multiplication) multiplies the two magnitudes and yields a speed; `ω × r` (cross product)
+> yields the direction and the correct transport relation:
+>
+> ```text
+> ω = 2 ẑ rad/s, r = (3, 0, 4) m      ← r has an axial component
+>   cross  ω × r   → (0, 6, 0) m/s    the axial part contributes nothing
+>   scalar ω * |r| → 10 m/s           the 4 m axial distance is wrongly included
+> ```
+>
+> Use the scalar form for "known radius, want the speed"; anything vector-valued (and
+> anything where `r` is not perpendicular to `ω`) needs the cross product.
 >
 > The `Coef × B → B` row is general: `a × (c·v) = c·(a × v)`, a dimensionless factor does
 > not change the result's units, so a pure direction can be crossed with any quantity
@@ -825,6 +839,30 @@ let drag = rho.drag_force(v, Coef::new(1.2), Area::from_m2(2.0));   // 58800 N
 let f_solar = Pressure::from_pa(4.56e-6) * Area::from_m2(10.0) * Coef::new(1.5);
 ```
 
+### Force to acceleration: F / m
+
+```rust
+let m = Mass::from_kg(500.0);
+
+// scalar: a = F/m
+let a: Acceleration = Force::from_newton(100.0) / m;      // 0.2 m/s²
+
+// vector: component-wise
+let f = Vector3::new(
+    Force::from_newton(10.0),
+    Force::from_newton(20.0),
+    Force::from_newton(-30.0),
+);
+let a_vec: Vector3<Acceleration> = f / m;   // (0.02, 0.04, -0.06) m/s²
+
+// round trip: (a·m) recovers F
+let back: Force = (Force::from_newton(100.0) / m) * m;
+```
+
+Both `a * m` and `m * a` produce a `Force`; `F / m` is their inverse. A zero divisor
+yields `inf` rather than silently returning zero — downstream propagation exposes it
+instead of hiding it.
+
 ### Three unit-conversion traps
 
 ```text
@@ -1178,7 +1216,7 @@ and by the time it blows up exponentially you are already reading wrong conclusi
 
 - eigenvalue solving for `N > 3` (flexible-mode analysis; only the 3×3 `diagonalize` exists)
 - sparse matrices (large-N steady-state thermal networks would exhaust memory with dense LU)
-- `CrossProduct` ships 6 combinations (see the vector section); adding one is a two-line
+- `CrossProduct` ships 7 combinations (see the vector section); adding one is a two-line
   impl. `Coef × any quantity` is now general, so no per-quantity entry is needed there
 - Quantity-to-quantity operators are still incomplete; additions land when a concrete case
   needs them

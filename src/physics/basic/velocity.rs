@@ -140,6 +140,10 @@ impl PhysicalQuantity for Velocity {
     fn default_unit_value(&self) -> f64 {
         self.as_m_per_sec()
     }
+    fn raw_value(&self) -> f64 {
+        self.v
+    }
+
     fn set_value(&mut self, value: f64) {
         self.v = value;
     }

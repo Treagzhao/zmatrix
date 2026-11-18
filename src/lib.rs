@@ -5,8 +5,9 @@ pub mod constant;
 pub mod spatial_geometry;
 pub mod compound;
 pub mod utils;
+pub mod tmr;
 
-pub use constant::{get_flt64_zero, set_flt64_zero};
+pub use constant::{get_flt64_zero, FLT64_ZERO};
 
 
 

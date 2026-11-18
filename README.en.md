@@ -1163,10 +1163,91 @@ assert!((q.norm() - 1.0).abs() < 1e-15);
 
 ---
 
+## 10. Triple-Modular Redundancy Voting (TMR / MNV)
+
+The `tmr` module provides the basis for bitwise voting. Its core is
+`TmrValue::tmr_bits()`, which turns a value into a sequence of `u64` bit patterns for
+two-out-of-three voting.
+
+```rust
+use zmatrix::tmr::{TmrBits, TmrValue};
+
+let u1 = Velocity::from_m_per_sec(7.5);
+let u2 = Velocity::from_m_per_sec(15.0 / 2.0);
+let u3 = Velocity::from_m_per_sec(3.0 + 4.5);
+
+// three units computed the same quantity, constructed differently
+assert_eq!(u1.tmr_bits(), u2.tmr_bits());
+assert_eq!(u2.tmr_bits(), u3.tmr_bits());
+```
+
+Supported types: every `PhysicalQuantity`, plus `Vector3<T>`, `Quaternion`, `CosMatrix`
+and `EulerAngles`.
+
+```rust
+// two out of three
+fn vote3(a: TmrBits, b: TmrBits, c: TmrBits) -> Option<TmrBits> {
+    if a == b { Some(a) }
+    else if a == c { Some(a) }
+    else if b == c { Some(b) }
+    else { None }
+}
+```
+
+### Do not use `memcmp` or `to_array`
+
+Both give the wrong answer:
+
+| Method | Problem |
+|---|---|
+| `memcmp` / raw bytes | A scalar quantity occupies 16 bytes, 7 of which are padding holding stale stack data. Semantically equal values can differ byte-wise, so voting would **report a permanent disagreement** |
+| `to_array()` | Goes through `default_unit_value()`, which **converts units**. `from_g(500)` and `from_kg(0.5)` normalise to the same number, hiding a genuine representational difference |
+
+`tmr_bits()` reads `raw_value()` field by field; neither padding nor unit conversion is
+involved.
+
+### All three units must use the same construction units
+
+Voting compares stored values. `Mass::from_g(500.0)` and `Mass::from_kg(0.5)` are
+physically equal but store `500.0` and `0.5`, so the vote reports a disagreement. That is
+the intended behaviour: **different internal representation means out of sync, and it
+should be surfaced.**
+
+### NaN and ±0
+
+Voting compares bit patterns rather than using `==`, which makes both cases come out right:
+
+| Case | `a == b` | `a.tmr_bits() == b.tmr_bits()` | Correct |
+|---|---|---|---|
+| `NaN` vs `NaN` (same pattern) | `false` | `true` | the latter. Using `==` leaves any NaN-bearing state **permanently unvotable** |
+| `-0.0` vs `+0.0` | `true` | `false` | the latter. Three units running identical code do not produce ±0 divergence; if one appears, something really is out of sync |
+
+```rust
+let n1 = Distance::from_m(f64::NAN);
+let n2 = Distance::from_m(f64::NAN);
+assert_ne!(n1, n2);                          // NaN != NaN
+assert_eq!(n1.tmr_bits(), n2.tmr_bits());    // but the patterns match, so the vote passes
+```
+
+---
+
 ## Not yet implemented
 
 Ordered by current priority. **Deliberately out of scope** items are listed last so they do
 not get re-litigated.
+
+### Voting (`tmr`)
+
+Covered: every `PhysicalQuantity`, plus `Vector3<T>`, `Quaternion`, `CosMatrix` and
+`EulerAngles`.
+
+| Missing | Notes |
+|---|---|
+| `Matrix<R, C, f64>` voting | only `CosMatrix` (fixed 3×3) is supported. A general matrix has a compile-time element count, so `TmrBits` capacity would need to be generic over `R*C` |
+
+`TmrBits` capacity is `MAX_TMR_WORDS = 9` (exactly enough for `CosMatrix`). Raise the
+constant to support larger types; exceeding it makes `push` panic rather than silently
+truncate.
 
 ### Linear algebra (done)
 
@@ -1263,7 +1344,7 @@ and by the time it blows up exponentially you are already reading wrong conclusi
 
 ```toml
 [dependencies]
-zmatrix = "0.4"
+zmatrix = "0.5"
 chrono = "0.4"
 ```
 

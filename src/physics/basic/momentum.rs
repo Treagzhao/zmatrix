@@ -54,6 +54,10 @@ impl PhysicalQuantity for Momentum {
         self.as_kg_m_s()
     }
 
+    fn raw_value(&self) -> f64 {
+        self.v
+    }
+
     fn set_value(&mut self, value: f64) {
         self.v = value;
     }

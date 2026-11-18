@@ -29,6 +29,10 @@ impl PhysicalQuantity for SpecificAngularMomentum {
         self.as_m2_per_second()
     }
 
+    fn raw_value(&self) -> f64 {
+        self.v
+    }
+
     fn set_value(&mut self, value: f64) {
         self.v = value;
     }

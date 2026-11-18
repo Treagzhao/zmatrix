@@ -21,6 +21,10 @@ impl PhysicalQuantity for ElectricResistance {
         self.as_ohm()
     }
 
+    fn raw_value(&self) -> f64 {
+        self.v
+    }
+
     fn set_value(&mut self, value: f64) {
         self.v = value;
     }

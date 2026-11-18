@@ -21,11 +21,29 @@ jobs:
       run: cargo install grcov
 
     # 生成覆盖率报告（需设置环境变量）
+    #
+    # 必须跑两次：`constant.rs` 与 `PhysicalQuantity::raw_value` 在
+    # `feature = "tmr"` 开与关时是不同的代码路径（前者 RwLock vs const，
+    # 后者存在与不存在）。只跑默认配置会让 tmr 那一侧完全不进覆盖率。
+    #
+    # `cargo test --tests` 不含 doctest，所以 doc 测试单独跑——它是正确性
+    # 检查，不参与覆盖率统计（doctest 在 instrument-coverage 下的 profraw
+    # 不落在工作目录，收不上来）。
     - name: Run tests with coverage
       run: |
         export RUSTFLAGS="-Cinstrument-coverage"
         export LLVM_PROFILE_FILE="rust-coverage-%p-%m.profraw"
+
+        # 默认配置：覆盖 not(feature = "tmr") 分支
         cargo test --tests
+
+        # 全量 feature：覆盖 feature = "tmr" 分支
+        cargo test --tests --features tmr
+
+        # 文档示例（正确性，不计覆盖率）
+        cargo test --doc
+        cargo test --doc --features tmr
+
         mkdir -p ./coverage  # 新增：确保目录存在
         grcov . \
           --binary-path ./target/debug/ \

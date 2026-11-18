@@ -92,6 +92,7 @@ impl PhysicalQuantity for Coef {
         self.v
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

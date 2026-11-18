@@ -21,6 +21,7 @@ impl PhysicalQuantity for MagneticMoment {
         self.as_am2()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

@@ -21,6 +21,7 @@ impl PhysicalQuantity for ElectricResistance {
         self.as_ohm()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

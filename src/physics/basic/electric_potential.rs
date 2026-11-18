@@ -21,6 +21,7 @@ impl PhysicalQuantity for ElectricPotential {
         self.as_v()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

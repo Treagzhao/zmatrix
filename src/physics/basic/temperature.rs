@@ -33,6 +33,7 @@ impl PhysicalQuantity for Temperature {
     }
 
     /// 与 [`default_unit_value`](Self::default_unit_value) 对称：写入的是开尔文值。
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.kelvin
     }

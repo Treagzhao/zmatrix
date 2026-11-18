@@ -47,6 +47,7 @@ impl PhysicalQuantity for AngularAcceleration {
         self.as_rad_per_second2()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

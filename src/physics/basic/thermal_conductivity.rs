@@ -32,6 +32,7 @@ impl PhysicalQuantity for ThermalConductivity {
         self.as_w_per_m_k()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

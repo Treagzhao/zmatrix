@@ -96,6 +96,8 @@ pub trait PhysicalQuantity: Any {
 
     /// 内部存储的原始 `f64`，**不做任何单位换算**。
     ///
+    /// 仅在 `tmr` feature 下提供。
+    ///
     /// 与 [`default_unit_value`](Self::default_unit_value) 的区别是本质性的：
     ///
     /// ```text
@@ -123,6 +125,7 @@ pub trait PhysicalQuantity: Any {
     /// - `-0.0 == +0.0`，两个位型不同的值会被判为一致
     ///
     /// 表决应当比较位型而非数值，见 [`TmrValue`](crate::tmr::TmrValue)。
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64;
 
     /// 返回物理量名称和单位，如 "Distance (m)", "Velocity (m/s)"
@@ -1457,6 +1460,7 @@ impl PhysicalQuantity for Distance {
         self.as_m()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }
@@ -1486,6 +1490,7 @@ impl PhysicalQuantity for Angular {
         self.as_rad()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

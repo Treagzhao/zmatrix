@@ -22,6 +22,7 @@ impl PhysicalQuantity for AngularMomentum {
         self.as_nms()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

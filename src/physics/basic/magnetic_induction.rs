@@ -184,6 +184,7 @@ impl PhysicalQuantity for MagneticInduction {
         self.as_tesla()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

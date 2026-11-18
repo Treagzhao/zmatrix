@@ -1125,86 +1125,9 @@ assert!((q.norm() - 1.0).abs() < 1e-15);
 
 ---
 
-## 十、三机冗余表决（TMR / MNV）
-
-`tmr` 模块为按位表决提供基础设施。核心是 `TmrValue::tmr_bits()`：把值转成
-一串 `u64` 位型，供三取二表决使用。
-
-```rust
-use zmatrix::tmr::{TmrBits, TmrValue};
-
-let u1 = Velocity::from_m_per_sec(7.5);
-let u2 = Velocity::from_m_per_sec(15.0 / 2.0);
-let u3 = Velocity::from_m_per_sec(3.0 + 4.5);
-
-// 三台机器各自算出同一个量，构造方式不同
-assert_eq!(u1.tmr_bits(), u2.tmr_bits());
-assert_eq!(u2.tmr_bits(), u3.tmr_bits());
-```
-
-支持的类型：所有 `PhysicalQuantity`、`Vector3<T>`、`Quaternion`、`CosMatrix`、
-`EulerAngles`。
-
-```rust
-// 三取二
-fn vote3(a: TmrBits, b: TmrBits, c: TmrBits) -> Option<TmrBits> {
-    if a == b { Some(a) }
-    else if a == c { Some(a) }
-    else if b == c { Some(b) }
-    else { None }
-}
-```
-
-### 不要用 `memcmp` 或 `to_array`
-
-两个都会给出错误结论：
-
-| 方法 | 问题 |
-|---|---|
-| `memcmp` / 原始字节 | 标量物理量占 16 字节，其中 7 字节是 padding，内容是栈残留。语义相同的值字节可能不同，表决会**永久误报分歧** |
-| `to_array()` | 走 `default_unit_value()`，**带单位换算**。`from_g(500)` 与 `from_kg(0.5)` 会被归一化成同一个数，掩盖真实的表示层分歧 |
-
-`tmr_bits()` 逐字段取 `raw_value()`，padding 与单位换算都不参与。
-
-### 三机必须使用相同的构造单位
-
-表决比较的是内部存储值。`Mass::from_g(500.0)` 与 `Mass::from_kg(0.5)` 语义相等，
-但内部存的是 `500.0` 和 `0.5`，表决会判为分歧。这是期望行为：**内部表示不同
-就是不同步，应当被发现。**
-
-### NaN 与 ±0
-
-表决用位型而非 `==`，两个情形都因此正确：
-
-| 情形 | `a == b` | `a.tmr_bits() == b.tmr_bits()` | 正确结果 |
-|---|---|---|---|
-| `NaN` vs `NaN`（同位型） | `false` | `true` | 后者。用 `==` 会让含 NaN 的状态**永远无法达成一致** |
-| `-0.0` vs `+0.0` | `true` | `false` | 后者。三机跑同样的代码不会出现 ±0 分歧，真出现了说明确实不同步 |
-
-```rust
-let n1 = Distance::from_m(f64::NAN);
-let n2 = Distance::from_m(f64::NAN);
-assert_ne!(n1, n2);                          // NaN != NaN
-assert_eq!(n1.tmr_bits(), n2.tmr_bits());    // 但位型相同，表决通过
-```
-
----
-
 ## 尚未实现的账
 
 按当前优先级排列。**已明确不做**的也列在最后，免得反复讨论。
-
-### 表决（`tmr`）
-
-已覆盖：所有 `PhysicalQuantity`、`Vector3<T>`、`Quaternion`、`CosMatrix`、`EulerAngles`。
-
-| 缺什么 | 说明 |
-|---|---|
-| `Matrix<R, C, f64>` 的表决 | 只有 `CosMatrix`（3×3 定长）支持。通用矩阵的元素数在编译期决定，需按 `R*C` 泛化 `TmrBits` 容量 |
-| `AngularVelocity` 等向量的分量语义 | `Vector3<T>` 已支持，但表决只看位型，不区分"哪个分量"的物理意义 |
-
-`TmrBits` 的容量是 `MAX_TMR_WORDS = 9`（够 `CosMatrix` 用满）。要支持更大的类型，
-提高该常量即可；超容量时 `push` 会 panic 而不是静默截断。
 
 ### 线性代数（已完成）
 
@@ -1295,7 +1218,7 @@ temperature(i) -> Option<Temperature>
 
 ```toml
 [dependencies]
-zmatrix = "0.5"
+zmatrix = "0.4"
 chrono = "0.4"
 ```
 

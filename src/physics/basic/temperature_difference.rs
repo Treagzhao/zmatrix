@@ -24,6 +24,7 @@ impl PhysicalQuantity for TemperatureDifference {
         self.as_kelvin()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.kelvin
     }

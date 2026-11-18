@@ -26,6 +26,7 @@ impl PhysicalQuantity for HeatCapacity {
         self.as_j_per_k()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

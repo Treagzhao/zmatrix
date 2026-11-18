@@ -22,6 +22,7 @@ impl PhysicalQuantity for Power {
         self.as_watt()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

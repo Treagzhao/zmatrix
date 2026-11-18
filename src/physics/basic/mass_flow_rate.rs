@@ -35,6 +35,7 @@ impl PhysicalQuantity for MassFlowRate {
         self.as_kg_per_s()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

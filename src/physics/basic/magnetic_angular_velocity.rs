@@ -21,6 +21,7 @@ impl PhysicalQuantity for MagneticAngularVelocity {
         self.as_tesla_rad_per_second()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

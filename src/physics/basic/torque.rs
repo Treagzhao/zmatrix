@@ -22,6 +22,7 @@ impl PhysicalQuantity for Torque {
         self.as_nm()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

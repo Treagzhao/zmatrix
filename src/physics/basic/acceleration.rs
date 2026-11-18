@@ -167,6 +167,7 @@ impl PhysicalQuantity for Acceleration {
         self.as_m_per_s2()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

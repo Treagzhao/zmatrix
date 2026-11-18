@@ -34,6 +34,7 @@ impl PhysicalQuantity for MassFlux {
         self.as_kg_per_m2_s()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

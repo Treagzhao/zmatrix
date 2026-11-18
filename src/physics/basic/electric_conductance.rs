@@ -21,6 +21,7 @@ impl PhysicalQuantity for ElectricConductance {
         self.as_siemens()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

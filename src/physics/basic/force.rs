@@ -22,6 +22,7 @@ impl PhysicalQuantity for Force {
         self.as_newton()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

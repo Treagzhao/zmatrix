@@ -27,6 +27,7 @@ impl PhysicalQuantity for Inertia {
         self.as_kg_m2()
     }
 
+    #[cfg(feature = "tmr")]
     fn raw_value(&self) -> f64 {
         self.v
     }

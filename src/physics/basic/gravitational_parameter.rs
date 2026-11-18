@@ -29,6 +29,11 @@ impl PhysicalQuantity for GravitationalParameter {
         self.as_m3_per_s2()
     }
 
+    #[cfg(feature = "tmr")]
+    fn raw_value(&self) -> f64 {
+        self.v
+    }
+
     fn set_value(&mut self, value: f64) {
         self.v = value;
     }

@@ -12,9 +12,21 @@
 
 ## 快速了解
 
+覆盖范围：
+
+| 模块 | 内容 | 章节 |
+|---|---|---|
+| 物理量 | 38 种量、多种单位、编译期量纲检查 | 一 |
+| 矩阵 | `const generics` 定尺寸、LU 求解 / 行列式 / 求逆 | 二 |
+| 向量 | 叉乘、点乘、反对称矩阵 | 三 |
+| 刚体转动 | 转动惯量张量、欧拉方程、主轴对角化、引力梯度与磁力矩 | 四、五 |
+| 热学 | 温度与温差分离、傅里叶定律、集总参数热网络元件 | 六 |
+| 流体 | 密度、压力、质量通量、气动力与光压 | 七 |
+| 轨道 | 比角动量、轨道要素、偏心率矢量 | 八 |
+| 姿态 | 欧拉角、方向余弦矩阵、四元数 | 九 |
+
 ```rust
 use zmatrix::physics::basic::*;
-use zmatrix::dense::Matrix;
 use chrono::TimeDelta;
 
 // 物理量自动单位转换
@@ -86,7 +98,7 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ 正确
 
 所有涉及时间的运算都接收 `chrono::TimeDelta`，**不支持** `std::time::Duration`。
 
-理由：`Duration` 无法表示负时长（反向制动、时间倒推都无法表达），而这是仿真中的真实需求。此前的双轨支持已在 `0.4.1` 移除。
+理由是 `Duration` 无符号、无法表示负时长，而反向制动、时间倒推都是仿真中的真实需求：
 
 ```rust
 use chrono::TimeDelta;
@@ -249,13 +261,13 @@ let skew = v1.skew_symmetric_matrix();    // 3×3
 let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 ```
 
-> **叉乘的输出类型由 `CrossProduct` 决定，不再依赖 `Mul`。**
+> **叉乘的输出类型由 `CrossProduct` 决定，不走 `Mul`。**
 >
-> 早期版本以 `T: Mul<B, Output = F>` 推导输出类型，导致最常用的 `m × B` 无法表达 ——
-> 因为 `MagneticMoment * MagneticInduction` 已被**点乘**占用（输出 `Energy`），
-> Rust 不允许同一 `Mul` 有两个 `Output`。`Distance × Force` 同理（`Mul` 给出功）。
+> 因为 `Mul` 已经被普通乘法占用，而同一对类型既可能相乘、也可能叉乘，两者给出不同的量：
+> `Distance * Force` 是功（`Energy`），`r × F` 却是力矩（`Torque`）。
+> Rust 不允许同一个 `Mul` 有两个 `Output`，若用 `Mul` 承载叉乘，`r × F` 就写不出来。
 >
-> 现在改用专用 trait：
+> 所以改用专用 trait：
 >
 > ```text
 > pub trait CrossProduct<B> {
@@ -290,8 +302,7 @@ let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 > 已知半径求速率用标量版；向量场里算牵连速度必须用叉乘。
 >
 > `Coef × B → B` 这一条是泛化的：`a × (c·v) = c·(a × v)`，无量纲因子不改变结果
-> 量纲，所以纯方向与任意物理量向量叉乘都合法。原先单独的 `Coef × Coef → Coef`
-> 已被它覆盖。
+> 量纲，所以纯方向与任意物理量向量叉乘都合法，`Coef × Coef → Coef` 也包含在内。
 
 ### 向量的时间算术
 
@@ -860,9 +871,7 @@ let impulse: Momentum = Mass::from_kg(500.0) * Velocity::from_m_per_sec(0.5);
 let thrust: Force = impulse / TimeDelta::seconds(10);                         // 25 N
 ```
 
-这一族全部是「已知两个求第三个」的闭环，所以没有歧义：除出来的量纲唯一。
-**如果某个关系只实现了正向、没有逆向，那就是缺口** —— 量纲上说得通但写不出来，
-只能手拆 `as_newton()` 之类的基准值，绕过检查。
+这一族全部是「已知两个求第三个」的闭环，除出来的量纲唯一，不需要额外标注。
 
 ### 单位换算的三个坑
 
@@ -997,14 +1006,7 @@ e = v×h/μ − r̂                              （Laplace-Runge-Lenz 矢量）
 e = (|v|²/μ − 1/|r|)·r − ((r·v)/μ)·v        （只用 r、v、μ）
 ```
 
-第二式在纯类型层面暂时写不出来，缺两个运算符：
-
-| 缺什么 | 用途 |
-|---|---|
-| `Vector3<Distance>` 与 `Vector3<Velocity>` 的点乘 | `r·v`（现有 `dot` 要求两侧同类型） |
-| `Velocity × Velocity` | `\|v\|²` |
-
-要算 `r·v` 和 `|v|²` 时先取 `f64` 分量：
+第二式需要 `r·v` 和 `|v|²`，而 `dot` 要求两侧同类型，所以先取 `f64` 分量：
 
 ```rust
 let r = Vector3::new(Distance::from_m(7078e3), Distance::default(), Distance::default());
@@ -1125,92 +1127,9 @@ assert!((q.norm() - 1.0).abs() < 1e-15);
 
 ---
 
-## 尚未实现的账
+## 想了解更多
 
-按当前优先级排列。**已明确不做**的也列在最后，免得反复讨论。
-
-### 线性代数（已完成）
-
-`dense::Matrix` 现有：`det` / `det_via_lu` / `solve` / `inverse` / `lu_decompose`，
-全部只在 `f64` 上开放（原因见上文「线性方程组与行列式」）。
-
-`InertiaTensor` 现有：`solve_omega` / `solve_alpha`（Cholesky）/ `diagonalize`
-（Jacobi）/ `parallel_axis` / `from_engineering_array` / `to_engineering_array`。
-
-剩余缺口：
-
-| 缺什么 | 影响 |
-|---|---|
-| 特征值求解（`N > 3`） | 挠性模态分析需要，目前只有 3×3 的 `diagonalize` |
-| 稀疏矩阵 | 大 N 的稳态热网络会把稠密 LU 撑爆内存 |
-
-**量纲约束依然成立**：`J⁻¹` 需要 `(kg·m²)⁻¹`、`det` 需要 `(kg·m²)³`，这两个量都不存在，
-所以 `Matrix` 层只能是 `f64`，不能做成带量纲的通用接口。这也是 `Matrix` 保持
-纯数值定位的原因。
-
-### 热学量
-
-| 待做 | 单位 | 说明 |
-|---|---|---|
-| `SpecificHeatCapacity` 比热容 | J/(kg·K) | 材料属性，`C = c·m` |
-| `HeatTransferCoefficient` 传热系数 | W/(m²·K) | 表面对流，`q = h·ΔT`。真空环境很少用，优先级低 |
-| `ThermalResistance` 热阻 | K/W | `R = 1/G`，串联分析更直观 |
-| 辐射辅助函数 | — | `σT⁴` 在类型系统里没有落点，只能做成函数：`radiative_flux(ε, T)` |
-
-**已明确不做**：
-
-- `Entropy` 熵（J/K）—— 卫星热分析不用，等有明确需求
-- `ThermalDiffusivity` 热扩散率（m²/s）—— `α = k/(ρc)` 可推，重复
-- `Heat` 热量、`InternalEnergy` 内能 —— 与 `Energy` 重复
-- `SpecificHeatRatio` 比热容比 γ —— 无量纲商，`Coef` 够用；且固体 `cp≈cv`、`γ≈1` 无信息量
-- `Emissivity` 发射率 —— 先用 `Coef`，不引入值域约束（库里无先例）
-
-### 流体量
-
-| 待做 | 单位 | 说明 |
-|---|---|---|
-| `DynamicViscosity` 动力粘度 | Pa·s | 雷诺数 `Re = ρvL/μ` 需要 |
-| `KinematicViscosity` 运动粘度 | m²/s | `ν = μ/ρ` |
-| `SpecificGasConstant` 气体常数 | J/(kg·K) | 理想气体 `P = ρRT` 需要 |
-| `SpeedOfSound` 声速 | m/s | 马赫数需要；`a = √(γRT)` 含 γ，属命名函数场景 |
-
-### `compound` 模块
-
-| 待做 | 说明 |
-|---|---|
-| `InertiaTensor` 由质量分布积分生成 | 从离散质点表 `Σ mᵢ(r²I − rrᵀ)` 直接构造 |
-| `ThermalNetwork` 热网络容器 | 见下 |
-
-**`ThermalNetwork` 计划范围**：
-
-```text
-add_node(capacity, temperature)     加节点
-add_link(i, j, conductance)         加连接
-set_source(i, power)                加热源
-step(dt) -> Result<(), _>           显式推进一歩
-temperature(i) -> Option<Temperature>
-```
-
-**只做显式推进**：隐式推进与稳态求解都需要线性方程组求解器。
-`Matrix::solve` 现在已可用，所以**稳态求解的阻塞已解除**，但隐式推进还需要
-时间步进框架（Newton 迭代 + 收敛判据），不在当前范围。
-`step()` 会检查显式稳定性判据 `Δt < 2·Cᵢ/ΣGᵢⱼ` 并返回错误 ——
-不检查的话发散初期的曲线仍然"看起来合理"，等指数爆炸时已经在看错误结论了。
-
-### 轨道力学
-
-| 待做 | 说明 |
-|---|---|
-| `Vector3<Distance>` 与 `Vector3<Velocity>` 的点乘 | 算偏心率矢量需要 `r·v`；现在 `dot` 要求两侧同类型 |
-| `Velocity × Velocity` | `\|v\|²` 需要；也可以为 `Velocity` 加标量平方入口 |
-| 近地点/远地点半径、真近点角、平近点角 | 等有明确需求再补 |
-
-### 其他
-
-- `CrossProduct` 实现了 7 个组合（见向量章节），新增一个只需两行 impl；
-  `Coef × 任意量纲` 已泛化，不再需要逐个量纲添加
-- 物理量之间的乘除法覆盖仍不完整，遇到具体场景再补
-- 单位系统仅覆盖工程常用子集，不是完整的 SI 词头体系
+设计取舍、演变原因与待办清单见 **[NOTES.md](NOTES.md)**。
 
 ---
 

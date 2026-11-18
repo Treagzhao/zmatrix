@@ -94,6 +94,40 @@ pub trait PhysicalQuantity: Any {
 
     fn set_value(&mut self, value: f64);
 
+    /// 内部存储的原始 `f64`，**不做任何单位换算**。
+    ///
+    /// 仅在 `tmr` feature 下提供。
+    ///
+    /// 与 [`default_unit_value`](Self::default_unit_value) 的区别是本质性的：
+    ///
+    /// ```text
+    /// Mass::from_g(500.0)   →  raw_value() = 500.0   default_unit_value() = 0.5
+    /// Mass::from_kg(0.5)    →  raw_value() = 0.5     default_unit_value() = 0.5
+    /// ```
+    ///
+    /// 两者语义相同，`raw_value` 却给出不同的数——因为内部按各自的单位存。
+    ///
+    /// # 用途
+    ///
+    /// 按位表决（TMR / MNV）必须比较原始存储值：它要求的是"两台冗余机的状态
+    /// 是否逐位相同"，而不是"两个物理量是否数值相等"。用
+    /// `default_unit_value` 会把 `g` 与 `kg` 两种表示归一化成同一个数，
+    /// 从而**掩盖真实的表示层分歧**。
+    ///
+    /// ⚠️ 这意味着三机冗余必须使用**相同的构造单位**。如果一台用 `from_g`、
+    /// 另一台用 `from_kg`，即使物理量相等，`raw_value` 也不同，表决会判为分歧。
+    /// 这是**期望行为**：内部表示不同就是不同步，应当被发现。
+    ///
+    /// # 关于 NaN 与 ±0
+    ///
+    /// 本方法返回 `f64`，直接用 `==` 比较会踩两个坑：
+    /// - `NaN != NaN`，两个合法 NaN 会被判为分歧
+    /// - `-0.0 == +0.0`，两个位型不同的值会被判为一致
+    ///
+    /// 表决应当比较位型而非数值，见 [`TmrValue`](crate::tmr::TmrValue)。
+    #[cfg(feature = "tmr")]
+    fn raw_value(&self) -> f64;
+
     /// 返回物理量名称和单位，如 "Distance (m)", "Velocity (m/s)"
     fn unit_display_name(&self) -> String;
 }
@@ -1426,6 +1460,11 @@ impl PhysicalQuantity for Distance {
         self.as_m()
     }
 
+    #[cfg(feature = "tmr")]
+    fn raw_value(&self) -> f64 {
+        self.v
+    }
+
     fn set_value(&mut self, value: f64) {
         self.v = value;
     }
@@ -1449,6 +1488,11 @@ impl PhysicalQuantity for Angular {
     }
     fn default_unit_value(&self) -> f64 {
         self.as_rad()
+    }
+
+    #[cfg(feature = "tmr")]
+    fn raw_value(&self) -> f64 {
+        self.v
     }
 
     fn set_value(&mut self, value: f64) {

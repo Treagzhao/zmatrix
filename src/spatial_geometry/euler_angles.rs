@@ -5,6 +5,11 @@ use crate::physics::basic::{Angular, AngularType, Coef, Vector3};
 use crate::spatial_geometry::cos_matrix::CosMatrix;
 use crate::spatial_geometry::quaternion::Quaternion;
 
+/// 欧拉角（偏航-俯仰-滚转）。
+///
+/// `Copy` 是必要的：姿态解算里欧拉角常按值传递、按值返回，且需要能自由复制
+/// 到多个下游计算。`PartialEq` 便于在测试与状态比对中直接比较。
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EulerAngles {
     pub yaw: Angular,
     pub pitch: Angular,

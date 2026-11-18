@@ -27,6 +27,11 @@ impl PhysicalQuantity for ThermalConductance {
         self.as_w_per_k()
     }
 
+    #[cfg(feature = "tmr")]
+    fn raw_value(&self) -> f64 {
+        self.v
+    }
+
     fn set_value(&mut self, value: f64) {
         self.v = value;
     }

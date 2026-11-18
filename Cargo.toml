@@ -1,6 +1,6 @@
 [package]
 name = "zmatrix"
-version = "0.4.10"
+version = "0.4.11"
 edition = "2024"
 rust-version = "1.85"
 authors = ["Treagzhao"]
@@ -19,6 +19,16 @@ lazy_static = "1.5.0"
 rand = "0.9.1"
 rayon = "1.10.0"
 serde = "1.0.219"
+
+[features]
+default = []
+# 三机冗余按位表决（TMR / MNV）。
+#
+# 开启后额外提供 `tmr` 模块、`PhysicalQuantity::raw_value`，并把判零阈值
+# `FLT64_ZERO` 从运行时可变（`RwLock` + `set_flt64_zero`）改为编译期常量。
+#
+# 关掉时这些内容完全不存在，默认构建的行为与 API 不变。
+tmr = []
 
 [[bench]]
 name = "bench_sum"        # 对应 benches/bench_sum.rs

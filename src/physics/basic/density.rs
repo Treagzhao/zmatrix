@@ -35,6 +35,11 @@ impl PhysicalQuantity for Density {
         self.as_kg_per_m3()
     }
 
+    #[cfg(feature = "tmr")]
+    fn raw_value(&self) -> f64 {
+        self.v
+    }
+
     fn set_value(&mut self, value: f64) {
         self.v = value;
     }

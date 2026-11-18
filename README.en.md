@@ -12,9 +12,21 @@ A Rust math library for aerospace, robotics, and physics simulation. Features a 
 
 ## Quick Look
 
+What's covered:
+
+| Area | Contents | Section |
+|---|---|---|
+| Quantities | 38 quantities, multiple units each, compile-time dimensional analysis | 1 |
+| Matrices | `const generics` fixed size, LU solve / determinant / inverse | 2 |
+| Vectors | cross product, dot product, skew-symmetric matrix | 3 |
+| Rigid-body rotation | inertia tensor, Euler's equation, principal-axis diagonalisation, gravity-gradient and magnetic torque | 4, 5 |
+| Thermal | temperature vs. temperature difference, Fourier's law, lumped-network elements | 6 |
+| Fluid | density, pressure, mass flux, aerodynamic and solar-radiation forces | 7 |
+| Orbital | specific angular momentum, orbital elements, eccentricity vector | 8 |
+| Attitude | Euler angles, direction cosine matrices, quaternions | 9 |
+
 ```rust
 use zmatrix::physics::basic::*;
-use zmatrix::dense::Matrix;
 use chrono::TimeDelta;
 
 // Automatic unit conversion
@@ -88,8 +100,8 @@ let a: Acceleration = v / time_delta_from_secs_f64(5.0);  // ✅ Correct
 
 Every time-taking operation accepts `chrono::TimeDelta`. `std::time::Duration` is **not supported**.
 
-Rationale: `Duration` cannot represent negative spans, so retrograde burns and reversed
-time stepping are inexpressible. The dual-track support was removed in `0.4.1`.
+Rationale: `Duration` is unsigned, so retrograde burns and reversed time stepping are
+inexpressible — every call site would have to track sign and direction itself.
 
 ```rust
 use chrono::TimeDelta;
@@ -256,12 +268,12 @@ let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 
 > **The cross-product output type comes from `CrossProduct`, not `Mul`.**
 >
-> Earlier versions derived it from `T: Mul<B, Output = F>`, which made the most natural
-> operation unexpressible: `m × B`. Scalar `MagneticMoment * MagneticInduction` is already
-> taken by the **dot product** (yielding `Energy`), and Rust forbids two `Mul` impls with
-> different `Output`. `Distance × Force` fails the same way (`Mul` yields work).
+> `Mul` is already taken by ordinary multiplication, and the same pair of types can be
+> both multiplied and crossed, yielding different quantities: `Distance * Force` gives
+> work (`Energy`) while `r × F` gives torque (`Torque`). Rust forbids one `Mul` with two
+> `Output` types, so carrying the cross product on `Mul` would make `r × F` unwritable.
 >
-> A dedicated trait replaces it:
+> A dedicated trait keeps both:
 >
 > ```text
 > pub trait CrossProduct<B> {
@@ -300,7 +312,7 @@ let skew4 = v1.skew_symmetric_matrix_4(); // 4×4
 >
 > The `Coef × B → B` row is general: `a × (c·v) = c·(a × v)`, a dimensionless factor does
 > not change the result's units, so a pure direction can be crossed with any quantity
-> vector. It also covers the former standalone `Coef × Coef → Coef`.
+> vector, `Coef × Coef → Coef` included.
 
 ### Vector time arithmetic
 
@@ -1040,14 +1052,8 @@ e = v×h/μ − r̂                              (Laplace-Runge-Lenz vector)
 e = (|v|²/μ − 1/|r|)·r − ((r·v)/μ)·v        (uses only r, v, μ)
 ```
 
-The second cannot currently be written in pure typed form; two operators are missing:
-
-| Missing | Needed for |
-|---|---|
-| dot product between `Vector3<Distance>` and `Vector3<Velocity>` | `r·v` (the existing `dot` requires identical element types) |
-| `Velocity × Velocity` | `\|v\|²` |
-
-To compute `r·v` and `|v|²`, drop to `f64` components first:
+The second needs `r·v` and `|v|²`, and `dot` requires identical element types, so drop to
+`f64` components first:
 
 ```rust
 let r = Vector3::new(Distance::from_m(7078e3), Distance::default(), Distance::default());
@@ -1163,99 +1169,10 @@ assert!((q.norm() - 1.0).abs() < 1e-15);
 
 ---
 
-## Not yet implemented
+## Want more detail
 
-Ordered by current priority. **Deliberately out of scope** items are listed last so they do
-not get re-litigated.
-
-### Linear algebra (done)
-
-`dense::Matrix` now has `det` / `det_via_lu` / `solve` / `inverse` / `lu_decompose`,
-all `f64`-only (see "Systems of equations and determinants" above).
-
-`InertiaTensor` now has `solve_omega` / `solve_alpha` (Cholesky) / `diagonalize` (Jacobi) /
-`parallel_axis` / `from_engineering_array` / `to_engineering_array`.
-
-Remaining gaps:
-
-| Missing | Impact |
-|---|---|
-| eigenvalue solving for `N > 3` | flexible-mode analysis; only the 3×3 `diagonalize` exists |
-| sparse matrices | large-N steady-state thermal networks would exhaust memory with dense LU |
-
-**The dimensional constraint still holds**: `J⁻¹` needs `(kg·m²)⁻¹` and `det` needs
-`(kg·m²)³`, neither of which exists as a quantity. So `Matrix` stays `f64`-only —
-which is exactly why it keeps its plain-numeric scope.
-
-### Thermal quantities
-
-| Missing | Unit | Notes |
-|---|---|---|
-| `SpecificHeatCapacity` | J/(kg·K) | material property, `C = c·m` |
-| `HeatTransferCoefficient` | W/(m²·K) | surface convection, `q = h·ΔT`. Rare in vacuum, low priority |
-| `ThermalResistance` | K/W | `R = 1/G`, clearer for series paths |
-| Radiation helpers | — | `σT⁴` has no place in the type system; functions only: `radiative_flux(ε, T)` |
-
-**Deliberately not planned**:
-
-- `Entropy` (J/K) — unused in satellite thermal work; wait for a concrete need
-- `ThermalDiffusivity` (m²/s) — derivable as `α = k/(ρc)`, redundant
-- `Heat`, `InternalEnergy` — duplicate `Energy`
-- `SpecificHeatRatio` γ — dimensionless quotient, `Coef` suffices; for solids `cp ≈ cv` and
-  `γ ≈ 1`, so it carries no information
-- `Emissivity` — use `Coef` for now; no value-range constraints exist anywhere in this crate
-
-### Fluid quantities
-
-| Missing | Unit | Notes |
-|---|---|---|
-| `DynamicViscosity` | Pa·s | Reynolds number `Re = ρvL/μ` |
-| `KinematicViscosity` | m²/s | `ν = μ/ρ` |
-| `SpecificGasConstant` | J/(kg·K) | ideal gas `P = ρRT` |
-| `SpeedOfSound` | m/s | Mach number; `a = √(γRT)` carries γ, so it belongs to a named function |
-
-### `compound` module
-
-| Missing | Notes |
-|---|---|
-| `InertiaTensor` from a mass distribution | build directly from a point-mass table `Σ mᵢ(r²I − rrᵀ)` |
-| `ThermalNetwork` container | see below |
-
-**Explicit stepping only**: implicit stepping needs a time-stepping framework (Newton
-iteration plus convergence criteria). `Matrix::solve` now unblocks *steady-state* solving,
-but the framework is out of scope.
-
-**Planned `ThermalNetwork` scope**:
-
-```text
-add_node(capacity, temperature)     add a node
-add_link(i, j, conductance)         add a link
-set_source(i, power)                attach a heat source
-step(dt) -> Result<(), _>           advance one explicit step
-temperature(i) -> Option<Temperature>
-```
-
-`step()` will check the explicit stability criterion `Δt < 2·Cᵢ/ΣGᵢⱼ` and return an error —
-without that check, a diverging solution still produces plausible-looking curves early on,
-and by the time it blows up exponentially you are already reading wrong conclusions.
-
-### Orbital mechanics
-
-| Missing | Notes |
-|---|---|
-| dot product between `Vector3<Distance>` and `Vector3<Velocity>` | needed for `r·v` in the eccentricity vector; `dot` requires identical element types |
-| `Velocity × Velocity` | needed for `\|v\|²`; alternatively a scalar squaring entry on `Velocity` |
-| periapsis/apoapsis radius, true/mean anomaly | add when there is concrete demand |
-
-### Other
-
-- eigenvalue solving for `N > 3` (flexible-mode analysis; only the 3×3 `diagonalize` exists)
-- sparse matrices (large-N steady-state thermal networks would exhaust memory with dense LU)
-- `CrossProduct` ships 7 combinations (see the vector section); adding one is a two-line
-  impl. `Coef × any quantity` is now general, so no per-quantity entry is needed there
-- Quantity-to-quantity operators are still incomplete; additions land when a concrete case
-  needs them
-- The unit system covers a practical engineering subset, not the full SI prefix hierarchy
+Design trade-offs, the reasoning behind them, and the to-do list live in
+**[NOTES.md](NOTES.md)** (written in Chinese).
 
 ---
 

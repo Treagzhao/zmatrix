@@ -29,6 +29,16 @@ jobs:
     # `cargo test --tests` 不含 doctest，所以 doc 测试单独跑——它是正确性
     # 检查，不参与覆盖率统计（doctest 在 instrument-coverage 下的 profraw
     # 不落在工作目录，收不上来）。
+    #
+    # `build.rs` 被排除：构建脚本在 `cargo test` 的编译阶段就执行完毕，
+    # 测试运行时不会再跑它，所以它生成的 profraw 里从来没有它的记录。
+    # 这不是"漏测"，是结构性无法覆盖——留着只会让 patch 覆盖率被一段
+    # 永远不可能执行到的代码拉低。
+    #
+    # 它的可测逻辑（解析、校验、生成源码）已经抽到 `build_support.rs`，
+    # 由 `src/lib.rs` 在 cfg(test) 下引入并单测（15 个用例）。所以排除
+    # `build.rs` 排掉的只是"读环境变量 + 写文件"这几行胶水，不是把校验
+    # 逻辑一并跳过。
     - name: Run tests with coverage
       run: |
         export RUSTFLAGS="-Cinstrument-coverage"
@@ -51,6 +61,7 @@ jobs:
           --branch \
           --ignore-not-existing \
           --ignore "/*" \
+          --ignore "build.rs" \
           --ignore "examples/*" \
           --ignore "benches/*" \
           --ignore "src/tests/*" \
